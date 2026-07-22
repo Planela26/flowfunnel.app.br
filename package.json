@@ -16,6 +16,7 @@
   "dependencies": {
     "@next-auth/prisma-adapter": "^1.0.7",
     "@prisma/client": "^6.19.3",
+    "@radix-ui/react-accordion": "^1.2.17",
     "@stripe/react-stripe-js": "^6.0.0",
     "@stripe/stripe-js": "^9.0.0",
     "@types/qrcode": "^1.5.6",
