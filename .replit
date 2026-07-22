@@ -14,12 +14,15 @@ STRIPE_PRICE_START = "price_1TGC9uHozdjtX6AC911xvx53"
 STRIPE_PRICE_PRO = "price_1TGC9vHozdjtX6ACKP2DaHka"
 STRIPE_PRICE_SCALE = "price_1TGC9vHozdjtX6ACbY8LxBeG"
 RESEND_FROM_EMAIL = "FlowFunnel <noreply@flowfunnel.app.br>"
+BASE_PATH = ""
+BASE_URL = "https://flowfunnel.app.br"
+NEXTAUTH_URL = "https://flowfunnel.app.br"
+NEXT_PUBLIC_APP_URL = "https://flowfunnel.app.br"
+NEXT_PUBLIC_SITE_URL = "https://flowfunnel.app.br"
 
 [userenv.development]
-NEXTAUTH_URL = "https://810132a2-1ab5-4482-8675-3a7662f7cfe9-00-1dco9li6r4naw.picard.replit.dev"
 
 [userenv.production]
-NEXTAUTH_URL = "https://flowfunnel.app.br"
 
 [workflows]
 runButton = "Project"
