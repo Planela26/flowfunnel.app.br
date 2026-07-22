@@ -5,13 +5,13 @@ const globalForPrisma = globalThis as unknown as {
   prismaBase: PrismaClient | undefined
 }
 
-const neonUrl = process.env.NEON_DATABASE_URL
+const supabasePoolerUrl = process.env.SUPABASE_DATABASE_URL
 
-const prismaClientOptions = neonUrl
+const prismaClientOptions = supabasePoolerUrl
   ? {
       datasources: {
         db: {
-          url: neonUrl,
+          url: supabasePoolerUrl,
         },
       },
     }

@@ -13,6 +13,15 @@
 # already-up-to-date database is safe.
 set -eo pipefail
 
+# Load local env file for development/testing if it exists.
+# In production (Hostinger) the variables come from the environment directly.
+if [ -f .env.local ]; then
+  set -a
+  # shellcheck source=/dev/null
+  source .env.local
+  set +a
+fi
+
 OUT=$(mktemp)
 trap 'rm -f "$OUT"' EXIT
 
