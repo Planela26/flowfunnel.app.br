@@ -1,0 +1,6 @@
+DATABASE_URL=postgresql://postgres:password@helium/heliumdb?sslmode=disable
+PGPORT=5432
+PGPASSWORD=password
+PGUSER=postgres
+PGDATABASE=heliumdb
+PGHOST=helium

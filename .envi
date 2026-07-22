@@ -1,0 +1,125 @@
+# ============================================
+# FlowFunnel - Environment Variables Export
+# Generated for deployment in another platform
+# ============================================
+
+# --------------------------------------------
+# Database
+# Preencha com os dados do PostgreSQL do novo ambiente
+# --------------------------------------------
+DATABASE_URL="postgresql://user:password@host:5432/whatsapp_funnel"
+# NEON_DATABASE_URL: alternativa se usar Neon (opcional)
+NEON_DATABASE_URL="postgresql://user:password@host:5432/whatsapp_funnel"
+
+# --------------------------------------------
+# NextAuth
+# --------------------------------------------
+# NEXTAUTH_SECRET: gere uma chave secreta forte (ex: openssl rand -base64 32)
+NEXTAUTH_SECRET="COLE_AQUI_SUA_CHAVE_SECRETA_FORTE"
+NEXTAUTH_URL="https://flowfunnel.app.br"
+
+# --------------------------------------------
+# App URLs (usadas pelo frontend para links e callbacks)
+# --------------------------------------------
+NEXT_PUBLIC_APP_URL="https://flowfunnel.app.br"
+NEXT_PUBLIC_SITE_URL="https://flowfunnel.app.br"
+BASE_URL="https://flowfunnel.app.br"
+BASE_PATH=""
+
+# --------------------------------------------
+# Google OAuth (login com Google)
+# --------------------------------------------
+GOOGLE_CLIENT_ID="COLE_AQUI"
+GOOGLE_CLIENT_SECRET="COLE_AQUI"
+
+# --------------------------------------------
+# Meta / Facebook API / Pixel / Conversions API
+# --------------------------------------------
+META_APP_ID="COLE_AQUI"
+META_APP_SECRET="COLE_AQUI"
+META_ACCESS_TOKEN="COLE_AQUI"
+
+# --------------------------------------------
+# WhatsApp Cloud API (webhooks e envio de mensagens)
+# --------------------------------------------
+WHATSAPP_PHONE_NUMBER_ID="COLE_AQUI"
+WHATSAPP_BUSINESS_ACCOUNT_ID="COLE_AQUI"
+WHATSAPP_ACCESS_TOKEN="COLE_AQUI"
+WHATSAPP_APP_SECRET="COLE_AQUI"
+WHATSAPP_VERIFY_TOKEN="COLE_AQUI"
+
+# --------------------------------------------
+# Hotmart
+# --------------------------------------------
+HOTMART_CLIENT_ID="COLE_AQUI"
+HOTMART_CLIENT_SECRET="COLE_AQUI"
+HOTMART_BASIC_TOKEN="COLE_AQUI"
+HOTMART_WEBHOOK_SECRET="COLE_AQUI"
+
+# --------------------------------------------
+# Kiwify
+# --------------------------------------------
+KIWIFY_API_KEY="COLE_AQUI"
+KIWIFY_WEBHOOK_SECRET="COLE_AQUI"
+
+# --------------------------------------------
+# Eduzz
+# --------------------------------------------
+EDUZZ_EMAIL="COLE_AQUI"
+EDUZZ_PUBLIC_KEY="COLE_AQUI"
+EDUZZ_WEBHOOK_SECRET="COLE_AQUI"
+
+# --------------------------------------------
+# Monetizze
+# --------------------------------------------
+MONETIZZE_CONSUMER_KEY="COLE_AQUI"
+MONETIZZE_CONSUMER_SECRET="COLE_AQUI"
+MONETIZZE_WEBHOOK_SECRET="COLE_AQUI"
+
+# --------------------------------------------
+# Perfect Pay
+# --------------------------------------------
+PERFECT_PAY_WEBHOOK_SECRET="COLE_AQUI"
+
+# --------------------------------------------
+# Stripe (configurado no projeto atual)
+# --------------------------------------------
+STRIPE_PUBLISHABLE_KEY="COLE_AQUI"
+STRIPE_SECRET_KEY="COLE_AQUI"
+STRIPE_WEBHOOK_SECRET="COLE_AQUI"
+STRIPE_PRICE_START="price_1TGC9uHozdjtX6AC911xvx53"
+STRIPE_PRICE_PRO="price_1TGC9vHozdjtX6ACKP2DaHka"
+STRIPE_PRICE_SCALE="price_1TGC9vHozdjtX6ACbY8LxBeG"
+
+# --------------------------------------------
+# Mercado Pago (configurado no projeto atual)
+# --------------------------------------------
+MERCADOPAGO_PUBLIC_KEY="COLE_AQUI"
+MERCADOPAGO_ACCESS_TOKEN="COLE_AQUI"
+MERCADOPAGO_WEBHOOK_SECRET="COLE_AQUI"
+
+# --------------------------------------------
+# Email / Resend
+# --------------------------------------------
+RESEND_API_KEY="COLE_AQUI"
+RESEND_FROM_EMAIL="FlowFunnel <noreply@flowfunnel.app.br>"
+
+# --------------------------------------------
+# Segurança / Outros segredos
+# --------------------------------------------
+CRON_SECRET="COLE_AQUI"
+SESSION_SECRET="COLE_AQUI"
+SECRET_KEY="COLE_AQUI"
+
+# --------------------------------------------
+# Integrações diversas
+# --------------------------------------------
+SLACK_LIVE_API_KEY="COLE_AQUI"
+OPENAI_API_KEY="COLE_AQUI"
+
+# --------------------------------------------
+# Seeds / Admin (usados em scripts de setup/teste)
+# --------------------------------------------
+ADMIN_EMAIL="admin@flowfunnel.app.br"
+ADMIN_PASSWORD="COLE_AQUI_SENHA_FORTE"
+SEED_EMAIL="COLE_AQUI"

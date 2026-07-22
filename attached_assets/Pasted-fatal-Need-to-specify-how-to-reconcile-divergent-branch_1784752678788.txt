@@ -1,0 +1,43 @@
+fatal: Need to specify how to reconcile divergent branches.
+~/workspace$ ^[[200~git remote remove origin
+git remote remove originbash: git: command not found
+~/workspace$ git remote add origin https://github.com/Planela26/flowfunnel.app.br.git
+error: remote origin already exists.
+~/workspace$ git remote -v~
+error: unknown switch `~'
+usage: git remote [-v | --verbose]
+   or: git remote add [-t <branch>] [-m <master>] [-f] [--tags | --no-tags] [--mirror=<fetch|push>] <name> <url>
+   or: git remote rename [--[no-]progress] <old> <new>
+   or: git remote remove <name>
+   or: git remote set-head <name> (-a | --auto | -d | --delete | <branch>)
+   or: git remote [-v | --verbose] show [-n] <name>
+   or: git remote prune [-n | --dry-run] <name>
+   or: git remote [-v | --verbose] update [-p | --prune] [(<group> | <remote>)...]
+   or: git remote set-branches [--add] <name> <branch>...
+   or: git remote get-url [--push] [--all] <name>
+   or: git remote set-url [--push] <name> <newurl> [<oldurl>]
+   or: git remote set-url --add <name> <newurl>
+   or: git remote set-url --delete <name> <url>
+
+    -v, --[no-]verbose    be verbose; must be placed before a subcommand
+
+~/workspace$ git remote set-url origin https://github.com/Planela26/flowfunnel.app.br.git
+~/workspace$ git remote -v
+gitsafe-backup  git://gitsafe:5418/backup.git (fetch)
+gitsafe-backup  git://gitsafe:5418/backup.git (push)
+origin  https://github.com/Planela26/flowfunnel.app.br.git (fetch)
+origin  https://github.com/Planela26/flowfunnel.app.br.git (push)
+subrepl-dfzrjhvn    git+ssh://git@ssh.picard.replit.dev:/home/runner/workspace (fetch)
+subrepl-dfzrjhvn    git+ssh://git@ssh.picard.replit.dev:/home/runner/workspace (push)
+~/workspace$ git pull origin main --no-rebase
+remote: Enumerating objects: 978, done.
+remote: Counting objects: 100% (23/23), done.
+remote: Compressing objects: 100% (15/15), done.
+remote: Total 978 (delta 7), reused 15 (delta 5), pack-reused 955 (from 1)
+Receiving objects: 100% (978/978), 161.42 MiB | 40.32 MiB/s, done.
+Resolving deltas: 100% (59/59), done.
+From https://github.com/Planela26/flowfunnel.app.br
+ * branch            main       -> FETCH_HEAD
+ + e7a68a4...cf62219 main       -> origin/main  (forced update)
+fatal: refusing to merge unrelated histories
+~/workspace$ 
