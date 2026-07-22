@@ -26,7 +26,9 @@ OUT=$(mktemp)
 trap 'rm -f "$OUT"' EXIT
 
 set +e
-npx prisma migrate deploy >"$OUT" 2>&1
+# Use the direct/pooler connection for migrations. On Replit, DATABASE_URL is
+# runtime-managed and points to the Supabase direct host which is unreachable.
+DATABASE_URL="${DIRECT_DATABASE_URL:-$DATABASE_URL}" npx prisma migrate deploy >"$OUT" 2>&1
 STATUS=$?
 set -e
 cat "$OUT"
