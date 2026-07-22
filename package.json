@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 5000 -H 0.0.0.0",
-    "build": "prisma generate && node scripts/db-migrate-deploy.js && next build",
-    "build:app": "prisma generate && node scripts/db-migrate-deploy.js && next build",
+    "build": "prisma generate && bash scripts/db-migrate-deploy.sh && next build",
+    "build:app": "prisma generate && bash scripts/db-migrate-deploy.sh && next build",
     "db:migrate:deploy": "npx prisma migrate deploy",
     "start": "next start -p 5000 -H 0.0.0.0",
     "lint": "next lint",
