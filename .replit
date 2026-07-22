@@ -21,8 +21,6 @@ NEXT_PUBLIC_APP_URL = "https://flowfunnel.app.br"
 NEXT_PUBLIC_SITE_URL = "https://flowfunnel.app.br"
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_gHuHQ9AkltSz5vqDra5yIQ_R4cNIhNy"
 NEXT_PUBLIC_SUPABASE_URL = "https://lllaznbpnvgdzlkstkut.supabase.co"
-DIRECT_DATABASE_URL = "postgresql://postgres:MLrv-4512MLrv-451@db.lllaznbpnvgdzlkstkut.supabase.co:5432/postgres?sslmode=require"
-NEON_DATABASE_URL = "postgresql://postgres:MLrv-4512MLrv-451@db.lllaznbpnvgdzlkstkut.supabase.co:5432/postgres?pgbouncer=true&sslmode=require"
 
 [userenv.development]
 
