@@ -59,3 +59,9 @@ id = "fR6hkiqi2jgocdDw0jgrP"
 uri = "file://META_PIXEL_AUDIT.md"
 type = "text"
 title = "Auditoria Meta Pixel — FlowFunnel"
+
+[[outputs]]
+id = "AA9EsuJ2Vzz8XRULEtyHj"
+uri = "file://envi-vazio.txt"
+type = "text"
+title = "Template .envi vazio - Preencher com Secrets"
