@@ -1,0 +1,160 @@
+Você vai atuar como um desenvolvedor senior de SaaS e especialista em UX focado em conversão.
+
+Eu já tenho uma plataforma SaaS funcionando (Node.js + React).
+Sua tarefa é AJUSTAR a lógica de planos (START e PRO) e o dashboard para aumentar conversão de upgrade.
+
+CONTEXTO:
+A plataforma analisa tráfego e leads (cliques, origem, comportamento).
+Ela NÃO envia nem recebe mensagens (sem automação ainda).
+
+OBJETIVO:
+Criar uma diferença clara entre START e PRO que faça o usuário sentir que está perdendo dinheiro e queira fazer upgrade.
+
+---
+
+1. AJUSTE DOS PLANOS
+
+PLANO START:
+
+* Mostrar:
+
+  * Total de cliques
+  * Total de leads
+  * Origem do tráfego (básico)
+  * Lista simples de leads
+* Limitar:
+
+  * Histórico (7 dias)
+* NÃO mostrar:
+
+  * Diagnóstico completo
+  * Sugestões inteligentes
+  * Classificação de leads
+
+PLANO PRO:
+
+* Tudo do START +
+* Classificação automática de leads (quente, morno, frio)
+* Score de lead (0 a 100)
+* Identificação de desperdício de tráfego
+* Sugestões práticas:
+
+  * “Pause campanha X”
+  * “Invista mais em Y”
+* Histórico completo
+* Insights mais detalhados
+
+---
+
+2. BLOQUEIOS VISUAIS (ESSENCIAL)
+
+No plano START, implementar elementos bloqueados no dashboard:
+
+* Cards borrados (blur)
+* Ícone de cadeado 🔒
+* Mensagens como:
+
+  “Você pode estar perdendo dinheiro”
+  “Análise completa disponível no PRO”
+  “Descubra quais leads realmente convertem”
+
+Adicionar botão: “Desbloquear PRO”
+
+---
+
+3. GATILHOS AUTOMÁTICOS DE UPGRADE
+
+Criar lógica para exibir avisos dinâmicos:
+
+Exemplos:
+
+* Se muitos cliques sem conversão:
+  “Você teve X cliques que podem ser desperdício”
+
+* Se muitos leads:
+  “Você tem muitos leads — mas quais realmente valem a pena?”
+
+* Sempre com CTA:
+  “Ver análise completa (PRO)”
+
+---
+
+4. SISTEMA DE QUALIFICAÇÃO (SEM IA REAL)
+
+Criar lógica simples baseada em regras:
+
+* Tempo na página > 30s → aumenta score
+* Clique em botão → aumenta score
+* Origem específica → aumenta/diminui score
+
+Gerar:
+
+* Score (0–100)
+* Classificação:
+
+  * 0–30 = frio
+  * 31–70 = morno
+  * 71–100 = quente
+
+IMPORTANTE:
+Essa lógica só aparece no PRO
+
+---
+
+5. CONTROLE DE ACESSO (BACKEND)
+
+Criar middleware:
+
+* Se plano = START:
+  bloquear endpoints de análise avançada
+
+* Se plano = PRO:
+  liberar tudo
+
+---
+
+6. FOCO NA EXPERIÊNCIA (UX)
+
+* Dashboard estilo SaaS moderno
+* Cards com métricas principais
+* Cores:
+
+  * Verde = positivo
+  * Vermelho = problema
+* Elementos bloqueados devem gerar curiosidade
+
+---
+
+7. NÃO FAZER
+
+* NÃO integrar WhatsApp agora
+* NÃO criar sistema do zero
+* NÃO alterar estrutura principal do projeto
+* Apenas ajustar essa parte
+
+---
+
+OBJETIVO FINAL:
+
+O usuário do plano START:
+
+* vê dados básicos
+* percebe que está perdendo oportunidades
+* sente necessidade de upgrade
+
+O plano PRO:
+
+* entrega clareza
+* mostra onde ganhar dinheiro
+* resolve a dor
+
+---
+
+Gere:
+
+* Código necessário (frontend + backend)
+* Componentes de dashboard ajustados
+* Lógica de bloqueio por plano
+* Mensagens estratégicas no UI
+
+Foque em código limpo, modular e fácil de integrar no projeto existente.

@@ -1,0 +1,84 @@
+Você é um desenvolvedor fullstack experiente trabalhando no projeto FlowFunnel.
+
+## 🎯 OBJETIVO 1 — VALIDAR E CORRIGIR CÁLCULO DE ROI
+
+Verifique toda a lógica atual de cálculo de ROI no sistema.
+
+### Regras obrigatórias:
+
+* O ROI deve seguir EXATAMENTE a fórmula:
+  ROI = ((receita_total - custo_total) / custo_total) * 100
+
+* O ROAS deve ser:
+  ROAS = receita_total / custo_total
+
+### Tarefas:
+
+1. Identifique onde o ROI está sendo calculado (backend ou frontend).
+2. Verifique se:
+
+   * O custo_total inclui TODOS os custos (ads, taxas, etc).
+   * A receita_total não está duplicada.
+   * Leads NÃO estão sendo tratados como receita diretamente.
+3. Corrija qualquer erro encontrado.
+
+### Validações adicionais:
+
+* Se custo_total = 0 → evitar divisão por zero (retornar 0 ou null).
+* Se ROI > 500% → adicionar flag: "possível inconsistência de dados".
+* Se ROAS > 10 → adicionar alerta no dashboard.
+
+### Extra:
+
+Criar uma função utilitária reutilizável:
+calculateROI(receita, custo)
+calculateROAS(receita, custo)
+
+---
+
+## 🎯 OBJETIVO 2 — CORRIGIR POPUP (PRIMEIRO ACESSO)
+
+Atualmente existe um popup que aparece sempre ao entrar na plataforma.
+
+### Novo comportamento desejado:
+
+* O popup deve aparecer APENAS na primeira vez que o usuário acessa após criar a conta.
+* Depois disso, nunca mais deve aparecer automaticamente.
+
+### Implementação:
+
+* Usar localStorage OU salvar no banco (preferível: banco, campo tipo "first_login_completed")
+
+### Lógica:
+
+1. Quando o usuário faz login:
+
+   * Verificar se é o primeiro acesso
+2. Se for:
+
+   * Mostrar popup
+   * Marcar como "já viu o popup"
+3. Se não for:
+
+   * NÃO mostrar popup automaticamente
+
+### Observações:
+
+* NÃO remover o popup do sistema
+* Apenas controlar quando ele aparece
+
+---
+
+## 🎯 QUALIDADE
+
+* Código limpo e organizado
+* Evitar duplicação
+* Garantir que não quebre funcionalidades existentes
+
+Após finalizar:
+
+* Explique o que foi corrigido
+* Mostre antes vs depois do cálculo de ROI
+* Mostre como o controle do popup está funcionando
+
+---

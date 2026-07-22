@@ -1,0 +1,127 @@
+REALIZAR AUDITORIA FUNCIONAL COMPLETA DO FLOWFUNNEL
+
+Objetivo:
+Validar que todas as funcionalidades, cálculos, integrações e fluxos de negócio estão funcionando corretamente antes do lançamento público.
+
+1. AUTENTICAÇÃO
+
+* Cadastro de usuário.
+* Confirmação de email.
+* Login.
+* Logout.
+* Recuperação de senha.
+* Troca de senha.
+* Google Login.
+* 2FA.
+* Códigos de recuperação.
+
+2. ASSINATURAS E PAGAMENTOS
+
+* Criação de assinatura.
+* Upgrade de plano.
+* Downgrade de plano.
+* Cancelamento.
+* Reativação.
+* Trial.
+* Renovação automática.
+* Falha de pagamento.
+* Webhooks Stripe.
+* Atualização de limites após mudança de plano.
+
+3. CÁLCULOS
+   Verificar todas as regras matemáticas da plataforma:
+
+* Limites por plano.
+* Consumo de créditos.
+* Métricas.
+* Estatísticas.
+* Dashboards.
+* Relatórios.
+* Conversões.
+* Taxas.
+* Percentuais.
+* ROI.
+* CPA.
+* CPL.
+* CAC.
+* Qualquer cálculo financeiro ou analítico.
+
+Criar testes automatizados para validar cada cálculo.
+
+4. FUNIS
+
+* Criar funil.
+* Editar funil.
+* Duplicar funil.
+* Excluir funil.
+* Eventos do funil.
+* Conversões.
+* Rastreamento completo.
+
+5. IA
+
+* Conexão OpenAI.
+* Geração de respostas.
+* Tratamento de erros.
+* Limites de uso.
+* Consumo de créditos.
+* Fallbacks.
+
+6. META
+
+* Conexão da conta.
+* Pixel.
+* Eventos.
+* Leads.
+* Purchase.
+* Conversões.
+* Sincronização.
+
+7. WHATSAPP
+
+* Conexão.
+* Recebimento.
+* Envio.
+* Templates.
+* Webhooks.
+* Logs.
+
+8. EMAIL
+
+* Envio.
+* Recebimento.
+* Recuperação de senha.
+* Confirmação de email.
+* Alertas.
+
+9. MULTI-TENANT
+
+* Verificar isolamento entre contas.
+* Criar contas A e B.
+* Garantir que nenhuma informação atravesse tenants.
+
+10. PERFORMANCE
+
+* Identificar consultas lentas.
+* Identificar gargalos.
+* Identificar memory leaks.
+* Verificar uso de CPU.
+* Verificar uso de banco.
+
+11. LOGS
+
+* Garantir que erros sejam registrados.
+* Garantir que segredos não apareçam em logs.
+
+12. TESTES AUTOMATIZADOS
+
+Gerar relatório contendo:
+
+* Funcionalidades testadas.
+* Funcionalidades aprovadas.
+* Funcionalidades com falha.
+* Bugs encontrados.
+* Nível de risco de cada bug.
+* Nota geral de prontidão para lançamento (0-100).
+
+Executar testes reais e não apenas análise estática do código.

@@ -1,0 +1,11 @@
+- [CSP nonce + strict-dynamic breaks Next.js prod](csp-edge-nonce.md) — per-request nonce + 'strict-dynamic' blocks all scripts on statically-prerendered pages in prod (works in dev); use 'unsafe-inline' instead.
+- [Security headers on Replit dev](security-headers-replit-dev.md) — gate X-Frame-Options + HSTS to production; SAMEORIGIN blanks the cross-origin Replit dev preview iframe (dev framing handled by CSP frame-ancestors).
+- [Bulk-refactor dedup parity](bulk-dedup-parity.md) — when replacing per-row DB findFirst-then-create loops with bulk in-memory eval, update the in-memory "seen" set after each write or you reintroduce duplicates.
+- [npm audit fix drifts excluded chains](npm-audit-fix-scope.md) — `npm audit fix` silently upgrades pinned/out-of-scope transitive chains (Baileys, jsPDF); don't run blanket fixes when scope forbids touching a dependency chain.
+- [.replit userenv secret leak](replit-userenv-secret-leak.md) — `[userenv.*]` in .replit is repo-tracked plaintext; secrets belong in Replit Secrets (requestEnvVar). Rotating a signing secret logs everyone out.
+- [Stripe card-required trial](stripe-trial-card-required.md) — set trial_settings.end_behavior.missing_payment_method='cancel' or Stripe skips the setup intent and a trial activates with no card; verify type==='card' before granting.
+- [Prisma RLS multi-tenant](rls-prisma-tenant.md) — per-op $extends tenant client: await INSIDE the ALS scope (Prisma is lazy), $transaction array bypasses it (use withTenantTx), User needs self-only RLS + bypass for cross-user reads.
+- [Mandatory 2FA enforcement](mandatory-2fa-enforcement.md) — enforce role-mandatory 2FA at the disable mutation route (DB role check, not stale JWT); block OAuth login fail-closed; recovery codes consumed atomically.
+- [Usage-limit source of truth](usage-limit-source-of-truth.md) — when de-duping two divergent usage counters, align enforcement with the metric the user-facing meter shows, not the "ideal" one.
+- [Platform webhooks fail-closed](webhook-hmac-optin.md) — Eduzz/Kiwify/Monetizze/Perfect Pay require *_WEBHOOK_SECRET (guardWebhook requireSecret, auth-first); missing secret → 503, not unsigned-accept.
+- [Meta tracking architecture](meta-tracking.md) — CAPI+Pixel dedup; StartTrial timing; MP embedded Purchase; success-page race fix.

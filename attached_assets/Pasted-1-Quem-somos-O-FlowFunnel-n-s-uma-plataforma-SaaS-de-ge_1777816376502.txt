@@ -1,0 +1,58 @@
+1. Quem somos
+O FlowFunnel (“nós”) é uma plataforma SaaS de gestão de funis de vendas e integrações com WhatsApp Business, plataformas de anúncios e checkouts. Esta política descreve como coletamos, usamos, armazenamos e protegemos seus dados pessoais.
+
+2. Dados que coletamos
+Cadastrais: nome, email, senha (criptografada com bcrypt), plano contratado.
+Pagamento: processado integralmente pela Stripe. Não armazenamos dados de cartão; recebemos apenas identificadores do cliente e da assinatura.
+Integrações: tokens de acesso e identificadores das contas que você conectar (WhatsApp, Meta Ads, Google, TikTok, Hotmart, Kiwify, Eduzz, Monetizze, Perfect Pay).
+Operacionais: métricas, eventos de webhook, leads, conversões e logs gerados pelo uso da Plataforma.
+Técnicos: endereço IP, navegador, sistema operacional, cookies e logs de acesso para segurança.
+3. Bases legais (LGPD)
+Tratamos dados com base em: (i) execução do contrato (operar o serviço contratado), (ii) consentimento (cookies opcionais e comunicações de marketing), (iii) legítimo interesse (segurança, prevenção de fraude e melhoria do produto) e (iv) cumprimento de obrigação legal (registros fiscais e atendimento a autoridades).
+
+4. Como usamos seus dados
+Operar funcionalidades, integrações e dashboards.
+Autenticar acesso, prevenir fraudes e proteger sua conta.
+Enviar emails transacionais (verificação, redefinição, alertas).
+Gerar análises agregadas e sugestões automatizadas com IA.
+Cumprir obrigações legais e responder a autoridades.
+5. Compartilhamento de dados
+Compartilhamos dados estritamente necessários com operadores que viabilizam o serviço:
+
+Stripe — processamento de pagamentos
+Resend — envio de emails transacionais
+OpenAI — geração de sugestões e análises (quando habilitado)
+Meta, Google, TikTok — integrações de anúncios autorizadas pelo Usuário
+Hotmart, Kiwify, Eduzz, Monetizze, Perfect Pay — integrações de checkout autorizadas pelo Usuário
+Provedor de hospedagem em nuvem — armazenamento e processamento
+Não vendemos seus dados pessoais a terceiros sob nenhuma hipótese.
+
+6. Cookies
+Utilizamos cookies essenciais (login e sessão) e, mediante consentimento, cookies de análise e marketing. Você pode revisar suas preferências a qualquer momento limpando o armazenamento do navegador para reabrir o banner de consentimento.
+
+7. Segurança
+Senhas armazenadas com hash bcrypt (custo 12).
+Comunicação criptografada via HTTPS/TLS.
+Tokens de acesso de integrações armazenados de forma protegida.
+Controles de rate limiting, validação de webhooks e auditoria de acessos.
+8. Retenção
+Mantemos seus dados enquanto sua conta estiver ativa. Após exclusão, dados pessoais são removidos em até 30 dias, salvo obrigação legal de retenção (ex.: registros fiscais por até 5 anos).
+
+9. Seus direitos (LGPD, art. 18)
+Você pode, a qualquer momento:
+
+Confirmar a existência e acessar seus dados
+Corrigir dados incompletos, inexatos ou desatualizados
+Solicitar anonimização, bloqueio ou eliminação
+Solicitar portabilidade dos dados
+Eliminar dados tratados com consentimento — incluindo excluir sua conta diretamente em /account
+Revogar consentimento a qualquer momento
+Obter informação sobre compartilhamentos realizados
+10. Encarregado de Dados (DPO)
+Para exercer seus direitos ou tirar dúvidas sobre o tratamento dos seus dados, entre em contato com nosso Encarregado em dpo@zapflowfunnel.com.br. Responderemos em até 15 dias úteis.
+
+11. Transferência internacional
+Alguns operadores (Stripe, OpenAI, Resend, provedores de hosting, plataformas de anúncios) processam dados fora do Brasil. Nesses casos, adotamos cláusulas contratuais e seguimos os requisitos do Capítulo V da LGPD.
+
+12. Alterações desta política
+Podemos atualizar esta política periodicamente. Mudanças relevantes serão comunicadas pelo email cadastrado e/ou aviso na Plataforma.

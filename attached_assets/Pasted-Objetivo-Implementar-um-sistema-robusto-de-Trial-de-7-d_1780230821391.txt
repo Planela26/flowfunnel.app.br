@@ -1,0 +1,174 @@
+Objetivo: Implementar um sistema robusto de Trial de 7 dias, verificação obrigatória de e-mail e proteção contra fraudes no SaaS.
+
+REQUISITOS PRINCIPAIS
+
+1. Verificação obrigatória de e-mail
+
+* Todo usuário deve confirmar o e-mail antes de acessar a plataforma.
+* Após o cadastro, gerar um token seguro e único.
+* Enviar automaticamente um e-mail de confirmação.
+* O usuário só poderá acessar dashboards, CRM, integrações e demais funcionalidades após a confirmação.
+* Exibir mensagem clara informando que é necessário verificar o e-mail.
+
+2. Trial de 7 dias grátis
+
+* Criar opção de Trial Gratuita de 7 dias.
+* O usuário terá acesso completo aos recursos do plano contratado durante o período de teste.
+* A Trial deve iniciar somente após:
+
+  * confirmação do e-mail;
+  * cadastro válido do método de pagamento.
+* Exibir claramente:
+
+  * data de início da Trial;
+  * data de encerramento;
+  * valor que será cobrado após o período gratuito.
+
+3. Trial com cartão obrigatório
+
+* Exigir cartão de crédito válido para ativação da Trial.
+* Realizar validação segura do cartão utilizando o gateway de pagamento adotado.
+* Não armazenar dados sensíveis do cartão no banco de dados.
+* Utilizar tokenização do provedor de pagamento.
+* O sistema deve informar claramente que:
+
+  * nenhum valor será cobrado durante a Trial;
+  * a cobrança ocorrerá automaticamente ao final dos 7 dias caso o usuário não cancele.
+* Permitir cancelamento da assinatura a qualquer momento durante a Trial.
+
+4. Controle anti-fraude da Trial
+
+* Impedir múltiplas Trials abusivas.
+* Verificar:
+
+  * e-mail já utilizado anteriormente;
+  * cliente já cadastrado;
+  * método de pagamento já utilizado em outra Trial quando permitido pelo gateway.
+* Registrar tentativas suspeitas para análise administrativa.
+* Implementar mecanismos para reduzir criação massiva de contas.
+
+5. Reenvio de verificação
+
+* Criar botão "Reenviar e-mail de verificação".
+* Aplicar limite para evitar spam (ex.: máximo de 1 envio por minuto).
+
+6. Segurança do token
+
+* Utilizar tokens criptograficamente seguros.
+* Definir prazo de expiração.
+* Invalidar token após uso.
+* Não armazenar tokens em texto puro quando possível.
+
+7. Proteção contra contas falsas
+
+* Integrar Cloudflare Turnstile ou solução equivalente.
+* Validar captcha no backend.
+* Impedir criação automática de contas por bots.
+
+8. Bloqueio de e-mails temporários
+
+* Detectar e bloquear domínios de e-mail descartáveis.
+* Exibir mensagem amigável solicitando um e-mail válido.
+
+9. Controle de acesso
+
+* Usuários não verificados não podem:
+
+  * acessar dashboards;
+  * conectar Meta Ads;
+  * conectar Google Ads;
+  * conectar TikTok Ads;
+  * utilizar CRM;
+  * gerar relatórios;
+  * acessar funcionalidades premium.
+* Redirecionar automaticamente para a tela de verificação.
+
+10. Banco de dados
+    Adicionar campos necessários:
+
+users:
+
+* email_verified
+* email_verified_at
+* trial_started_at
+* trial_ends_at
+* trial_status
+* verification_token_hash
+* verification_token_expires_at
+* payment_method_added_at
+
+subscriptions:
+
+* status
+* trial_active
+* trial_end_date
+* billing_start_date
+* cancellation_date
+
+11. Cobrança automática
+
+* Ao término dos 7 dias:
+
+  * converter automaticamente para assinatura paga;
+  * gerar cobrança pelo gateway configurado.
+* Enviar notificações:
+
+  * ao iniciar a Trial;
+  * 3 dias antes do término;
+  * 1 dia antes do término;
+  * quando a cobrança for realizada.
+* Caso a cobrança falhe:
+
+  * notificar o cliente;
+  * manter fluxo de recuperação de pagamento.
+
+12. Logs e auditoria
+    Registrar:
+
+* criação da conta;
+* envio de e-mail;
+* confirmação de e-mail;
+* inclusão de cartão;
+* ativação da Trial;
+* cancelamento;
+* conversão para plano pago;
+* falhas de pagamento;
+* tentativas suspeitas.
+
+13. Experiência do usuário
+    Criar telas modernas para:
+
+* Cadastro;
+* Verificação de e-mail;
+* Trial ativada;
+* Trial expirando;
+* Conversão para plano pago;
+* Cancelamento da assinatura;
+* Falha de pagamento.
+
+14. Qualidade da implementação
+
+* Seguir boas práticas de segurança.
+* Não quebrar funcionalidades existentes.
+* Garantir compatibilidade com autenticação atual.
+* Garantir compatibilidade com Stripe e/ou gateway utilizado.
+* Criar testes automatizados para todo o fluxo.
+* Validar vulnerabilidades antes da entrega.
+
+15. Auditoria final obrigatória
+    Após concluir a implementação:
+
+* testar todo o fluxo ponta a ponta;
+* validar a experiência do usuário;
+* verificar falhas de segurança;
+* listar arquivos alterados;
+* apresentar relatório final contendo:
+
+  * funcionalidades implementadas;
+  * testes executados;
+  * falhas encontradas;
+  * correções realizadas;
+  * melhorias futuras recomendadas.
+
+Meta final:
+Permitir que novos clientes testem o SaaS gratuitamente por 7 dias com cartão cadastrado, reduzindo fraudes, aumentando a conversão para assinaturas pagas e mantendo uma experiência profissional e segura.

@@ -1,0 +1,528 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                     String    @id @default(cuid())
+  name                   String?
+  email                  String    @unique
+  emailVerified          DateTime?
+  password               String?
+  image                  String?
+  role                   String    @default("PRODUTOR")
+  plan                   String    @default("FREE")
+  stripeCustomerId       String?   @unique
+  stripeSubscriptionId   String?
+  alertSettings          String?   // JSON com toggles de alertas automáticos
+  metaPurchase           String?   // JSON com Purchase pendente p/ disparo do Pixel (read-once na success page)
+  onboardingCompletedAt  DateTime?
+  trialEndsAt            DateTime?
+  trialPlan              String?
+  trialStatus            String?   @default("none")
+  trialStartedAt         DateTime?
+  paymentMethodAddedAt   DateTime?
+  trialPaymentFingerprint String?
+  twoFactorEnabled       Boolean   @default(false)
+  twoFactorSecret        String?   // secret TOTP criptografado (AES-256-GCM)
+  twoFactorActivatedAt   DateTime?
+  subscriptionStatus     String?   // 'active' | 'past_due' | 'cancelled' | 'expired' | null
+  gracePeriodEndsAt      DateTime? // 3 dias após primeira falha de pagamento
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+  
+  accounts             Account[]
+  funnels              Funnel[]
+  integrations         Integration[]
+  goals                Goal[]
+  notifications        Notification[]
+  webhookLogs          WebhookLog[]
+  campaigns            Campaign[]
+  workspaces           Workspace[]
+  passwordResetTokens  PasswordResetToken[]
+  emailVerificationTokens EmailVerificationToken[]
+  teamMemberships      TeamMember[]
+  leadStatuses         LeadStatus[]
+  affiliateProfile     Affiliate?
+  trackedLeads         TrackedLead[]
+  trackedEvents        TrackedEvent[]
+  trackedConversions   TrackedConversion[]
+  twoFactorRecoveryCodes TwoFactorRecoveryCode[]
+}
+
+model TwoFactorRecoveryCode {
+  id        String   @id @default(cuid())
+  userId    String
+  codeHash  String   @unique
+  used      Boolean  @default(false)
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([userId])
+}
+
+model EmailVerificationToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([userId])
+}
+
+model MetricSnapshot {
+  id            String   @id @default(cuid())
+  userId        String
+  date          DateTime // Data normalizada para 00:00:00 UTC
+  vendas        Int      @default(0)
+  receita       Float    @default(0)
+  checkouts    Int      @default(0)
+  conversas    Int      @default(0)
+  leads         Int      @default(0)
+  reembolsos    Int      @default(0)
+  recusados     Int      @default(0)
+  abandonos     Int      @default(0)
+  gasto         Float    @default(0) // Gasto agregado em mídia (Meta/Google/TikTok) no dia
+  metadata      String?  // JSON livre para extensões futuras
+  createdAt     DateTime @default(now())
+
+  @@unique([userId, date])
+  @@index([userId, date])
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Funnel {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  description String?
+  startDate   DateTime
+  endDate     DateTime?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  user   User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stages FunnelStage[]
+  events FunnelEvent[]
+
+  @@index([userId])
+}
+
+model FunnelStage {
+  id          String   @id @default(cuid())
+  funnelId    String
+  name        String
+  order       Int
+  description String?
+  
+  funnel Funnel        @relation(fields: [funnelId], references: [id], onDelete: Cascade)
+  events FunnelEvent[]
+  
+  @@unique([funnelId, order])
+}
+
+model FunnelEvent {
+  id        String   @id @default(cuid())
+  funnelId  String
+  stageId   String
+  leadId    String?
+  eventType String
+  metadata  String?
+  timestamp DateTime @default(now())
+  
+  funnel Funnel      @relation(fields: [funnelId], references: [id], onDelete: Cascade)
+  stage  FunnelStage @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  
+  @@index([funnelId, timestamp])
+  @@index([stageId])
+  @@index([timestamp])
+}
+
+model Integration {
+  id           String          @id @default(cuid())
+  userId       String
+  platform     String
+  nickname     String?
+  accessToken  String
+  refreshToken String?
+  expiresAt    DateTime?
+  isActive     Boolean         @default(true)
+  isDefault    Boolean         @default(false)
+  config       String?
+  webhookToken String?         @unique
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, platform])
+  @@index([webhookToken])
+}
+
+model StripeProcessedEvent {
+  id          String   @id @default(cuid())
+  eventId     String   @unique
+  eventType   String?
+  processedAt DateTime @default(now())
+
+  @@index([processedAt])
+}
+
+model MercadoPagoProcessedEvent {
+  id          String   @id @default(cuid())
+  eventId     String   @unique
+  processedAt DateTime @default(now())
+
+  @@index([processedAt])
+}
+
+model Goal {
+  id             String    @id @default(cuid())
+  userId         String
+  title          String
+  description    String?
+  targetValue    Float
+  currentValue   Float     @default(0)
+  metric         String    // 'sales', 'revenue', 'leads', 'conversions', 'clicks'
+  platform       String?   // 'ALL', 'WHATSAPP', 'META_ADS', 'HOTMART'
+  startDate      DateTime  @default(now())
+  endDate        DateTime
+  isActive       Boolean   @default(true)
+  isCompleted    Boolean   @default(false)
+  completedAt    DateTime?
+  notified       Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([isActive])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String   // 'goal_completed', 'alert', 'info', 'warning'
+  title     String
+  message   String
+  link      String?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+}
+
+model WebhookLog {
+  id          String   @id @default(cuid())
+  userId      String
+  platform    String   // 'WHATSAPP', 'HOTMART', 'META_ADS'
+  event       String   // Tipo do evento recebido
+  method      String   // GET, POST, etc
+  endpoint    String   // URL do webhook
+  headers     String?  // JSON dos headers
+  payload     String?  // JSON do payload recebido
+  response    String?  // Resposta enviada
+  statusCode  Int      @default(200)
+  duration    Int?     // Duração do processamento em ms
+  error       String?  // Mensagem de erro se houver
+  requestId   String?  // Correlation ID (X-Request-ID) para tracing end-to-end
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId, createdAt])
+  @@index([platform])
+  @@index([event])
+  @@index([createdAt])
+  @@index([statusCode])
+}
+
+model Workspace {
+  id                    String   @id @default(cuid())
+  userId                String
+  name                  String
+  emoji                 String   @default("🚀")
+  isDefault             Boolean  @default(false)
+  whatsappIntegrationId String?
+  facebookCampaignId    String?
+  checkoutSources       String   @default("[\"hotmart\"]")
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isDefault])
+}
+
+model Affiliate {
+  id                String   @id @default(cuid())
+  name              String
+  email             String?
+  code              String   @unique
+  discountPercent   Float
+  commissionPercent Float
+  stripeCouponId    String?
+  isActive          Boolean  @default(true)
+  userId            String?  @unique
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  clicks AffiliateClick[]
+  sales  AffiliateSale[]
+  user   User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([code])
+}
+
+model AffiliateClick {
+  id          String    @id @default(cuid())
+  affiliateId String
+  ip          String?
+  userAgent   String?
+  createdAt   DateTime  @default(now())
+
+  affiliate Affiliate @relation(fields: [affiliateId], references: [id], onDelete: Cascade)
+
+  @@index([affiliateId])
+  @@index([createdAt])
+}
+
+model AffiliateSale {
+  id               String    @id @default(cuid())
+  affiliateId      String
+  userId           String?
+  stripePaymentId  String    @unique
+  plan             String
+  originalAmount   Float
+  discountedAmount Float
+  commissionAmount Float
+  createdAt        DateTime  @default(now())
+
+  affiliate Affiliate @relation(fields: [affiliateId], references: [id], onDelete: Cascade)
+
+  @@index([affiliateId])
+  @@index([createdAt])
+}
+
+model Campaign {
+  id                String   @id @default(cuid())
+  userId            String
+  platform          String   // 'META_ADS', 'WHATSAPP', 'HOTMART'
+  campaignId        String   // ID da campanha na plataforma (ex: Facebook Campaign ID)
+  name              String
+  status            String   // 'ACTIVE', 'PAUSED', 'ARCHIVED'
+  isActive          Boolean  @default(true)
+  isDefault         Boolean  @default(false) // Campanha padrão exibida no dashboard
+  objective         String?  // Objetivo da campanha (CONVERSIONS, TRAFFIC, etc)
+  startDate         DateTime?
+  endDate           DateTime?
+  budget            Float?   // Orçamento configurado
+  spend             Float    @default(0) // Gasto atual
+  lastSyncedAt      DateTime @default(now())
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, platform, campaignId])
+  @@index([userId])
+  @@index([platform])
+  @@index([isActive])
+  @@index([isDefault])
+}
+
+model TeamMember {
+  id        String   @id @default(cuid())
+  ownerId   String
+  email     String
+  name      String?
+  role      String   @default("VIEWER")
+  status    String   @default("PENDING")
+  token     String?  @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@unique([ownerId, email])
+  @@index([ownerId])
+  @@index([token])
+}
+
+model LeadStatus {
+  id        String   @id @default(cuid())
+  userId    String
+  phone     String
+  name      String?
+  email     String?
+  stage     String   @default("NOVO")
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, phone])
+  @@index([userId])
+  @@index([stage])
+}
+
+model TrackedLead {
+  id          String   @id @default(cuid())
+  userId      String
+  leadId      String
+  utmSource   String?
+  utmCampaign String?
+  utmMedium   String?
+  utmContent  String?
+  utmTerm     String?
+  firstUrl    String?
+  referrer    String?
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, leadId])
+  @@index([userId])
+  @@index([leadId])
+  @@index([utmSource])
+  @@index([utmCampaign])
+  @@index([createdAt])
+}
+
+model TrackedEvent {
+  id        String   @id @default(cuid())
+  userId    String
+  leadId    String
+  eventName String
+  url       String?
+  metadata  String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([leadId])
+  @@index([eventName])
+  @@index([createdAt])
+}
+
+model TrackedConversion {
+  id        String   @id @default(cuid())
+  userId    String
+  leadId    String
+  value     Float    @default(0)
+  product   String?
+  source    String?
+  metadata  String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([leadId])
+  @@index([createdAt])
+}
+
+// Trilha de auditoria de ações sensíveis (autenticação, usuários, cobrança,
+// integrações, administração). NUNCA armazenar tokens, senhas ou secrets aqui.
+model AuditLog {
+  id         String   @id @default(cuid())
+  tenantId   String?  // multi-tenant: normalmente = userId do dono do recurso
+  userId     String?  // ator que executou a ação (null se sistema/anônimo)
+  action     String   // ex.: 'auth.login', 'billing.subscription.updated'
+  entityType String?  // ex.: 'User', 'Integration', 'Subscription'
+  entityId   String?
+  ip         String?
+  userAgent  String?
+  result     String   @default("success") // 'success' | 'failure'
+  metadata   String?  // JSON livre, já sanitizado (sem segredos)
+  createdAt  DateTime @default(now())
+
+  @@index([tenantId, createdAt])
+  @@index([userId, createdAt])
+  @@index([action, createdAt])
+  @@index([createdAt])
+}
+
+// Proteção anti-replay de webhooks. A coluna `signature` guarda um fingerprint
+// (hash sha256 de plataforma + assinatura ou do raw body) — não a assinatura
+// original. Unicidade (platform, signature) detecta reenvio atomicamente.
+model WebhookReplayProtection {
+  id        String    @id @default(cuid())
+  platform  String
+  signature String
+  timestamp DateTime?
+  createdAt DateTime  @default(now())
+
+  @@unique([platform, signature])
+  @@index([createdAt])
+}
+
+// Rate limiting distribuído (persistente em Postgres) — substitui o Map
+// em memória que não funcionava entre instâncias/restarts.
+model RateLimit {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  count     Int      @default(0)
+  resetAt   DateTime
+  createdAt DateTime @default(now())
+
+  @@index([resetAt])
+}

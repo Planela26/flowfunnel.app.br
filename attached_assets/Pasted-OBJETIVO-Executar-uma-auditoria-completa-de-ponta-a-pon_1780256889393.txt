@@ -1,0 +1,249 @@
+OBJETIVO: Executar uma auditoria completa de ponta a ponta (E2E) do sistema em ambiente de produção e homologação, identificando falhas críticas antes do lançamento do MVP.
+
+TESTES OBRIGATÓRIOS
+
+1. ISOLAMENTO DE DADOS (MULTI-TENANT)
+
+Verifique se existe qualquer possibilidade de um usuário visualizar, editar ou excluir dados pertencentes a outro usuário.
+
+Testar:
+
+* Usuário A acessando dashboard.
+* Usuário B acessando dashboard.
+* Alteração manual de IDs nas URLs.
+* Alteração manual de IDs nas requisições da API.
+* Testes de autenticação e autorização.
+* Acesso a métricas, CRM, funis, campanhas, contatos e integrações de outros usuários.
+
+Resultado esperado:
+
+* Nenhum usuário deve visualizar ou manipular dados de terceiros.
+* Todas as consultas devem ser filtradas pelo tenant_id/user_id correto.
+
+Gerar relatório detalhado de todas as rotas e endpoints testados.
+
+---
+
+2. TESTE COMPLETO DE TRIAL
+
+Criar uma conta nova.
+
+Verificar:
+
+* Trial é ativado corretamente.
+* Data de expiração é registrada corretamente.
+* Usuário recebe acesso premium durante o período.
+* Trial expira exatamente na data prevista.
+* Após expiração o acesso premium é removido.
+* Usuário não consegue criar múltiplos trials usando o mesmo e-mail.
+* Verificar possíveis brechas para burlar o trial.
+
+Resultado esperado:
+
+* Trial inicia e encerra corretamente.
+* Nenhum acesso premium permanece após expiração.
+
+---
+
+3. TESTE DE PAGAMENTOS
+
+Executar fluxo completo utilizando ambiente de testes.
+
+Stripe:
+
+* Criar assinatura.
+* Confirmar webhook recebido.
+* Confirmar atualização automática do plano.
+* Simular renovação.
+* Simular cancelamento.
+* Simular falha de pagamento.
+
+Mercado Pago:
+
+* Criar assinatura.
+* Confirmar webhook recebido.
+* Confirmar atualização automática do plano.
+* Simular renovação.
+* Simular cancelamento.
+* Simular falha de pagamento.
+
+Resultado esperado:
+
+* Todos os eventos atualizam o status do usuário corretamente.
+
+---
+
+4. TESTE DE CANCELAMENTO
+
+Criar assinatura ativa.
+
+Verificar:
+
+* Cancelamento imediato.
+* Cancelamento ao final do ciclo.
+* Mudança automática para plano gratuito.
+* Remoção de recursos premium.
+* Bloqueio de funcionalidades pagas.
+
+Resultado esperado:
+
+* Usuário não mantém acesso premium após cancelamento.
+
+---
+
+5. TESTE DE WEBHOOKS
+
+Validar:
+
+Stripe:
+
+* checkout.session.completed
+* customer.subscription.created
+* customer.subscription.updated
+* customer.subscription.deleted
+* invoice.payment_succeeded
+* invoice.payment_failed
+
+Mercado Pago:
+
+* payment.created
+* payment.updated
+* subscription.updated
+
+Verificar:
+
+* Recebimento.
+* Processamento.
+* Logs.
+* Atualização do banco.
+
+Resultado esperado:
+
+* Nenhum webhook falha silenciosamente.
+
+---
+
+6. TESTE DE INTEGRAÇÕES
+
+Meta Ads:
+
+* Token válido.
+* Token expirado.
+* Token revogado.
+
+TikTok:
+
+* Token válido.
+* Token expirado.
+* Token revogado.
+
+Hotmart:
+
+* Token válido.
+* Token expirado.
+* Token revogado.
+
+WhatsApp:
+
+* Sessão válida.
+* Sessão desconectada.
+* Reconexão automática.
+
+Verificar:
+
+* Tratamento de erro.
+* Mensagem ao usuário.
+* Logs.
+* Recuperação automática.
+
+Resultado esperado:
+
+* Nenhuma integração quebra o sistema quando o token expira.
+
+---
+
+7. TESTE DE SEGURANÇA
+
+Verificar:
+
+* Bypass de autenticação.
+* Escalada de privilégios.
+* Exposição de APIs.
+* Exposição de chaves.
+* Exposição de tokens.
+* Vazamento de dados.
+* Rate limiting.
+* Proteção CSRF.
+* Proteção XSS.
+* Proteção SQL Injection.
+
+Resultado esperado:
+
+* Nenhuma vulnerabilidade crítica.
+
+---
+
+8. TESTE DE RECUPERAÇÃO DE SENHA
+
+Verificar:
+
+* Solicitação de reset.
+* Token de recuperação.
+* Expiração do token.
+* Reutilização do token.
+* Login após redefinição.
+
+Resultado esperado:
+
+* Fluxo completo funcional.
+
+---
+
+9. TESTE DE CARGA BÁSICA
+
+Simular:
+
+* 50 usuários simultâneos.
+* 100 usuários simultâneos.
+* 500 requisições concorrentes.
+
+Verificar:
+
+* Tempo de resposta.
+* Erros.
+* Uso de memória.
+* Uso de CPU.
+
+Resultado esperado:
+
+* Sistema permanece funcional.
+
+---
+
+ENTREGA FINAL
+
+Gerar relatório detalhado contendo:
+
+1. Funcionalidades aprovadas.
+2. Funcionalidades reprovadas.
+3. Vulnerabilidades encontradas.
+4. Bugs encontrados.
+5. Problemas de segurança.
+6. Problemas de performance.
+7. Correções recomendadas.
+8. Classificação de risco:
+
+   * Crítico
+   * Alto
+   * Médio
+   * Baixo
+
+Ao final, informar claramente:
+
+"MVP APROVADO PARA LANÇAMENTO"
+
+ou
+
+"MVP NÃO APROVADO PARA LANÇAMENTO"
+
+com justificativa técnica completa.

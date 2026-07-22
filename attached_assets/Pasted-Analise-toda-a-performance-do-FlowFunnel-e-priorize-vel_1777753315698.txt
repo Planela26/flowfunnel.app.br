@@ -1,0 +1,153 @@
+Analise toda a performance do FlowFunnel e priorize velocidade máxima de navegação entre abas, páginas e dashboards.
+
+OBJETIVO PRINCIPAL:
+Eliminar sensação de lentidão e fazer o SaaS parecer instantâneo, fluido e premium.
+
+O sistema atualmente demora para trocar de abas/seções e isso prejudica a experiência do usuário e percepção de qualidade do produto.
+
+Quero que você atue como um engenheiro sênior de performance frontend e UX para SaaS.
+
+IMPORTANTE:
+
+* NÃO quebrar funcionalidades existentes
+* NÃO alterar regras de negócio
+* NÃO modificar design visual atual
+* Foco total em performance, renderização e experiência fluida
+
+---
+
+## PRIORIDADES
+
+1. Melhorar troca entre abas e páginas
+2. Reduzir tempo de carregamento
+3. Eliminar travamentos visuais
+4. Melhorar sensação de fluidez
+5. Fazer o painel parecer instantâneo
+
+---
+
+## ANALISAR E OTIMIZAR
+
+Verificar:
+
+* re-renders desnecessários
+* componentes pesados
+* carregamentos duplicados
+* chamadas API excessivas
+* estados mal gerenciados
+* animações pesadas
+* imagens grandes
+* scripts desnecessários
+* bibliotecas muito pesadas
+* queries lentas
+* gargalos no React
+* problemas de hydration
+* loops de renderização
+* memory leaks
+
+---
+
+## IMPLEMENTAR MELHORES PRÁTICAS
+
+Aplicar técnicas modernas de performance para SaaS:
+
+* lazy loading
+* code splitting
+* dynamic imports
+* memoization
+* React.memo
+* useMemo
+* useCallback
+* virtualização se necessário
+* suspense/loading inteligente
+* cache de dados
+* prefetch de rotas
+* preload estratégico
+* debounce/throttle
+* otimização de imagens
+* skeleton loading premium
+* transições instantâneas
+* streaming quando útil
+
+---
+
+## NAVEGAÇÃO
+
+A troca de abas deve parecer:
+
+* instantânea
+* suave
+* premium
+* responsiva
+
+Mesmo carregando dados.
+
+Usar:
+
+* cache inteligente
+* carregamento parcial
+* background fetching
+* optimistic UI quando possível
+
+---
+
+## EXPERIÊNCIA PREMIUM
+
+Quero sensação semelhante a:
+
+* Linear
+* Notion
+* Vercel Dashboard
+* Stripe Dashboard
+* ClickUp
+
+Ou seja:
+
+* tudo rápido
+* sem sensação de espera
+* sem tela travando
+* feedback visual elegante
+
+---
+
+## ANALISAR DASHBOARD
+
+Verificar:
+
+* gráficos pesados
+* renderizações desnecessárias
+* consultas simultâneas
+* componentes de métricas
+* tabelas
+* tempo de resposta visual
+
+---
+
+## MOBILE
+
+Garantir ótima performance também em:
+
+* celulares intermediários
+* notebooks mais fracos
+* conexões lentas
+
+---
+
+## IMPORTANTE
+
+Se for necessário:
+
+* refatorar componentes
+* reorganizar carregamentos
+* implementar cache
+* alterar arquitetura frontend
+* otimizar queries
+* dividir bundles
+* melhorar estado global
+
+faça isso priorizando velocidade e experiência do usuário.
+
+O objetivo final é:
+“o usuário clicar e sentir tudo instantâneo”.
+
+Priorize performance acima de efeitos visuais desnecessários.

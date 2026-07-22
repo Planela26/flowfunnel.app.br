@@ -1,0 +1,97 @@
+Refatore completamente o cálculo de ROI (Retorno sobre Investimento) da plataforma FlowFunnel para garantir precisão matemática, consistência e confiabilidade em ambiente de produção.
+
+OBJETIVO:
+Garantir que o ROI exibido no dashboard esteja correto, sem distorções, e compatível com padrões de mercado (Meta Ads, Google Ads, etc.).
+
+---
+
+REGRA PRINCIPAL (OBRIGATÓRIO):
+
+O ROI deve ser calculado EXATAMENTE assim:
+
+ROI = (receita - custo) / custo
+
+Para exibição em porcentagem:
+
+roiPercent = ROI * 100
+
+---
+
+IMPLEMENTAÇÃO:
+
+Criar função padrão reutilizável:
+
+function calculateROI(revenue, cost) {
+  if (!cost || cost === 0) return 0;
+
+  const roi = (revenue - cost) / cost;
+  return roi * 100;
+}
+
+---
+
+REGRAS CRÍTICAS:
+
+1. PROIBIDO usar:
+- receita / custo
+- média de ROIs
+- valores aproximados
+
+2. SEMPRE usar:
+- soma total de receita
+- soma total de custo
+
+---
+
+3. ROI GLOBAL:
+
+roiGlobal = (receitaTotal - custoTotal) / custoTotal * 100
+
+---
+
+4. ROI POR FONTE:
+
+roiMeta = (receitaMeta - custoMeta) / custoMeta * 100
+roiGoogle = (receitaGoogle - custoGoogle) / custoGoogle * 100
+roiTikTok = (receitaTikTok - custoTikTok) / custoTikTok * 100
+
+---
+
+5. VALIDAÇÕES OBRIGATÓRIAS:
+
+- Se custo = 0 → retornar 0 (evitar divisão por zero)
+- Se receita = 0 → ROI negativo (-100%)
+- Se receita < custo → ROI negativo corretamente
+- Nunca retornar NaN ou Infinity
+
+---
+
+6. FORMATAÇÃO:
+
+- Arredondar apenas no frontend (2 casas decimais)
+- Backend deve manter precisão completa
+
+---
+
+7. CONSISTÊNCIA:
+
+- ROI global deve bater com dados reais agregados
+- Nunca usar média dos ROIs das fontes
+- Sempre recalcular com dados totais
+
+---
+
+8. TESTES:
+
+Criar testes para validar:
+
+- Receita 200 / custo 100 → ROI = 100%
+- Receita 100 / custo 100 → ROI = 0%
+- Receita 50 / custo 100 → ROI = -50%
+- Custo 0 → ROI = 0 (segurança)
+
+---
+
+OBJETIVO FINAL:
+
+Garantir que o ROI exibido no FlowFunnel seja matematicamente correto, confiável e seguro para tomada de decisão por clientes reais, evitando erros críticos e distorções.

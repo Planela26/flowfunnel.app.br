@@ -1,0 +1,358 @@
+# AUDITORIA COMPLETA DE SEGURANÇA, ESCALABILIDADE E CONFIABILIDADE DO SAAS
+
+Atue como um Arquiteto de Software Sênior, Especialista em Cyber Security, DevSecOps, Cloud Security, Backend, Frontend, Banco de Dados e Infraestrutura.
+
+Sua missão é realizar uma auditoria profunda de todo o sistema sem alterar funcionalidades existentes.
+
+## Objetivo
+
+Identificar:
+
+* Vulnerabilidades de segurança
+* Falhas de autorização
+* Falhas de autenticação
+* Vazamento de dados entre tenants
+* Exposição de dados sensíveis
+* Bugs críticos
+* Falhas de escalabilidade
+* Problemas de performance
+* Falhas de backup e recuperação
+* Possíveis vetores de ataque
+* Problemas de arquitetura
+
+Classifique cada item encontrado em:
+
+* Crítico
+* Alto
+* Médio
+* Baixo
+
+Para cada problema encontrado forneça:
+
+* Localização exata
+* Impacto
+* Risco
+* Cenário de exploração
+* Correção recomendada
+* Nível de prioridade
+
+---
+
+# ETAPA 1 — SEGURANÇA DO FRONTEND
+
+Auditar:
+
+## Exposição de informações
+
+Verificar se existem:
+
+* API Keys expostas
+* Tokens expostos
+* Secrets expostos
+* URLs internas
+* Dados de outros usuários
+* IDs previsíveis
+
+## Segurança da aplicação
+
+Verificar:
+
+* XSS
+* Stored XSS
+* Reflected XSS
+* DOM XSS
+* Clickjacking
+* Open Redirect
+* CSRF
+* Session Fixation
+
+## Local Storage
+
+Verificar:
+
+* JWT armazenado no localStorage
+* Tokens persistidos de forma insegura
+* Dados sensíveis armazenados no navegador
+
+## Network
+
+Inspecionar:
+
+* Todas as chamadas de API
+* Headers enviados
+* Dados trafegados
+* Vazamento de informações
+
+---
+
+# ETAPA 2 — CONTROLE DE PERMISSÕES (RBAC)
+
+Auditar todo o fluxo de autorização.
+
+Verificar:
+
+## Multi-Tenant
+
+Confirmar que:
+
+* Um tenant não consegue acessar dados de outro
+* Todas as queries possuem filtro por tenant
+* Não existe IDOR
+
+## Usuários
+
+Verificar:
+
+* Admin
+* Manager
+* Operador
+* Cliente
+
+Testar:
+
+* Escalada de privilégios
+* Bypass de permissões
+* Alteração manual de IDs
+* Acesso direto por URL
+
+## APIs
+
+Testar:
+
+* Todas as rotas protegidas
+* Todas as rotas administrativas
+* Todos os endpoints internos
+
+Gerar relatório das rotas vulneráveis.
+
+---
+
+# ETAPA 3 — RATE LIMITING
+
+Auditar proteção contra abuso.
+
+Verificar:
+
+## APIs
+
+Existem limites para:
+
+* Login
+* Registro
+* Recuperação de senha
+* Webhooks
+* Integrações
+* Relatórios
+* Exportações
+
+## Ataques
+
+Testar resistência contra:
+
+* Brute Force
+* Credential Stuffing
+* Spam
+* DDoS básico
+* Enumeração de usuários
+
+Identificar endpoints vulneráveis.
+
+---
+
+# ETAPA 4 — LOGS DE AUDITORIA
+
+Verificar se existe rastreabilidade completa.
+
+Auditar:
+
+## Eventos críticos
+
+Registrar:
+
+* Login
+* Logout
+* Alteração de senha
+* Alteração de permissões
+* Exclusão de dados
+* Criação de usuários
+* Pagamentos
+* Assinaturas
+* Integrações
+
+## Logs
+
+Verificar:
+
+* Quem fez
+* Quando fez
+* IP
+* Tenant
+* Resultado
+
+Verificar se algum log contém:
+
+* Senhas
+* Tokens
+* Dados sensíveis
+
+---
+
+# ETAPA 5 — BACKUP E RECUPERAÇÃO
+
+Auditar banco de dados.
+
+Verificar:
+
+## Backup
+
+* Existe backup automático?
+* Frequência?
+* Retenção?
+* Criptografia?
+
+## Recuperação
+
+Simular:
+
+* Queda do banco
+* Corrupção de dados
+* Exclusão acidental
+
+Informar:
+
+* RPO
+* RTO
+
+---
+
+# ETAPA 6 — WEBHOOKS E HMAC
+
+Auditar todas as integrações:
+
+* Stripe
+* Hotmart
+* Perfect Pay
+* Kiwify
+* Monetizze
+* Outras
+
+Verificar:
+
+## Assinaturas
+
+Confirmar se usam:
+
+RAW BODY
+
+e não:
+
+JSON.stringify(req.body)
+
+Verificar:
+
+* Replay attacks
+* Timestamp validation
+* Token validation
+* Idempotência
+* Deduplicação
+
+---
+
+# ETAPA 7 — BANCO DE DADOS
+
+Auditar:
+
+* Prisma Schema
+* Migrations
+* Índices
+* Foreign Keys
+* Constraints
+
+Verificar:
+
+* Queries lentas
+* N+1
+* Full Table Scan
+* Índices ausentes
+
+---
+
+# ETAPA 8 — PERFORMANCE
+
+Auditar:
+
+## Frontend
+
+* Bundle Size
+* Lazy Loading
+* Code Splitting
+* Cache
+
+## Backend
+
+* Queries lentas
+* Gargalos
+* Consumo de memória
+* CPU
+
+Gerar ranking dos maiores gargalos.
+
+---
+
+# ETAPA 9 — SEGURANÇA GERAL
+
+Verificar:
+
+* CSP
+* CORS
+* Helmet
+* Secure Cookies
+* SameSite
+* HSTS
+* HTTPS
+* Headers de segurança
+
+Verificar dependências vulneráveis:
+
+* npm audit
+* Dependências transitivas
+* Pacotes abandonados
+
+---
+
+# RELATÓRIO FINAL
+
+Gerar:
+
+## Score Geral
+
+0 a 100
+
+## Score por área
+
+* Frontend
+* Backend
+* Banco
+* Infraestrutura
+* Segurança
+* Performance
+
+## Top 20 problemas encontrados
+
+Ordenados por gravidade.
+
+## Plano de Correção
+
+Separar em:
+
+* Correções imediatas (24h)
+* Correções prioritárias (7 dias)
+* Melhorias estratégicas (30 dias)
+
+IMPORTANTE:
+
+Não modificar código automaticamente.
+
+Primeiro realizar a auditoria completa.
+
+Somente apresentar relatório técnico detalhado com evidências, arquivos afetados, riscos, impacto e recomendações.

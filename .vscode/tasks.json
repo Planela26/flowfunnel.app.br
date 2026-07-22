@@ -1,0 +1,14 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Gerar PDF do relatório",
+			"type": "shell",
+			"command": "npx markdown-pdf Relatorio-Progresso-WhatsApp-Funnel-25-01-2026.md -o Relatorio-Progresso-WhatsApp-Funnel-25-01-2026.pdf",
+			"args": [],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		}
+	]
+}

@@ -1,0 +1,151 @@
+Realizar uma auditoria completa e refatoração final de toda a lógica de cálculo de métricas da plataforma FlowFunnel.
+
+OBJETIVO:
+Garantir que todos os dados exibidos no dashboard sejam matematicamente corretos, consistentes, não duplicados e confiáveis para uso em ambiente de produção com clientes reais.
+
+---
+
+1. REVALIDAR TODAS AS MÉTRICAS
+
+Assegurar que os cálculos seguem exatamente:
+
+TOTALS:
+totalClicks = soma de todos os cliques
+totalImpressions = soma de todas as impressões
+totalLeads = soma de todos os leads
+totalCost = soma de todos os custos
+totalRevenue = soma de toda a receita
+
+---
+
+2. FÓRMULAS OBRIGATÓRIAS
+
+CTR:
+ctr = totalClicks / totalImpressions
+
+CPC:
+cpc = totalCost / totalClicks
+
+CPM:
+cpm = (totalCost / totalImpressions) * 1000
+
+CONVERSÃO:
+conversionRate = totalLeads / totalClicks
+
+ROI:
+roi = ((totalRevenue - totalCost) / totalCost) * 100
+
+ROAS:
+roas = totalRevenue / totalCost
+
+---
+
+3. CÁLCULOS POR FONTE (ISOLADOS)
+
+Para cada fonte (Meta, Google, TikTok):
+
+- usar apenas dados da própria fonte
+- nunca misturar com total
+
+Exemplo:
+roiMeta = (revenueMeta - costMeta) / costMeta * 100
+
+---
+
+4. CONSISTÊNCIA GLOBAL (CRÍTICO)
+
+VALIDAR:
+
+- totalClicks = soma das fontes
+- totalImpressions = soma das fontes
+- totalLeads = soma das fontes
+- totalCost = soma das fontes
+- totalRevenue = soma das fontes
+
+Se houver diferença:
+- registrar erro
+- marcar dados como inconsistentes
+
+---
+
+5. PREVENÇÃO DE ERROS
+
+Implementar proteção:
+
+- divisão por zero → retornar 0
+- valores undefined/null → tratar como 0
+- nunca permitir NaN ou Infinity
+
+---
+
+6. DETECÇÃO DE DUPLICIDADE (ALTAMENTE CRÍTICO)
+
+Implementar verificação para:
+
+- webhooks duplicados (mesmo ID)
+- eventos repetidos
+- vendas duplicadas
+
+Se detectar:
+- ignorar duplicado
+- logar ocorrência
+
+---
+
+7. VALIDAÇÃO DE RECEITA E CUSTO
+
+Garantir:
+
+- receita só vem de eventos válidos de venda
+- custo inclui TODAS as fontes conectadas
+- não contar leads como receita
+
+---
+
+8. PRECISÃO DOS CÁLCULOS
+
+- backend: manter precisão total (sem arredondar)
+- frontend: arredondar apenas para exibição (2 casas decimais)
+
+---
+
+9. TESTES AUTOMATIZADOS
+
+Criar cenários obrigatórios:
+
+- custo 100 / receita 200 → ROI 100%
+- custo 100 / receita 100 → ROI 0%
+- custo 100 / receita 50 → ROI -50%
+- custo 0 → retorno seguro (0)
+
+Validar também:
+- CTR correto
+- CPC correto
+- CPM correto
+
+---
+
+10. LOG DE AUDITORIA
+
+Criar logs contendo:
+
+- origem dos dados
+- timestamp
+- valores recebidos
+- valores calculados
+
+---
+
+11. MODO PRODUÇÃO
+
+- garantir funcionamento com múltiplos usuários
+- dados isolados por conta
+- nenhuma dependência de dados mockados
+
+---
+
+12. OBJETIVO FINAL
+
+Transformar o sistema de métricas do FlowFunnel em uma engine confiável, auditável e precisa, garantindo que todos os números exibidos reflitam exatamente a realidade dos dados do usuário.
+
+A plataforma deve estar pronta para uso profissional sem risco de inconsistência ou erro de cálculo.

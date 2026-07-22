@@ -1,0 +1,63 @@
+modules = ["nodejs-20", "web", "python-3.11", "postgresql-16"]
+[agent]
+expertMode = true
+integrations = ["stripe:1.0.0"]
+stack = "BEST_EFFORT_FALLBACK"
+
+[nix]
+channel = "stable-25_05"
+
+[userenv]
+
+[userenv.shared]
+STRIPE_PRICE_START = "price_1TGC9uHozdjtX6AC911xvx53"
+STRIPE_PRICE_PRO = "price_1TGC9vHozdjtX6ACKP2DaHka"
+STRIPE_PRICE_SCALE = "price_1TGC9vHozdjtX6ACbY8LxBeG"
+RESEND_FROM_EMAIL = "FlowFunnel <noreply@flowfunnel.app.br>"
+
+[userenv.development]
+NEXTAUTH_URL = "https://810132a2-1ab5-4482-8675-3a7662f7cfe9-00-1dco9li6r4naw.picard.replit.dev"
+
+[userenv.production]
+NEXTAUTH_URL = "https://flowfunnel.app.br"
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Start application"
+
+[[workflows.workflow]]
+name = "Start application"
+author = "agent"
+
+[workflows.workflow.metadata]
+outputType = "webview"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run dev"
+waitForPort = 5000
+
+[[ports]]
+localPort = 5000
+externalPort = 80
+
+[[ports]]
+localPort = 23636
+externalPort = 3000
+
+[postMerge]
+path = "scripts/post-merge.sh"
+timeoutMs = 120000
+
+[deployment]
+deploymentTarget = "autoscale"
+run = ["npm", "start"]
+build = ["npm", "run", "build:app"]

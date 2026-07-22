@@ -1,0 +1,132 @@
+Implementar bloqueio de acesso para contas com assinatura vencida, cancelada ou inadimplente.
+
+OBJETIVO
+
+Usuários sem plano ativo não devem conseguir utilizar o sistema até regularizar o pagamento.
+
+REGRAS
+
+Plano ativo:
+
+* Acesso normal a todas as funcionalidades.
+
+Plano expirado:
+
+* Bloquear acesso ao dashboard.
+* Bloquear CRM.
+* Bloquear WhatsApp.
+* Bloquear Funil Visual.
+* Bloquear Automações.
+* Bloquear Relatórios.
+* Bloquear Integrações.
+* Bloquear Configurações.
+
+Plano cancelado:
+
+* Mesmo comportamento do plano expirado.
+
+Pagamento recusado:
+
+* Mesmo comportamento do plano expirado.
+
+Pagamento pendente:
+
+* Exibir aviso de pagamento pendente.
+* Permitir acesso apenas à página de cobrança.
+
+COMPORTAMENTO
+
+Ao entrar no sistema:
+
+1. Validar assinatura do usuário.
+2. Verificar status no banco.
+3. Caso não esteja ativo:
+
+Redirecionar para uma tela exclusiva de cobrança.
+
+Tela de bloqueio:
+
+Título:
+"Assinatura pendente"
+
+Mensagem:
+"Sua assinatura está inativa. Regularize o pagamento para continuar utilizando o FlowFunnel."
+
+Botões:
+
+* Atualizar pagamento
+* Alterar método de pagamento
+* Assinar novamente
+* Sair da conta
+
+SEGURANÇA
+
+IMPORTANTE:
+
+Não bloquear apenas pela interface.
+
+Implementar proteção também:
+
+* Middleware
+* APIs
+* Server Actions
+* Rotas protegidas
+
+Mesmo que o usuário tente acessar:
+
+/dashboard
+/leads
+/automations
+/settings
+/api/*
+
+diretamente pela URL ou DevTools, o acesso deve ser negado.
+
+RETORNO DAS APIS
+
+Se assinatura não estiver ativa:
+
+HTTP 403
+
+{
+"error": "subscription_required"
+}
+
+EXCEÇÕES
+
+Permitir acesso mesmo sem assinatura para:
+
+* Login
+* Cadastro
+* Recuperação de senha
+* Página de planos
+* Página de cobrança
+* Webhooks Stripe
+* Webhooks Mercado Pago
+* Página de renovação
+
+GRACE PERIOD
+
+Implementar período de tolerância de 3 dias após falha de pagamento.
+
+Durante esse período:
+
+* Exibir alertas de cobrança.
+* Sistema continua funcionando.
+
+Após 3 dias:
+
+* Bloqueio automático.
+
+RELATÓRIO FINAL
+
+Após implementar, verificar:
+
+* Usuário ativo mantém acesso.
+* Usuário expirado perde acesso.
+* APIs retornam 403.
+* Middleware impede navegação.
+* Stripe reativa automaticamente após pagamento.
+* Mercado Pago reativa automaticamente após pagamento.
+
+Informar quais arquivos foram alterados e como o bloqueio foi implementado.

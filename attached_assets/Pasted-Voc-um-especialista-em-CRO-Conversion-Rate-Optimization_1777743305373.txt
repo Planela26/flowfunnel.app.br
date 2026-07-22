@@ -1,0 +1,120 @@
+Você é um especialista em CRO (Conversion Rate Optimization), UX e copywriting para SaaS.
+
+Sua tarefa é melhorar a landing page existente SEM alterar a identidade visual atual (cores, fontes, layout geral, espaçamento e estrutura visual devem permanecer iguais).
+
+OBJETIVO:
+Aumentar a taxa de conversão deixando a copy mais persuasiva, clara e orientada a resultado.
+
+REGRAS IMPORTANTES:
+- NÃO mudar cores, tipografia ou design visual
+- NÃO alterar estrutura de seções (hero, problema, solução, etc.)
+- NÃO remover elementos existentes
+- Apenas melhorar textos e microcopies
+- Pode reorganizar frases dentro da mesma seção para melhorar impacto
+- Pode adicionar pequenas linhas estratégicas (ex: prova social, reforço de valor)
+
+--------------------------------------------------
+
+ALTERAÇÕES NECESSÁRIAS:
+
+1. HERO SECTION (primeira dobra)
+- Tornar a headline mais direta e focada em perda de dinheiro/conversão
+- Deixar explícito o benefício principal (descobrir onde perde vendas + aumentar conversão)
+- Destacar o uso de IA como diferencial principal
+
+Substituir a headline por algo mais forte como:
+"Descubra exatamente onde você está perdendo vendas no seu funil"
+
+Subheadline:
+"Conecte suas plataformas e veja em tempo real onde seus leads desistem — com uma IA que identifica gargalos e sugere como aumentar sua conversão."
+
+Adicionar prova social logo abaixo:
+Exemplo:
+"+1.200 produtores e gestores já usam para escalar vendas"
+
+Melhorar CTA:
+Trocar "Comece gratuitamente" por algo orientado a ação + benefício:
+"Ver onde estou perdendo vendas"
+
+Manter:
+"Sem cartão de crédito · Acesso imediato · 7 dias de garantia"
+
+--------------------------------------------------
+
+2. SEÇÃO DE PROBLEMA
+Deixar mais emocional e específica.
+
+Substituir abordagem genérica por algo mais identificável:
+
+Exemplo:
+"Você investe em tráfego, recebe leads… mas não sabe onde está perdendo dinheiro."
+
+E:
+"Você vê cliques, mensagens e vendas — mas não enxerga o caminho completo."
+
+Manter estrutura dos cards, mas deixar textos mais diretos e dolorosos.
+
+--------------------------------------------------
+
+3. SEÇÃO DE SOLUÇÃO
+Destacar mais o diferencial da IA.
+
+Adicionar frase de impacto no topo:
+"Uma IA analisa seu funil e mostra exatamente o que corrigir para vender mais."
+
+Melhorar descrições:
+- Focar em resultado (mais vendas, menos desperdício)
+- Menos descrição técnica, mais benefício
+
+--------------------------------------------------
+
+4. PLANOS E PREÇOS
+Deixar mais orientado a valor.
+
+Adicionar microcopy acima dos planos:
+"Escolha o plano e comece a recuperar vendas perdidas hoje"
+
+Melhorar CTAs:
+- START: "Começar e testar grátis"
+- PRO: "Quero escalar meu funil"
+- SCALE: "Falar com especialista"
+
+--------------------------------------------------
+
+5. DEPOIMENTOS
+Adicionar reforço curto acima:
+"Resultados reais de quem já usa"
+
+(se já existir, apenas melhorar wording para mais impacto)
+
+--------------------------------------------------
+
+6. CTA FINAL
+Tornar mais forte e direto:
+
+Antes:
+"Pronto para parar de perder vendas?"
+
+Depois:
+"Pronto para descobrir onde seu dinheiro está sendo perdido?"
+
+Botão:
+"Criar conta e ver meu funil agora"
+
+--------------------------------------------------
+
+7. INTEGRAÇÕES (ícones)
+Adicionar uma frase acima:
+
+"Funciona com as principais plataformas do mercado — sem código"
+
+--------------------------------------------------
+
+IMPORTANTE:
+- Não alterar HTML estrutural de forma significativa
+- Não quebrar responsividade
+- Não remover classes CSS existentes
+- Apenas editar textos e adicionar pequenas linhas estratégicas
+
+OBJETIVO FINAL:
+Landing page mais agressiva em conversão, mantendo exatamente o mesmo design visual.

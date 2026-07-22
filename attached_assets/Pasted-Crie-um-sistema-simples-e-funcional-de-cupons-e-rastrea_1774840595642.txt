@@ -1,0 +1,144 @@
+Crie um sistema simples e funcional de cupons e rastreamento de afiliados para um site SaaS, com foco em validação rápida e uso real com influenciadores.
+
+Objetivo do sistema:
+Permitir que o dono do sistema (admin) crie códigos promocionais para influenciadores. Cada código concede desconto ao cliente e permite rastrear quais vendas vieram de cada parceiro.
+
+O sistema deve ser simples, funcional e pronto para uso imediato, sem complexidade desnecessária.
+
+========================
+COMO O SISTEMA FUNCIONA
+=======================
+
+1. O admin cria um afiliado (influenciador) com:
+
+* Nome
+* Código promocional (ex: AMELIA10)
+* Porcentagem de desconto
+* Porcentagem de comissão
+
+2. O sistema gera automaticamente um link de divulgação:
+   Exemplo:
+   seusite.com/?ref=amelia
+
+3. Quando um usuário acessa o site com esse link:
+
+* O sistema captura o parâmetro ?ref=
+* Salva essa informação no navegador (localStorage ou cookie)
+
+4. No checkout:
+
+* Se houver um código digitado → validar e aplicar desconto
+* Se houver referência salva (ref) → aplicar desconto automaticamente mesmo sem digitar código
+
+5. Após a compra:
+
+* O sistema registra a venda
+* Associa ao afiliado correto
+* Calcula a comissão automaticamente
+
+========================
+FUNCIONALIDADES OBRIGATÓRIAS
+============================
+
+1. AUTENTICAÇÃO
+
+* Sistema de login simples
+* Apenas um usuário admin inicialmente
+
+2. PAINEL ADMIN (somente admin acessa)
+
+* Dashboard com:
+
+  * Total de vendas
+  * Total de descontos aplicados
+  * Total de comissão gerada
+
+* Gerenciamento de afiliados:
+
+  * Criar afiliado
+  * Editar afiliado
+  * Ativar/desativar afiliado
+  * Gerar código automaticamente
+
+* Listagem de vendas:
+
+  * Valor original
+  * Valor com desconto
+  * Afiliado responsável
+  * Comissão gerada
+  * Status da venda
+
+3. CHECKOUT SIMPLES
+
+* Campo para inserir código promocional
+* Aplicação de desconto em tempo real
+* Mostrar valor original e valor final
+
+4. SISTEMA DE RASTREAMENTO
+
+* Capturar ?ref= da URL
+* Salvar no navegador
+* Usar essa referência no checkout
+
+5. REGISTRO DE VENDAS
+   Cada venda deve salvar:
+
+* id
+* valor original
+* desconto aplicado
+* valor final
+* afiliado_id
+* comissão
+* data
+
+========================
+REQUISITOS TÉCNICOS
+===================
+
+Backend:
+
+* Node.js com Express
+
+Banco de dados:
+
+* SQLite (simples e funcional)
+
+Frontend:
+
+* HTML, CSS e JavaScript puro (simples e funcional)
+
+Estrutura:
+
+* Organizar em pastas:
+  /routes
+  /controllers
+  /models
+  /middlewares
+
+Segurança:
+
+* Middleware para proteger rotas de admin
+* Apenas admin pode acessar /admin
+
+========================
+EXTRAS IMPORTANTES
+==================
+
+* Código limpo e bem comentado
+* Interface simples, estilo dashboard SaaS
+* Sistema pronto para expansão futura
+* Fácil de integrar com Stripe depois
+
+========================
+OBJETIVO FINAL
+==============
+
+Criar um sistema simples, funcional e utilizável na prática para:
+
+* Fazer parcerias com influenciadores
+* Oferecer cupons de desconto
+* Rastrear vendas por afiliado
+* Calcular comissões automaticamente
+
+O sistema NÃO precisa ser perfeito ou complexo.
+Deve ser direto, funcional e pronto para uso imediato.

@@ -1,0 +1,137 @@
+Antes de eu subir campanhas pagas, faça uma auditoria completa do sistema e valide todos os fluxos críticos.
+
+Não quero apenas verificar se o código compila. Quero validação funcional real.
+
+Checklist obrigatório:
+
+1. AUTENTICAÇÃO
+
+* Cadastro de usuário
+* Login
+* Logout
+* Recuperação de senha
+* Persistência de sessão
+* Renovação de sessão
+
+2. ONBOARDING
+
+* Cadastro de workspace
+* Criação automática de conta
+* Criação automática de CRM
+* Fluxo completo de primeiro acesso
+
+3. FUNIL VISUAL
+
+* Adicionar card pelo botão +
+* Remover card pelo X
+* Persistência após refresh
+* Persistência após logout/login
+* Verificar se remover card não afeta integrações reais
+
+4. INTEGRAÇÕES
+   Validar:
+
+* Meta Ads
+* Google Ads
+* TikTok Ads
+* WhatsApp
+* Hotmart
+* Kiwify
+* Eduzz
+* Monetizze
+* Stripe
+* Mercado Pago
+* CRM
+
+Confirmar se:
+
+* Conectam corretamente
+* Buscam dados corretamente
+* Tratam erro corretamente
+* Não quebram o dashboard
+
+5. PAGAMENTOS
+   Testar:
+
+Stripe:
+
+* pagamento aprovado
+* pagamento recusado
+* cancelamento
+* renovação
+
+Mercado Pago:
+
+* pagamento aprovado
+* pagamento recusado
+* webhook recebido
+* atualização de status
+
+6. META TRACKING
+   Validar:
+
+* PageView
+* CompleteRegistration
+* StartTrial
+* InitiateCheckout
+* Purchase
+
+Confirmar:
+
+* Pixel dispara
+* CAPI dispara
+* EventID funciona
+* Deduplicação funciona
+* Eventos aparecem no Test Events da Meta
+
+7. CRM
+   Verificar:
+
+* criação de lead
+* atualização de lead
+* movimentação de estágio
+* dashboard atualizado
+
+8. DASHBOARD
+   Verificar:
+
+* métricas carregam
+* loading states corretos
+* tratamento de erro
+* nenhum card quebra a tela
+
+9. MOBILE
+   Testar:
+
+* Android
+* iPhone
+* Chrome Mobile
+* Safari
+
+Verificar:
+
+* responsividade
+* modal do +
+* cards
+* login
+* checkout
+
+10. PRODUÇÃO
+
+Quero um relatório final contendo:
+
+✅ O que foi testado
+
+✅ O que passou
+
+⚠️ O que precisa de correção
+
+❌ O que impede subir campanha
+
+No final me responda apenas uma destas opções:
+
+VERDE = Pode subir campanha.
+
+AMARELO = Pode subir campanha com ressalvas.
+
+VERMELHO = Não subir campanha até corrigir os problemas encontrados.

@@ -1,0 +1,88 @@
+Atualize o dashboard da minha aplicação SaaS de análise de funil (FlowFunnel) com a seguinte lógica:
+
+OBJETIVO:
+Separar claramente métricas consolidadas (geral) e métricas por fonte de tráfego (Facebook Ads, Google Ads, TikTok Ads).
+
+REQUISITOS:
+
+1. RESUMO GERAL (TOPO DO DASHBOARD)
+
+* Criar uma seção no topo chamada "Resumo Geral"
+
+* Essa seção deve somar automaticamente os dados de TODAS as fontes de tráfego conectadas (Facebook, Google, TikTok)
+
+* Exibir os seguintes indicadores consolidados:
+
+  * Total de Cliques
+  * Total de Impressões
+  * Total de Leads
+  * Taxa de Conversão Geral
+  * CPC Médio
+  * CPM Médio
+  * CTR Médio
+  * ROI Geral
+
+* As médias (CPC, CPM, CTR) devem ser calculadas corretamente com base nos dados agregados (não média simples, mas ponderada)
+
+2. CARDS POR FONTE (DASHBOARD PRINCIPAL)
+   Cada bloco do funil deve manter suas métricas INDIVIDUAIS, sem misturar dados.
+
+* Facebook Ads:
+
+  * Cliques
+  * Impressões
+  * CPC
+  * CPM
+  * CTR
+  * Leads
+
+* Google Ads:
+
+  * Cliques
+  * Impressões
+  * CPC
+  * Taxa de Conversão
+  * Leads
+
+* TikTok Ads:
+
+  * Impressões
+  * Cliques
+  * CTR
+  * Leads
+
+3. COMPORTAMENTO QUANDO NÃO HÁ DADOS
+
+* NÃO exibir "0" quando não houver dados
+* Em vez disso, mostrar:
+
+  * "Sem dados ainda"
+  * ou "Conecte sua conta"
+
+4. INTEGRAÇÃO COM O FUNIL VISUAL
+
+* O resumo geral deve refletir todos os dados que passam pelos blocos do funil
+* Cada card continua representando apenas sua própria fonte
+
+5. ESTRUTURA DE DADOS
+
+* Criar uma camada de agregação (ex: função aggregateMetrics)
+* Essa função deve receber os dados de cada fonte e retornar o consolidado
+* Garantir que os cálculos de taxa (CTR, conversão, etc.) sejam feitos corretamente
+
+6. UX/UI
+
+* O "Resumo Geral" deve ficar fixo no topo
+* Os cards das fontes continuam abaixo, dentro do funil
+* Deixar visualmente claro que:
+
+  * topo = visão geral
+  * cards = visão individual
+
+OBJETIVO FINAL:
+O usuário deve conseguir ver rapidamente:
+
+* o desempenho total do funil
+* e o desempenho individual de cada fonte de tráfego
+
+Sem confusão e sem métricas duplicadas ou misturadas.

@@ -1,0 +1,181 @@
+# CORREÇÃO CRÍTICA DE SEGURANÇA — NEXT.JS E MIDDLEWARE
+
+Atue como um Arquiteto Sênior de Segurança, especialista em Next.js, App Router, autenticação e hardening de aplicações SaaS multi-tenant.
+
+A auditoria identificou o seguinte risco crítico:
+
+* Next.js desatualizado com CVEs conhecidas
+* Possível bypass de middleware
+* Possível bypass de autenticação
+* Vulnerabilidades relacionadas a CSRF
+* SSRF
+* Cache poisoning
+
+## Objetivo
+
+Executar uma análise completa e corrigir todos os problemas relacionados ao Next.js e middleware.
+
+IMPORTANTE:
+
+* Não quebrar funcionalidades existentes.
+* Não remover recursos.
+* Não alterar regras de negócio.
+* Preservar todas as integrações existentes.
+* Antes de modificar qualquer coisa, identificar a versão atual instalada e as versões seguras disponíveis.
+
+---
+
+# ETAPA 1 — ANÁLISE
+
+Identificar:
+
+* Versão atual do Next.js
+* CVEs conhecidas que afetam a versão instalada
+* Impacto real no projeto
+* Dependências relacionadas que precisam ser atualizadas
+
+Gerar relatório antes da correção.
+
+---
+
+# ETAPA 2 — ATUALIZAÇÃO SEGURA
+
+Atualizar:
+
+* next
+* react
+* react-dom
+
+Somente para versões compatíveis e estáveis.
+
+Verificar:
+
+* App Router
+* Middleware
+* NextAuth
+* Prisma
+* Stripe
+* Resend
+* Baileys
+
+Confirmar compatibilidade total.
+
+---
+
+# ETAPA 3 — AUDITORIA DO MIDDLEWARE
+
+Revisar completamente:
+
+middleware.ts
+
+Verificar:
+
+* Rotas protegidas
+* Rotas públicas
+* Bypass de autenticação
+* Matchers
+* Rewrites
+* Redirects
+* Edge cases
+* Falhas conhecidas de versões antigas
+
+Garantir que nenhuma rota administrativa ou privada possa ser acessada sem autenticação válida.
+
+---
+
+# ETAPA 4 — TESTE DE BYPASS
+
+Simular:
+
+* Acesso direto por URL
+* Manipulação de headers
+* Rewrites
+* Paths alternativos
+* URLs codificadas
+* Double slash
+* Path traversal
+* Casos conhecidos de bypass de middleware
+
+Gerar relatório das tentativas.
+
+---
+
+# ETAPA 5 — CSRF
+
+Auditar:
+
+* Formulários
+* Server Actions
+* APIs protegidas
+* Fluxos de autenticação
+
+Verificar se existe risco de CSRF.
+
+Aplicar correções compatíveis com NextAuth e Next.js moderno.
+
+---
+
+# ETAPA 6 — SSRF
+
+Auditar todas as chamadas externas.
+
+Verificar:
+
+* fetch
+* axios
+* webhooks
+* integrações
+
+Confirmar que URLs controladas por usuários não podem gerar SSRF.
+
+---
+
+# ETAPA 7 — CACHE POISONING
+
+Auditar:
+
+* Headers
+* Cache-Control
+* Revalidate
+* Dynamic routes
+* Middleware
+
+Garantir que respostas autenticadas nunca sejam cacheadas incorretamente.
+
+---
+
+# ETAPA 8 — VALIDAÇÃO
+
+Após todas as correções:
+
+Executar:
+
+* npm audit
+* TypeScript
+* Build completo
+* Testes de autenticação
+* Testes de middleware
+* Testes das integrações
+* Smoke tests
+
+---
+
+# RELATÓRIO FINAL
+
+Informar:
+
+* Versão antiga
+* Versão nova
+* CVEs mitigadas
+* Arquivos alterados
+* Riscos eliminados
+* Possíveis impactos
+* Resultado dos testes
+
+Somente concluir se:
+
+* Build estiver passando
+* TypeScript estiver limpo
+* Middleware estiver validado
+* Autenticação estiver protegida
+* Nenhuma funcionalidade crítica tiver sido quebrada

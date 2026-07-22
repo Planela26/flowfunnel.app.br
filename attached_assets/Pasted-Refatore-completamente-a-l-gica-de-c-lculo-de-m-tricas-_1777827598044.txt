@@ -1,0 +1,143 @@
+Refatore completamente a lógica de cálculo de métricas da plataforma FlowFunnel para garantir precisão matemática, consistência entre fontes e confiabilidade em ambiente de produção.
+
+CONTEXTO:
+A plataforma agrega dados de múltiplas fontes (Meta Ads, Google Ads, TikTok Ads, WhatsApp, checkouts). Os cálculos atuais podem conter erros de média simples e inconsistências.
+
+OBJETIVO:
+Garantir que TODOS os cálculos sejam feitos corretamente com base em dados reais agregados, evitando distorções em contas de clientes.
+
+---
+
+REGRAS CRÍTICAS (OBRIGATÓRIO):
+
+1. NUNCA usar média simples para métricas agregadas
+ERRADO:
+media = (valor1 + valor2 + valor3) / 3
+
+CORRETO:
+usar sempre soma total / base total
+
+---
+
+2. PADRONIZAR CÁLCULOS GLOBAIS
+
+Implementar cálculos exatos:
+
+- Total de Cliques = soma de cliques de todas as fontes
+- Total de Impressões = soma total
+- Total de Leads = soma total
+
+---
+
+3. TAXA DE CONVERSÃO
+
+GLOBAL:
+conversionRate = totalLeads / totalClicks
+
+POR FONTE:
+conversionRate = leadsFonte / cliquesFonte
+
+Nunca reutilizar valor global nas fontes.
+
+---
+
+4. CPC (CUSTO POR CLIQUE)
+
+GLOBAL:
+cpc = totalGasto / totalCliques
+
+POR FONTE:
+cpc = gastoFonte / cliquesFonte
+
+Nunca calcular média entre CPCs.
+
+---
+
+5. CPM (CUSTO POR MIL IMPRESSÕES)
+
+GLOBAL:
+cpm = totalGasto / totalImpressoes * 1000
+
+POR FONTE:
+cpm = gastoFonte / impressoesFonte * 1000
+
+---
+
+6. CTR (CLICK THROUGH RATE)
+
+GLOBAL:
+ctr = totalCliques / totalImpressoes
+
+POR FONTE:
+ctr = cliquesFonte / impressoesFonte
+
+---
+
+7. ROI (RETORNO SOBRE INVESTIMENTO)
+
+FÓRMULA CORRETA:
+roi = (receita - custo) / custo
+
+RETORNAR EM PORCENTAGEM:
+roiPercent = roi * 100
+
+VALIDAR:
+- Se custo = 0 → evitar divisão por zero
+- Retornar 0 ou null com tratamento
+
+---
+
+8. VALIDAÇÕES IMPORTANTES
+
+- Evitar divisão por zero em TODOS os cálculos
+- Se dados ausentes → retornar 0 ou null
+- Arredondar apenas na camada de exibição (frontend)
+- Backend deve manter precisão máxima
+
+---
+
+9. CONSISTÊNCIA ENTRE DASHBOARD
+
+- O valor TOTAL deve ser igual à soma real das fontes
+- Nunca usar valores "aproximados"
+- Garantir que UI não mostre números inconsistentes
+
+---
+
+10. PADRÃO DE IMPLEMENTAÇÃO
+
+Criar funções reutilizáveis:
+
+calculateCTR(clicks, impressions)
+calculateCPC(cost, clicks)
+calculateCPM(cost, impressions)
+calculateConversion(leads, clicks)
+calculateROI(revenue, cost)
+
+---
+
+11. MODO DEMO vs PRODUÇÃO
+
+- Dados demo podem ser simulados
+- MAS os cálculos devem usar a mesma lógica da produção
+- Nunca usar valores mockados para cálculos
+
+---
+
+12. TESTES AUTOMÁTICOS
+
+Criar testes para validar:
+
+- Soma correta dos totais
+- Conversão correta
+- CPC e CPM corretos
+- ROI correto
+- Casos com zero dados
+
+---
+
+OBJETIVO FINAL:
+
+Transformar o sistema de métricas em um módulo confiável, preciso e pronto para uso com clientes reais, evitando qualquer inconsistência ou erro matemático.
+
+A lógica deve ser equivalente a ferramentas profissionais como plataformas de anúncios e analytics.

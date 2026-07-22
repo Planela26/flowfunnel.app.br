@@ -1,0 +1,80 @@
+Crie uma página completa de "Política de Privacidade" para o SaaS FlowFunnel.
+
+REQUISITOS:
+- Texto em português (Brasil)
+- Linguagem profissional e clara
+- Estrutura bem organizada com títulos numerados
+- Pronto para produção (nível SaaS profissional)
+- Coerente com os Termos de Uso já existentes
+
+INFORMAÇÕES DO PROJETO:
+- Nome: FlowFunnel
+- Operador: Gabriel de Souza Areal
+- Pessoa física residente no Brasil
+- Email de contato: contato@zapflowfunnel.com.br
+
+ESTRUTURA OBRIGATÓRIA:
+
+1. Título: "Política de Privacidade – FlowFunnel"
+2. Última atualização (usar data atual automaticamente)
+3. Introdução explicando o objetivo da política
+
+4. Seção: Dados coletados
+- Dados fornecidos (nome, email, senha, etc.)
+- Dados automáticos (IP, dispositivo, logs)
+- Dados de integrações (Meta, Google, TikTok, WhatsApp, Hotmart, Kiwify, Eduzz, Monetizze, Perfect Pay)
+
+5. Seção: Finalidade do uso dos dados
+- Operação da plataforma
+- Autenticação
+- Métricas e dashboards
+- Melhorias
+- Segurança
+- Suporte
+
+6. Seção: Compartilhamento de dados
+- Infraestrutura
+- Pagamentos (Stripe)
+- APIs conectadas
+- Autoridades legais
+- Informar claramente que NÃO vende dados
+
+7. Seção: Armazenamento e segurança
+- Criptografia
+- Controle de acesso
+- Aviso de limitação de segurança
+
+8. Seção: Direitos do usuário (LGPD)
+- Acesso
+- Correção
+- Exclusão
+- Revogação de consentimento
+
+9. Seção: Retenção de dados
+- Enquanto conta ativa
+- Obrigações legais
+- Segurança
+
+10. Seção: Cookies
+- Explicar uso
+- Informar que pode desativar
+
+11. Seção: Serviços de terceiros
+- Responsabilidade limitada sobre terceiros
+
+12. Seção: Alterações na política
+- Pode ser atualizada
+- Notificação via email ou plataforma
+
+13. Seção: Contato
+- contato@zapflowfunnel.com.br
+
+REGRAS IMPORTANTES:
+- Não usar CPF no documento
+- Não inventar informações
+- Manter coerência com LGPD (Lei 13.709/2018)
+- Linguagem profissional (nível empresa SaaS)
+- Texto pronto para copiar e colar no site
+
+OBJETIVO FINAL:
+Gerar uma Política de Privacidade completa, confiável e juridicamente estruturada para uso real em produção.

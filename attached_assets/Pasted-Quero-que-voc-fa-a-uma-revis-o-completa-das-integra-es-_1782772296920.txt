@@ -1,0 +1,102 @@
+Quero que você faça uma revisão completa das integrações e corrija os seguintes pontos de forma definitiva.
+
+## 1. Regeneração de Token de Webhook (Prioridade Máxima)
+
+Atualmente o token do webhook é gerado apenas na criação da integração.
+
+Implemente uma função para regenerar o token com as seguintes regras:
+
+* Gerar um novo token usando `crypto.randomBytes(24)` (ou equivalente).
+* Invalidar imediatamente o token antigo.
+* Atualizar automaticamente a URL do webhook.
+* Exigir confirmação do usuário antes da regeneração.
+* Registrar a ação nos logs.
+* Garantir que qualquer webhook enviado para a URL antiga retorne erro (404 ou 410).
+
+---
+
+## 2. Exibir a URL correta do Webhook
+
+Nas páginas de integração (Hotmart, Kiwify, Eduzz, etc.) não exiba uma URL genérica.
+
+Cada usuário deve visualizar exclusivamente sua URL individual, por exemplo:
+
+`/api/webhooks/hotmart/{webhookToken}`
+
+Nunca exibir:
+
+`/api/webhooks/hotmart`
+
+A URL apresentada deve ser exatamente a que será cadastrada na plataforma do produtor.
+
+---
+
+## 3. Corrigir preenchimento automático das credenciais
+
+Existe um problema grave na tela **Integrações → Inserir Credenciais**.
+
+Hoje está acontecendo o seguinte:
+
+* O campo **"Email do Produtor"** está sendo preenchido com o e-mail da conta do SaaS.
+* O campo **"Token de Segurança (Hottok)"** está sendo preenchido com alguma informação da conta do usuário (inclusive a senha do SaaS, conforme identificado).
+
+Isso NÃO pode acontecer em hipótese alguma.
+
+Esses campos devem obedecer às seguintes regras:
+
+* Nunca preencher automaticamente com dados da conta do SaaS.
+* Nunca reutilizar dados do login do usuário.
+* Nunca exibir senha do usuário.
+* Nunca copiar informações de autenticação entre módulos.
+* O campo deve permanecer vazio caso o usuário ainda não tenha salvo credenciais.
+* Caso existam credenciais já cadastradas para aquela integração, carregar apenas os dados pertencentes àquele usuário e àquela integração.
+
+Faça uma auditoria completa para descobrir de onde esses valores estão vindo e elimine a causa do problema.
+
+---
+
+## 4. Auditoria de Segurança
+
+Verifique se existe qualquer binding incorreto entre:
+
+* formulário;
+* sessão do usuário;
+* NextAuth;
+* variáveis de ambiente;
+* autofill do navegador;
+* React state;
+* Prisma;
+* cache.
+
+Nenhum campo de integração pode utilizar dados da autenticação do SaaS.
+
+---
+
+## 5. Correlation ID
+
+Adicionar um `requestId` (Correlation ID) para todas as requisições críticas:
+
+* Webhooks
+* APIs
+* Integrações
+* Logs
+* Jobs
+* Processamentos
+
+Esse ID deve acompanhar toda a execução para facilitar auditoria e debugging.
+
+---
+
+## 6. Validação Final
+
+Depois das correções, faça uma nova auditoria completa e confirme:
+
+* nenhuma credencial pode aparecer em outra conta;
+* nenhuma URL pode ser compartilhada entre usuários;
+* nenhum token pode ser reutilizado;
+* nenhum campo pode ser preenchido com dados da sessão do SaaS;
+* todos os formulários carregam exclusivamente dados da integração daquele usuário.
+
+Se encontrar qualquer outro ponto que possa causar vazamento de informações entre tenants, corrija antes de finalizar.
+
+A prioridade é garantir isolamento absoluto entre contas (Zero Cross-Tenant), impedir vazamento de credenciais e transmitir confiança ao usuário final.

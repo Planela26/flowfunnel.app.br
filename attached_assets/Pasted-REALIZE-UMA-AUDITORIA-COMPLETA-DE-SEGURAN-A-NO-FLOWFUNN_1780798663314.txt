@@ -1,0 +1,134 @@
+REALIZE UMA AUDITORIA COMPLETA DE SEGURANÇA NO FLOWFUNNEL E IMPLEMENTE AS MELHORES PRÁTICAS ABAIXO.
+
+OBJETIVO:
+Garantir isolamento total entre contas, proteção contra vazamento de dados, proteção de credenciais e endurecimento geral da plataforma.
+
+1. ARQUITETURA MULTI-TENANT SEGURA
+
+* Todas as tabelas devem possuir tenant_id.
+* Nenhuma consulta pode retornar dados sem filtrar tenant_id.
+* Garantir que um usuário só consiga acessar recursos pertencentes à própria conta.
+* Revisar todas as rotas da API para validar autorização e propriedade dos recursos.
+
+2. ROW LEVEL SECURITY (RLS)
+
+Se o banco for PostgreSQL:
+
+* Habilitar Row Level Security em todas as tabelas que armazenam dados de clientes.
+* Criar políticas que impeçam qualquer acesso entre tenants.
+* Mesmo que haja erro no backend, o banco deve bloquear acessos indevidos.
+
+3. PROTEÇÃO DAS CHAVES E CREDENCIAIS
+
+* Nenhuma chave pode ser enviada ao frontend.
+* Todas as chaves devem permanecer exclusivamente no backend.
+* Armazenar credenciais sensíveis criptografadas com AES-256.
+* Aplicar rotação de chaves quando possível.
+
+Exemplos:
+
+* OpenAI
+* Meta
+* WhatsApp
+* Google
+* Stripe
+* Resend
+* SMTP
+
+4. AUTENTICAÇÃO
+
+* Senhas armazenadas com Argon2.
+* Implementar política de senha forte.
+* Sessões seguras.
+* Logout em todos os dispositivos.
+* Proteção contra brute force.
+* Limitação de tentativas de login.
+* Possibilidade de autenticação em dois fatores (2FA).
+
+5. PROTEÇÃO DAS APIS
+
+* Rate limiting.
+* Validação de entrada em todas as rotas.
+* Sanitização de dados.
+* Proteção contra:
+
+  * SQL Injection
+  * XSS
+  * CSRF
+  * SSRF
+  * Path Traversal
+  * Command Injection
+
+6. SEGURANÇA DO FRONTEND
+
+* Remover qualquer segredo exposto.
+* Revisar variáveis públicas.
+* Aplicar Content Security Policy (CSP).
+* Aplicar headers de segurança.
+* Prevenir vazamento de informações em erros.
+
+7. SEGURANÇA DO BANCO DE DADOS
+
+* Banco não deve ficar exposto publicamente.
+* Conexões criptografadas.
+* Auditoria de permissões.
+* Revisar usuários com privilégios excessivos.
+* Criptografar backups.
+
+8. LOGS E AUDITORIA
+
+Registrar:
+
+* Login
+* Logout
+* Alteração de senha
+* Alteração de credenciais
+* Criação e exclusão de recursos
+* Alterações administrativas
+* Falhas de autenticação
+
+Os logs não devem armazenar senhas nem segredos.
+
+9. TESTES DE INVASÃO INTERNOS
+
+Criar testes automatizados que tentem:
+
+* Acessar dados de outro tenant.
+* Modificar recursos de outra conta.
+* Ler credenciais protegidas.
+* Burlar permissões.
+* Explorar endpoints administrativos.
+
+Todos os testes devem falhar com erro 401 ou 403.
+
+10. CABEÇALHOS DE SEGURANÇA
+
+Implementar:
+
+* HSTS
+* X-Frame-Options
+* X-Content-Type-Options
+* Referrer-Policy
+* Permissions-Policy
+* CSP
+
+11. MONITORAMENTO
+
+* Detectar comportamento suspeito.
+* Alertar acessos anormais.
+* Alertar múltiplas falhas de login.
+* Alertar tentativas de acesso entre tenants.
+
+12. RELATÓRIO FINAL
+
+Após concluir:
+
+* Gerar relatório completo.
+* Informar vulnerabilidades encontradas.
+* Informar correções realizadas.
+* Informar pendências.
+* Atribuir nota de segurança de 0 a 100.
+* Sugerir melhorias futuras.
+
+PRIORIDADE MÁXIMA:
+Garantir que seja praticamente impossível um cliente visualizar, acessar ou modificar dados de outro cliente, mesmo em caso de falha de programação no frontend ou backend.

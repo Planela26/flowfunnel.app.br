@@ -1,0 +1,140 @@
+🚀 PROMPT CERTO (ATUALIZAR SEU SAAS EXISTENTE)
+
+Copia isso pro Replit 👇
+
+Estou desenvolvendo um SaaS que já possui rastreamento de leads via WhatsApp.
+
+NÃO quero recriar o sistema do zero.
+
+Quero apenas ADICIONAR novas funcionalidades para rastrear leads que passam por landing pages e vão até o checkout.
+
+Analise o código existente e implemente as seguintes melhorias de forma incremental, sem quebrar o que já funciona.
+
+🧩 OBJETIVO
+
+Rastrear a jornada completa do usuário:
+
+Entrada via anúncio (UTM)
+Navegação na landing page
+Clique em botão (WhatsApp ou Checkout)
+Conversão (compra)
+🔥 1. CAPTURA DE UTMs (IMPORTANTE)
+
+Ao carregar qualquer página com o script atual:
+
+Capturar automaticamente:
+utm_source
+utm_campaign
+utm_medium
+utm_content
+Salvar no localStorage
+
+Exemplo:
+
+localStorage.setItem("utm_source", value)
+🔥 2. GERAR E MANTER LEAD_ID
+Verificar se já existe um lead_id
+Se não existir, gerar um ID único
+Salvar no localStorage
+
+Esse ID deve ser usado em TODOS os eventos
+
+🔥 3. ATUALIZAR O TRACKER ATUAL
+
+Modificar o script atual (sem quebrar o WhatsApp tracking) para:
+
+Enviar automaticamente um evento "page_view" ao carregar a página
+Incluir:
+lead_id
+UTMs
+URL atual
+timestamp
+🔥 4. TRACKING DE EVENTOS DE LANDING PAGE
+
+Criar função global:
+
+window.trackEvent = function(eventName) {}
+
+Essa função deve:
+
+Enviar evento para o backend
+Incluir:
+lead_id
+event_name
+UTMs
+URL
+🔥 5. TRACKING DE BOTÃO DE CHECKOUT
+
+Quando o usuário clicar em botão de compra:
+
+Registrar evento:
+trackEvent("click_checkout")
+Redirecionar normalmente
+🔥 6. PASSAR LEAD_ID PARA CHECKOUT
+
+Modificar links de checkout automaticamente:
+
+Se o link for:
+
+https://checkout.com/pagamento
+
+Transformar em:
+
+https://checkout.com/pagamento?lead_id=XYZ
+🔥 7. REGISTRO DE CONVERSÃO
+
+Criar endpoint novo no backend:
+
+POST /track/conversion
+
+Esse endpoint deve receber:
+
+lead_id
+valor (opcional)
+produto (opcional)
+🔥 8. BANCO DE DADOS (SEM QUEBRAR O ATUAL)
+
+Adicionar novos campos/tabelas se necessário:
+
+leads (adicionar se não existir)
+lead_id
+utm_source
+utm_campaign
+created_at
+events
+lead_id
+event_name
+created_at
+conversions
+lead_id
+value
+created_at
+🔥 9. DASHBOARD (MELHORIA)
+
+Atualizar dashboard existente para mostrar:
+
+visitas (page_view)
+cliques no WhatsApp
+cliques no checkout
+conversões
+origem dos leads (UTM)
+🔥 10. REGRAS IMPORTANTES
+NÃO remover funcionalidades existentes
+NÃO quebrar o tracking de WhatsApp
+Código deve ser limpo e organizado
+Implementar de forma modular
+🎯 RESULTADO ESPERADO
+
+Sistema atual continuará funcionando com WhatsApp
+
+E agora também vai:
+
+rastrear landing pages
+rastrear cliques de compra
+rastrear conversões
+💥 COMO USAR ESSE PROMPT (IMPORTANTE)
+
+Depois de colar, fala isso pro Replit:
+
+👉 “analise meu código atual antes de implementar”
+👉 “implemente passo a passo e teste cada parte”

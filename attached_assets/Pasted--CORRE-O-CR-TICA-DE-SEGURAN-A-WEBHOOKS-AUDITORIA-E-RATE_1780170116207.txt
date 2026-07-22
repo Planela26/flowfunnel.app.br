@@ -1,0 +1,319 @@
+# CORREÇÃO CRÍTICA DE SEGURANÇA — WEBHOOKS, AUDITORIA E RATE LIMITING
+
+Atue como um Arquiteto de Segurança Sênior especializado em SaaS multi-tenant, Next.js, Prisma, Stripe, sistemas de pagamento e compliance.
+
+A auditoria identificou 4 áreas críticas que precisam ser corrigidas.
+
+IMPORTANTE:
+
+* Fazer as correções.
+* Não quebrar funcionalidades existentes.
+* Não alterar regras de negócio.
+* Não remover compatibilidade com integrações atuais.
+* Após cada correção executar testes e validações.
+
+---
+
+# ETAPA 1 — HMAC COM RAW BODY (CRÍTICO)
+
+A auditoria identificou que os webhooks validam assinatura utilizando:
+
+```js
+JSON.stringify(body)
+```
+
+Isso é incorreto.
+
+O sistema deve validar a assinatura utilizando os bytes exatos recebidos na requisição.
+
+## Objetivo
+
+Localizar todas as rotas:
+
+* Stripe
+* Hotmart
+* Kiwify
+* Monetizze
+* Perfect Pay
+* Eduzz
+* Qualquer outro webhook
+
+Substituir o fluxo atual por:
+
+```js
+const rawBody = await request.text()
+```
+
+Validar HMAC utilizando:
+
+```js
+rawBody
+```
+
+Somente após validar a assinatura:
+
+```js
+JSON.parse(rawBody)
+```
+
+## Validar
+
+Confirmar que:
+
+* Assinaturas válidas continuam funcionando
+* Assinaturas inválidas são rejeitadas
+* Nenhum webhook legítimo é quebrado
+
+Executar testes para cada integração.
+
+---
+
+# ETAPA 2 — PROTEÇÃO ANTI-REPLAY
+
+A auditoria identificou ausência de proteção contra replay attack.
+
+## Objetivo
+
+Implementar:
+
+### Timestamp Validation
+
+Verificar:
+
+* Hotmart
+* Kiwify
+* Monetizze
+* Perfect Pay
+* Eduzz
+* Stripe
+
+Quando houver timestamp disponível:
+
+Rejeitar payloads fora da janela:
+
+```txt
+± 5 minutos
+```
+
+---
+
+### Replay Detection
+
+Criar persistência para impedir reenvio de payloads.
+
+Exemplo:
+
+```txt
+WebhookReplayProtection
+```
+
+Armazenar:
+
+* signature
+* timestamp
+* platform
+* createdAt
+
+Impedir processamento duplicado.
+
+Executar testes de replay.
+
+---
+
+# ETAPA 3 — AUDIT LOG COMPLETO
+
+A auditoria identificou ausência total de rastreabilidade.
+
+Criar model:
+
+```prisma
+AuditLog
+```
+
+Campos mínimos:
+
+* id
+* tenantId
+* userId
+* action
+* entityType
+* entityId
+* ip
+* userAgent
+* result
+* metadata
+* createdAt
+
+---
+
+Registrar obrigatoriamente:
+
+## Autenticação
+
+* login
+* logout
+* falha de login
+* troca de senha
+* recuperação de senha
+* alteração de email
+
+## Usuários
+
+* criação
+* edição
+* exclusão
+* alteração de permissões
+
+## Cobrança
+
+* pagamentos
+* reembolsos
+* assinaturas
+* upgrades
+* downgrades
+
+## Integrações
+
+* conexão
+* desconexão
+* alteração de credenciais
+
+## Administração
+
+* qualquer ação administrativa
+
+---
+
+Garantir:
+
+* nenhum token seja salvo
+* nenhuma senha seja salva
+* nenhum secret seja salvo
+
+Executar testes.
+
+---
+
+# ETAPA 4 — RATE LIMITING DISTRIBUÍDO
+
+A auditoria identificou uso de:
+
+```js
+globalThis.Map
+```
+
+Isso não é adequado para produção.
+
+## Objetivo
+
+Substituir por solução persistente.
+
+Prioridade:
+
+1. PostgreSQL
+2. Redis (se disponível)
+
+Implementar tabela:
+
+```prisma
+RateLimit
+```
+
+ou solução equivalente.
+
+---
+
+Aplicar rate limit em:
+
+### Autenticação
+
+* login
+* register
+* forgot-password
+* reset-password
+* verify-email
+
+### Webhooks
+
+* Stripe
+* Hotmart
+* Kiwify
+* Monetizze
+* Perfect Pay
+
+### APIs Públicas
+
+* tracking
+* leads
+* formulários
+
+---
+
+Executar testes:
+
+* brute force
+* credential stuffing
+* spam
+* flood
+
+---
+
+# ETAPA 5 — VALIDAÇÃO FINAL
+
+Executar:
+
+```bash
+npm audit
+npm run build
+npx tsc --noEmit
+```
+
+Executar:
+
+* testes de webhook
+* testes de autenticação
+* testes de replay
+* testes de auditoria
+* testes de rate limit
+
+---
+
+# RELATÓRIO FINAL
+
+Informar:
+
+## HMAC
+
+* arquivos corrigidos
+* plataformas afetadas
+* testes executados
+
+## Replay Protection
+
+* estratégia implementada
+* tabelas criadas
+
+## Audit Log
+
+* model criada
+* eventos registrados
+
+## Rate Limiting
+
+* estratégia escolhida
+* endpoints protegidos
+
+## Resultado
+
+* score de segurança antes
+* score de segurança depois
+
+Somente concluir quando:
+
+* build estiver passando
+* TypeScript estiver limpo
+* migrações aplicadas
+* webhooks funcionando
+* auditoria funcionando
+* rate limiting funcionando
+* replay protection funcionando

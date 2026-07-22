@@ -1,0 +1,149 @@
+Adicione uma nova seção premium de showcase visual da plataforma na landing page do FlowFunnel.
+
+IMPORTANTE:
+
+* NÃO alterar nenhuma outra seção existente
+* NÃO modificar estilos globais
+* NÃO quebrar responsividade atual
+* Apenas adicionar essa nova seção entre a HERO principal e a seção de prova social (“+1.200 produtores...”)
+
+OBJETIVO:
+Aumentar percepção de valor do SaaS mostrando visualmente a plataforma funcionando.
+
+ESTRUTURA DA NOVA SEÇÃO:
+
+A seção deve ficar logo abaixo do CTA principal da hero e antes da prova social.
+
+ORDEM:
+
+1. Hero atual
+2. Nova seção showcase visual ← adicionar aqui
+3. “+1.200 produtores...”
+4. restante da landing normalmente
+
+---
+
+## CONTEÚDO DA SEÇÃO
+
+Título:
+“Veja o FlowFunnel funcionando em tempo real”
+
+Subtítulo:
+“Da campanha até a venda: acompanhe funis, alertas, relatórios e análises da IA em um único painel.”
+
+Abaixo do texto:
+Criar um showcase premium com screenshots da plataforma.
+
+---
+
+## LAYOUT
+
+* Uma imagem principal grande no centro
+* Abaixo dela:
+
+  * 5 miniaturas menores alinhadas horizontalmente
+* Total de 6 screenshots
+
+FUNCIONAMENTO:
+
+* A imagem principal troca automaticamente a cada 4 segundos
+* Fade suave entre transições
+* Quando o usuário clicar em uma miniatura:
+
+  * ela vira a imagem principal
+  * reiniciar tempo do autoplay
+* Miniatura ativa:
+
+  * borda destacada
+  * glow suave
+* Hover elegante nas miniaturas
+
+---
+
+## ESTILO VISUAL
+
+Visual SaaS premium moderno inspirado em:
+
+* Stripe
+* Linear
+* Vercel
+* ClickUp
+* Triple Whale
+
+Aplicar:
+
+* bordas arredondadas grandes
+* sombras suaves
+* glow azul discreto
+* fundo integrado ao design atual
+* transições suaves
+* aparência premium/profissional
+
+IMPORTANTE:
+
+* Nada exagerado
+* Sem animações pesadas
+* Priorizar performance e sensação premium
+
+---
+
+## RESPONSIVIDADE
+
+DESKTOP:
+
+* imagem principal grande
+* miniaturas centralizadas abaixo
+
+MOBILE:
+
+* imagem principal responsiva
+* miniaturas scrolláveis horizontalmente
+* manter boa performance
+
+---
+
+## SLIDES / SCREENSHOTS
+
+Os screenshots devem ser facilmente substituíveis depois.
+
+Preparar espaço para 6 imagens.
+
+Ordem sugerida:
+
+1. Dashboard geral completo
+2. IA detectando gargalos
+3. Funil visual
+4. Alertas automáticos
+5. Origem das vendas/campanhas
+6. Relatórios automáticos
+
+---
+
+## EFEITOS PREMIUM
+
+Adicionar:
+
+* leve parallax opcional
+* fade-in suave ao entrar na viewport
+* glow suave na imagem principal
+* microinterações elegantes
+
+---
+
+## IMPORTANTE
+
+A seção precisa:
+
+* aumentar percepção de produto premium
+* parecer SaaS de empresa grande
+* transmitir confiança
+* destacar visualmente IA, funil e automações
+
+NÃO usar:
+
+* carrossel pesado
+* animações exageradas
+* autoplay rápido
+* visual poluído
+
+A experiência deve parecer moderna, limpa e profissional.

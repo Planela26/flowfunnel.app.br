@@ -1,0 +1,61 @@
+uploads = []
+
+[[generated]]
+id = "QxTjjfGPwgNv-wONa_B6h"
+uri = "file://artifacts/mockup-sandbox/public/images/dashboard-preview.png"
+type = "image"
+title = "generated_image"
+
+[[outputs]]
+id = "m9BsiTehkuZmZ5MHIXCDW"
+uri = "file://public/ZapFlowFunnel_Documento.pdf"
+type = "pdf"
+title = "ZapFlow Funnel — Documento Completo da Plataforma"
+
+[[outputs]]
+id = "uuj3izQjtBhpXlSUgHh33"
+uri = "file://.local/AUDITORIA_COMPLETA.md"
+type = "text"
+title = "Auditoria Completa — FlowFunnel SaaS"
+
+[[outputs]]
+id = "qb_uYA3ymhvS7yWHs_zTt"
+uri = "file://AUDITORIA_SEGURANCA.md"
+type = "text"
+title = "Auditoria de Segurança — FlowFunnel SaaS"
+
+[[outputs]]
+id = "GhLdMO2RGFXtz3xV1uJaE"
+uri = "file://screenshots/invite_viewer.jpg"
+type = "image"
+title = "Convite Visualizador (sem login)"
+
+[[outputs]]
+id = "DKnMlabUyLiG4FNrlNCki"
+uri = "file://screenshots/invite_editor.jpg"
+type = "image"
+title = "Convite Editor (com login)"
+
+[[outputs]]
+id = "WGYwmv-NQAf8DH_HE-ytK"
+uri = "file://public/flowfunnel-documentacao.pdf"
+type = "pdf"
+title = "FlowFunnel — Documentação Técnica e Comercial Completa"
+
+[[outputs]]
+id = "urnErARU13ZIajl1C3uxj"
+uri = "file://AUDIT_REPORT.md"
+type = "text"
+title = "Relatório de Auditoria Funcional — FlowFunnel"
+
+[[outputs]]
+id = "4fr1i3JBnDDCu_u8Cagje"
+uri = "file://WEBHOOK_SECURITY_REPORT.md"
+type = "text"
+title = "Relatório de Proteção de Webhooks"
+
+[[outputs]]
+id = "fR6hkiqi2jgocdDw0jgrP"
+uri = "file://META_PIXEL_AUDIT.md"
+type = "text"
+title = "Auditoria Meta Pixel — FlowFunnel"

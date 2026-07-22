@@ -1,0 +1,258 @@
+# SOLICITAÇÃO DE DOCUMENTAÇÃO COMPLETA DA PLATAFORMA FLOWFUNNEL
+
+Preciso que você gere uma documentação PROFISSIONAL e EXTREMAMENTE DETALHADA da plataforma FlowFunnel em formato PDF.
+
+NÃO ECONOMIZE PÁGINAS. Quero um documento completo, semelhante aos documentos utilizados por empresas SaaS para captação de investidores, venda da empresa, registro de propriedade intelectual e apresentação comercial.
+
+O documento deve conter:
+
+# 1. CAPA PROFISSIONAL
+
+* Logo da FlowFunnel
+* Nome da plataforma
+* Data da geração
+* Versão do sistema
+* Imagem ilustrativa da plataforma
+* Design corporativo moderno
+
+# 2. SUMÁRIO COMPLETO
+
+Criar índice navegável com todas as seções.
+
+# 3. VISÃO GERAL DA EMPRESA
+
+* O que é a FlowFunnel
+* Objetivo da plataforma
+* Problema que resolve
+* Público-alvo
+* Diferenciais competitivos
+* Mercado potencial
+
+# 4. APRESENTAÇÃO VISUAL DA PLATAFORMA
+
+Inserir capturas de tela reais de:
+
+* Dashboard principal
+* Sistema de campanhas
+* Sistema de WhatsApp
+* CRM
+* Funis
+* Workflows
+* Integrações
+* Configurações
+* Área administrativa
+* Relatórios
+
+Cada imagem deve conter:
+
+* Descrição técnica
+* Finalidade
+* Benefícios para o usuário
+
+# 5. ARQUITETURA COMPLETA DO SISTEMA
+
+Criar diagramas e gráficos mostrando:
+
+* Frontend
+* Backend
+* Banco de dados
+* APIs
+* Integrações
+* Fluxo de dados
+
+Explicar detalhadamente:
+
+* Tecnologias utilizadas
+* Linguagens
+* Frameworks
+* Bibliotecas principais
+
+# 6. ESTRUTURA DE PASTAS
+
+Mapear todo o projeto:
+
+* Pastas
+* Arquivos
+* Dependências
+* Responsabilidades de cada arquivo
+
+Criar árvore completa do sistema.
+
+# 7. ANÁLISE DE CÓDIGO FONTE
+
+Identificar os módulos mais importantes da plataforma.
+
+Para cada módulo:
+
+* Nome do arquivo
+* Função
+* Importância
+* Quantidade de linhas
+* Dependências
+
+Destacar especialmente:
+
+* Sistema de autenticação
+* Dashboard
+* Workflows
+* WhatsApp
+* IA
+* CRM
+* Sistema de métricas
+* APIs
+
+# 8. CÓDIGOS ESTRATÉGICOS PARA REGISTRO
+
+Identificar quais partes do código possuem maior valor intelectual.
+
+Criar uma seção específica contendo:
+
+* Algoritmos proprietários
+* Lógicas exclusivas
+* Integrações críticas
+* Estruturas únicas
+
+Explicar por que esses componentes devem ser protegidos através de:
+
+* Registro de software
+* Direitos autorais
+* Propriedade intelectual
+
+# 9. MÉTRICAS DO PROJETO
+
+Levantar automaticamente:
+
+* Total de arquivos
+* Total de linhas de código
+* Total de componentes
+* Total de páginas
+* Total de APIs
+* Total de integrações
+* Tamanho bruto da aplicação
+* Tamanho do repositório
+* Tamanho estimado em produção
+
+Gerar gráficos comparativos.
+
+# 10. ANÁLISE DE ESCALABILIDADE
+
+Explicar:
+
+* Quantos usuários simultâneos suporta atualmente
+* Gargalos encontrados
+* Melhorias possíveis
+* Capacidade futura
+
+Criar gráficos e projeções.
+
+# 11. MODELO DE NEGÓCIO
+
+Detalhar:
+
+* Como a plataforma gera receita
+* Planos possíveis
+* Ticket médio
+* CAC
+* LTV
+* Churn estimado
+
+# 12. PROJEÇÃO FINANCEIRA
+
+Criar projeções realistas para:
+
+## Cenário Conservador
+
+* 100 clientes
+* 500 clientes
+* 1.000 clientes
+
+## Cenário Moderado
+
+* 5.000 clientes
+* 10.000 clientes
+
+## Cenário Agressivo
+
+* 50.000 clientes
+* 100.000 clientes
+
+Exibir:
+
+* Receita mensal
+* Receita anual
+* Lucro estimado
+* Custos operacionais
+* EBITDA estimado
+
+Utilizar gráficos profissionais.
+
+# 13. VALUATION DA EMPRESA
+
+Estimar:
+
+* Valor atual da plataforma
+* Valor com 100 clientes
+* Valor com 1.000 clientes
+* Valor com 10.000 clientes
+* Valor com 100.000 clientes
+
+Explicar metodologia utilizada.
+
+# 14. ANÁLISE DE CONCORRÊNCIA
+
+Comparar com:
+
+* CRM conhecidos
+* Plataformas de automação
+* Ferramentas de WhatsApp
+* Ferramentas de IA
+
+Criar tabelas comparativas.
+
+# 15. SEGURANÇA
+
+Documentar:
+
+* Autenticação
+* Criptografia
+* Proteção de dados
+* LGPD
+* Controle de acesso
+
+# 16. ROADMAP
+
+Mostrar:
+
+* Recursos atuais
+* Recursos futuros
+* Melhorias planejadas
+
+# 17. CONCLUSÃO EXECUTIVA
+
+Criar resumo para:
+
+* Investidores
+* Parceiros
+* Compradores da empresa
+* Possíveis clientes
+
+# REQUISITOS OBRIGATÓRIOS
+
+* PDF profissional
+* Mínimo de 50 páginas
+* Preferencialmente acima de 100 páginas se houver conteúdo suficiente
+* Inserir gráficos automaticamente
+* Inserir diagramas automaticamente
+* Inserir imagens reais da plataforma
+* Utilizar identidade visual da FlowFunnel
+* Incluir análises detalhadas
+* Utilizar dados reais do projeto sempre que possível
+* Fazer varredura completa do código-fonte antes de gerar o documento
+
+Ao final, gerar:
+
+1. PDF completo
+2. PDF executivo resumido para investidores
+3. Relatório técnico separado
+4. Inventário completo dos arquivos do projeto
+5. Lista dos códigos e algoritmos mais valiosos para registro de propriedade intelectual

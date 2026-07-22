@@ -1,0 +1,343 @@
+# HARDENING FINAL DO FLOWFUNNEL — SEGURANÇA, PERFORMANCE E CONFIABILIDADE
+
+Atue como um Staff Software Engineer, Security Engineer, DBA e DevOps Sênior.
+
+IMPORTANTE:
+
+* Executar todas as melhorias abaixo.
+* Não quebrar funcionalidades existentes.
+* Não alterar regras de negócio.
+* Não remover integrações.
+* Não reduzir compatibilidade.
+* Antes de cada alteração, analisar impacto.
+* Após cada alteração, validar build, TypeScript e funcionamento.
+
+Objetivo:
+
+Levar o sistema do estado atual (~90/100) para um nível de produção avançado (~95+/100), eliminando os últimos riscos identificados na auditoria.
+
+---
+
+# ETAPA 1 — ATUALIZAÇÃO DE DEPENDÊNCIAS CRÍTICAS
+
+A auditoria identificou vulnerabilidades remanescentes.
+
+Auditar e corrigir:
+
+## WhatsApp
+
+* @whiskeysockets/baileys
+* protobufjs
+* libsignal
+
+Objetivos:
+
+* Atualizar para versões seguras.
+* Corrigir breaking changes.
+* Garantir funcionamento de:
+
+  * conexão
+  * QR Code
+  * envio de mensagens
+  * recebimento de mensagens
+  * reconexão
+
+Executar testes completos.
+
+---
+
+## PDF
+
+Auditar:
+
+* jspdf
+
+Objetivos:
+
+* Atualizar para versão segura.
+* Corrigir incompatibilidades.
+* Garantir funcionamento de:
+
+  * exportação
+  * download
+  * geração de relatórios
+
+Executar testes completos.
+
+---
+
+## Dependências transitivas
+
+Verificar:
+
+* lodash
+* dompurify
+* minimatch
+* picomatch
+* flatted
+* ws
+* uuid
+* svix
+* resend
+
+Objetivo:
+
+Atualizar tudo que possuir correção disponível.
+
+Gerar relatório:
+
+* vulnerabilidade
+* versão antiga
+* versão nova
+* risco eliminado
+
+---
+
+# ETAPA 2 — CONTENT SECURITY POLICY (CSP)
+
+A auditoria identificou ausência de CSP.
+
+Implementar CSP moderna e compatível com:
+
+* Next.js App Router
+* Stripe
+* Meta Pixel
+* Google Analytics
+* TikTok Pixel
+* WhatsApp
+* APIs externas utilizadas
+
+Objetivos:
+
+Bloquear:
+
+* inline script injection
+* XSS
+* malicious script loading
+* clickjacking complementar
+
+Implementar:
+
+* default-src
+* script-src
+* connect-src
+* frame-src
+* img-src
+* style-src
+* font-src
+
+Utilizar nonce quando necessário.
+
+Validar que:
+
+* dashboard funciona
+* pixels funcionam
+* Stripe funciona
+* integrações continuam operando
+
+---
+
+# ETAPA 3 — OTIMIZAÇÃO DE BANCO DE DADOS
+
+Implementar todos os índices recomendados pela auditoria.
+
+Verificar:
+
+Funnel(userId)
+
+Account(userId)
+
+FunnelStage(funnelId)
+
+FunnelEvent(funnelId, timestamp)
+
+WebhookLog(userId, createdAt)
+
+Além disso:
+
+Executar análise completa de:
+
+* índices ausentes
+* foreign keys sem índice
+* queries lentas
+* full table scans
+
+Criar somente índices que gerem benefício real.
+
+Gerar relatório:
+
+* índice criado
+* ganho esperado
+* tabelas afetadas
+
+---
+
+# ETAPA 4 — ELIMINAR N+1 DOS CRONS
+
+Auditar:
+
+* app/api/cron/snapshot
+* app/api/cron/alerts
+
+Identificar:
+
+* consultas dentro de loops
+* múltiplas queries por usuário
+* múltiplas queries por tenant
+
+Refatorar para:
+
+* bulk queries
+* groupBy
+* processamento em memória
+
+Objetivo:
+
+Reduzir drasticamente:
+
+* número de queries
+* tempo de execução
+* carga no banco
+
+Comparar:
+
+* antes
+* depois
+
+---
+
+# ETAPA 5 — BACKUP E RECUPERAÇÃO
+
+Criar estratégia completa de disaster recovery.
+
+Implementar:
+
+## Backup
+
+* backup automático diário
+* retenção configurável
+* criptografia
+* logs de execução
+
+## Documentação
+
+Definir:
+
+RPO
+
+RTO
+
+Processo de recuperação
+
+Passo a passo de restauração
+
+---
+
+## Validação
+
+Executar teste de recuperação.
+
+Comprovar que:
+
+* banco pode ser restaurado
+* dados permanecem íntegros
+
+Gerar relatório.
+
+---
+
+# ETAPA 6 — AUDITORIA FINAL
+
+Executar nova auditoria completa.
+
+Verificar:
+
+## Segurança
+
+* autenticação
+* autorização
+* webhooks
+* CSP
+* rate limiting
+* audit log
+
+## Banco
+
+* índices
+* performance
+* integridade
+
+## Dependências
+
+* npm audit
+* vulnerabilidades restantes
+
+## Performance
+
+* cron jobs
+* consultas
+* memória
+
+---
+
+# ETAPA 7 — VALIDAÇÃO FINAL
+
+Executar:
+
+npm audit
+
+npm run build
+
+npx tsc --noEmit
+
+Smoke tests completos
+
+Testes de integração
+
+Testes de autenticação
+
+Testes de cobrança
+
+Testes de webhooks
+
+Testes de WhatsApp
+
+Testes de relatórios PDF
+
+---
+
+# RELATÓRIO FINAL
+
+Entregar:
+
+## Score antes
+
+## Score depois
+
+## Vulnerabilidades eliminadas
+
+## Dependências atualizadas
+
+## Índices criados
+
+## Ganhos de performance
+
+## Melhorias de segurança
+
+## Melhorias de confiabilidade
+
+## Melhorias de escalabilidade
+
+## Riscos restantes
+
+Somente concluir quando:
+
+* build estiver passando
+* TypeScript estiver limpo
+* migrações aplicadas
+* integrações funcionando
+* webhooks funcionando
+* CSP funcionando
+* backup validado
+* auditoria final concluída
+* score de segurança atualizado

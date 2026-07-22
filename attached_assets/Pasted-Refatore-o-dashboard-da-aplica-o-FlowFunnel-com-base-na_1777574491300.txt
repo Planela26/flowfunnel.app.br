@@ -1,0 +1,87 @@
+Refatore o dashboard da aplicação FlowFunnel com base nas seguintes mudanças de arquitetura e UX:
+
+OBJETIVO:
+Remover a duplicação de métricas e centralizar a exibição correta:
+
+* Topo: apenas métricas consolidadas (Resumo Geral)
+* Funil: métricas individuais dentro de cada card (Facebook, Google, TikTok)
+
+ALTERAÇÕES NECESSÁRIAS:
+
+1. REMOVER BLOCO REDUNDANTE
+
+* Remover completamente a seção "Por Fonte de Tráfego" (cards grandes de Facebook Ads, Google Ads, TikTok Ads que ficam abaixo do resumo geral)
+* Esses dados NÃO devem mais aparecer fora do funil
+
+2. MANTER APENAS O RESUMO GERAL NO TOPO
+
+* O topo do dashboard deve conter somente:
+
+  * Total de Cliques
+  * Total de Impressões
+  * Total de Leads
+  * Taxa de Conversão
+  * CPC Médio
+  * CPM Médio
+  * CTR Médio
+  * ROI Geral
+
+* Esses dados devem continuar sendo agregados de todas as fontes conectadas
+
+3. MOVER MÉTRICAS PARA DENTRO DOS CARDS DO FUNIL
+   Cada card do workflow deve exibir suas próprias métricas, dependendo do tipo:
+
+* Card Facebook Ads:
+
+  * Cliques
+  * Impressões
+  * CPC
+  * CPM
+  * CTR
+  * Leads
+
+* Card Google Ads:
+
+  * Cliques
+  * Impressões
+  * CPC
+  * Taxa de Conversão
+  * Leads
+
+* Card TikTok Ads:
+
+  * Impressões
+  * Cliques
+  * CTR
+  * Leads
+
+4. CONDIÇÃO DE EXIBIÇÃO
+
+* Se o card NÃO estiver conectado:
+
+  * Mostrar botão "Conectar"
+  * NÃO mostrar métricas zeradas
+
+* Se estiver conectado:
+
+  * Exibir métricas reais dentro do próprio card
+
+5. SINCRONIZAÇÃO DE DADOS
+
+* Os dados exibidos dentro dos cards devem alimentar o "Resumo Geral"
+* Criar/usar uma função central (ex: aggregateMetrics) que lê os dados dos cards do funil
+
+6. UX
+
+* Evitar duplicação de informação em qualquer parte da interface
+* O usuário deve entender:
+
+  * Topo = visão geral
+  * Cards = origem dos dados
+
+RESULTADO FINAL ESPERADO:
+
+* Interface mais limpa
+* Sem blocos redundantes
+* Métricas contextualizadas dentro do funil
+* Dashboard mais profissional e intuitivo
