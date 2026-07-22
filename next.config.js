@@ -14,6 +14,8 @@ const nextConfig = {
     buildActivity: false,
     appIsrStatus: false,
   },
+  // Allowed dev origins for Replit; harmless on production, but Hostinger production
+  // should rely on NEXTAUTH_URL / canonical host instead.
   allowedDevOrigins: ['*.replit.dev', '*.kirk.replit.dev', '*.picard.replit.dev'],
   serverExternalPackages: ['@whiskeysockets/baileys', '@hapi/boom', 'pino'],
   images: {
@@ -28,6 +30,9 @@ const nextConfig = {
       },
     ],
   },
+  // Trust the Hostinger proxy so req.headers['x-forwarded-proto'] is respected.
+  // Remove this if Hostinger handles HTTPS termination differently.
+  skipTrailingSlashRedirect: false,
   async headers() {
     return [
       {
