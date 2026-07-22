@@ -22,9 +22,11 @@
         "name": "next"
       }
     ],
+    "baseUrl": ".",
     "paths": {
       "@/*": [
-        "./*"
+        "./src/*",
+        "./artifacts/mockup-sandbox/src/*"
       ]
     }
   },
