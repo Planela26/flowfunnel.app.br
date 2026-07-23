@@ -45,12 +45,13 @@ export const metadata: Metadata = {
   publisher: 'FlowFunnel',
   icons: {
     icon: [
+      { url: '/favicon.ico', sizes: '32x32' },
       { url: '/icon.jpg', type: 'image/jpeg' },
     ],
     apple: [
       { url: '/apple-icon.jpg', type: 'image/jpeg' },
     ],
-    shortcut: ['/icon.jpg'],
+    shortcut: ['/favicon.ico'],
   },
   openGraph: {
     type: 'website',
