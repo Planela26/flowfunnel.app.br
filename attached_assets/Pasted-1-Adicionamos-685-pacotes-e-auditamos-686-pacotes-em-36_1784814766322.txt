@@ -1,0 +1,194 @@
+1
+
+Adicionamos 685 pacotes e auditamos 686 pacotes em 36 segundos.
+
+2
+
+
+3
+
+182 projetos estão buscando financiamento.
+
+4
+
+Execute `npm fund` para obter detalhes.
+
+5
+
+
+6
+
+25 vulnerabilidades (1 baixa, 8 moderadas, 13 altas, 3 críticas)
+
+7
+
+
+8
+
+Para resolver problemas que não exigem atenção, execute:
+
+9
+
+correção de auditoria do npm
+
+10
+
+
+11
+
+Algumas questões precisam ser analisadas e podem exigir escolhas.
+
+12
+
+uma dependência diferente.
+
+13
+
+
+14
+
+Execute `npm audit` para obter detalhes.
+
+15
+
+
+16
+
+> whatsapp-funnel-saas@0.1.0 build
+
+17
+
+> prisma generate && bash scripts/db-migrate-deploy.sh && próxima compilação
+
+18
+
+
+19
+
+Esquema Prisma carregado de prisma/schema.prisma
+
+20
+
+┌─────────────────────────────────────────────────────────────┐
+
+21
+
+│ Atualização disponível de 6.19.3 para 7.9.0 │
+
+22
+
+│ │
+
+23
+
+│ Esta é uma atualização importante - siga o guia em │
+
+24
+
+│ https://pris.ly/d/major-version-upgrade │
+
+25
+
+│ │
+
+26
+
+│ Execute o seguinte comando para atualizar │
+
+27
+
+│ npm i --save-dev prisma@latest │
+
+28
+
+│ npm i @prisma/client@latest │
+
+29
+
+└────────────────────────────────────────────────────────────────┘
+
+30
+
+
+31
+
+✔ Cliente Prisma gerado (v6.19.3) em ./node_modules/@prisma/client em 426ms
+
+32
+
+
+33
+
+Comece importando seu cliente Prisma (Consulte: https://pris.ly/d/importing-client)
+
+34
+
+
+35
+
+Dica: Precisa que suas consultas ao banco de dados sejam 1000 vezes mais rápidas? O Accelerate oferece isso e muito mais: https://pris.ly/tip-2-accelerate
+
+36
+
+
+37
+
+Esquema Prisma carregado de prisma/schema.prisma
+
+38
+
+Erro: Validação do esquema Prisma - (get-config wasm)
+
+39
+
+Código de erro: P1012
+
+40
+
+Erro: Variável de ambiente não encontrada: DIRECT_DATABASE_URL.
+
+41
+
+--> prisma/schema.prisma:8
+
+42
+
+|
+
+43
+
+7 | url = env("DATABASE_URL")
+
+44
+
+8 | directUrl = env("DIRECT_DATABASE_URL")
+
+45
+
+|
+
+46
+
+
+47
+
+Número de erros de validação: 1
+
+48
+
+[Contexto: getConfig]
+
+49
+
+
+50
+
+Versão da CLI do Prisma: 6.19.3
+
+51
+
+>> A implantação da migração falhou por um motivo não tratado.
+
+52
+
+ERRO: Falha ao compilar o aplicativo
