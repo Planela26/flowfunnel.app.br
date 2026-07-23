@@ -112,8 +112,12 @@ export async function POST(request: Request) {
     })
 
     const verifyUrl = `${baseUrl}/api/auth/verify-email?token=${token}`
-    sendVerificationEmail(user.email, user.name || '', verifyUrl).catch(() => {})
-    sendWelcomeEmail(user.email, user.name || '').catch(() => {})
+    sendVerificationEmail(user.email, user.name || '', verifyUrl).catch((err) => {
+      console.error('❌ Erro ao enviar email de verificação:', err)
+    })
+    sendWelcomeEmail(user.email, user.name || '').catch((err) => {
+      console.error('❌ Erro ao enviar email de boas-vindas:', err)
+    })
 
     await logAudit({
       action: 'user.register',

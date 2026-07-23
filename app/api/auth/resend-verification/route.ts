@@ -34,7 +34,9 @@ export async function POST(request: Request) {
 
     const baseUrl = process.env.NEXTAUTH_URL || (process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : '')
     const verifyUrl = `${baseUrl}/api/auth/verify-email?token=${token}`
-    sendVerificationEmail(user.email, user.name || '', verifyUrl).catch(() => {})
+    sendVerificationEmail(user.email, user.name || '', verifyUrl).catch((err) => {
+      console.error('❌ Erro ao enviar email de verificação:', err)
+    })
 
     return NextResponse.json({ success: true })
   } catch (error) {
