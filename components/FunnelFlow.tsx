@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   ReactFlow,
   Background,
@@ -517,34 +517,46 @@ function FunnelCanvas({
     return edges
   }, [visibleIds, dataMap])
 
-  const [nodes, setNodes, onNodesChange] = useNodesState(buildNodes())
+  // Sempre inicia com posições padrão calculadas — nunca preserva posição anterior
+  const defaultNodes = buildNodes()
+  const [nodes, setNodes, onNodesChange] = useNodesState(defaultNodes)
   const [edges, setEdgesLocal, onEdgesChange] = useEdgesState(buildEdges())
   const { fitView } = useReactFlow()
 
-  // Sync nodes when visibleIds or data changes
+  // Controla se é o primeiro mount: no primeiro mount usa layout padrão,
+  // em atualizações subsequentes de dados (loadingMap/dataMap) preserva posições.
+  const isMountedRef = useRef(false)
+
   useEffect(() => {
+    if (!isMountedRef.current) {
+      // Primeira carga: aplica posições padrão e centraliza
+      isMountedRef.current = true
+      const positions = computePositions(visibleIds)
+      setNodes(buildNodes().map(n => ({ ...n, position: positions[n.id] ?? n.position })))
+      const t = setTimeout(() => fitView({ padding: 0.12 }), 80)
+      return () => clearTimeout(t)
+    }
+    // Atualizações de dados: reconstrói nodes mas preserva onde o usuário moveu
     setNodes(prev => {
       const fresh = buildNodes()
-      // Preserve positions for existing nodes
-      const freshMap = new Map(fresh.map(n => [n.id, n]))
       return fresh.map(n => {
         const old = prev.find(p => p.id === n.id)
         return old ? { ...n, position: old.position } : n
       })
     })
-  }, [visibleIds, dataMap, loadingMap, buildNodes, setNodes])
+  }, [visibleIds, dataMap, loadingMap]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Sempre que o conjunto de cards muda (inclusive no primeiro load),
-  // reaplica o layout padrão e centraliza a visão — garante que o
-  // dashboard abre sempre com os cards na mesma posição.
+  // Quando a lista de cards muda (card adicionado/removido), reseta layout padrão
   useEffect(() => {
+    if (!isMountedRef.current) return
     const positions = computePositions(visibleIds)
-    setNodes(prev => prev.map(n => (
-      positions[n.id] ? { ...n, position: positions[n.id] } : n
-    )))
-    const t = setTimeout(() => fitView({ padding: 0.12 }), 60)
+    setNodes(prev => {
+      const fresh = buildNodes()
+      return fresh.map(n => ({ ...n, position: positions[n.id] ?? n.position }))
+    })
+    const t = setTimeout(() => fitView({ padding: 0.12 }), 80)
     return () => clearTimeout(t)
-  }, [visibleIds, setNodes, fitView])
+  }, [visibleIds]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Sync edges
   useEffect(() => {
