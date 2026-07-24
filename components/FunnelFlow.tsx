@@ -519,6 +519,7 @@ function FunnelCanvas({
 
   const [nodes, setNodes, onNodesChange] = useNodesState(buildNodes())
   const [edges, setEdgesLocal, onEdgesChange] = useEdgesState(buildEdges())
+  const { fitView } = useReactFlow()
 
   // Sync nodes when visibleIds or data changes
   useEffect(() => {
@@ -532,6 +533,18 @@ function FunnelCanvas({
       })
     })
   }, [visibleIds, dataMap, loadingMap, buildNodes, setNodes])
+
+  // Sempre que o conjunto de cards muda (inclusive no primeiro load),
+  // reaplica o layout padrão e centraliza a visão — garante que o
+  // dashboard abre sempre com os cards na mesma posição.
+  useEffect(() => {
+    const positions = computePositions(visibleIds)
+    setNodes(prev => prev.map(n => (
+      positions[n.id] ? { ...n, position: positions[n.id] } : n
+    )))
+    const t = setTimeout(() => fitView({ padding: 0.12 }), 60)
+    return () => clearTimeout(t)
+  }, [visibleIds, setNodes, fitView])
 
   // Sync edges
   useEffect(() => {
