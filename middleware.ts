@@ -177,7 +177,14 @@ export async function middleware(request: NextRequest) {
       r => pathname === r || pathname.startsWith(r + '/')
     )
     if (!isAllowed) {
-      return withCsp(NextResponse.redirect(new URL('/verify-email', request.url)))
+      // Remove o param interno _rsc e desabilita cache no redirect — sem isso,
+      // redirecionar uma requisição RSC faz o navegador exibir o payload cru
+      // (texto tipo ':HL[...]') em vez da página renderizada.
+      const dest = new URL('/verify-email', request.url)
+      dest.searchParams.delete('_rsc')
+      const res = NextResponse.redirect(dest)
+      res.headers.set('Cache-Control', 'no-store')
+      return withCsp(res)
     }
   }
 
