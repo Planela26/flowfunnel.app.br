@@ -38,6 +38,28 @@ export interface FunnelFlowProps {
   loadingMap: Record<string, boolean>
   onInsight: (cardType: string, data: any) => void
   planName?: string
+  userId?: string
+}
+
+/* ─── Persistência de posições no localStorage ───────────────────────── */
+const getPosKey = (userId: string) => `funnel_positions_${userId}`
+
+function loadSavedPositions(userId: string): Record<string, { x: number; y: number }> | null {
+  try {
+    const raw = localStorage.getItem(getPosKey(userId))
+    if (!raw) return null
+    const parsed = JSON.parse(raw)
+    if (parsed && typeof parsed === 'object') return parsed
+  } catch { /* ignore */ }
+  return null
+}
+
+function savePositions(userId: string, nodes: Node[]) {
+  try {
+    const pos: Record<string, { x: number; y: number }> = {}
+    for (const n of nodes) pos[n.id] = n.position
+    localStorage.setItem(getPosKey(userId), JSON.stringify(pos))
+  } catch { /* ignore */ }
 }
 
 /* ─── Color helpers for dynamic cards ───────────────────────────────── */
@@ -431,6 +453,7 @@ function FunnelCanvas({
   loadingMap,
   onInsight,
   planName,
+  userId,
 }: FunnelFlowProps) {
   const [modalOpen, setModalOpen] = useState(false)
   const { setEdges } = useReactFlow()
@@ -517,26 +540,32 @@ function FunnelCanvas({
     return edges
   }, [visibleIds, dataMap])
 
-  // Sempre inicia com posições padrão calculadas — nunca preserva posição anterior
-  const defaultNodes = buildNodes()
-  const [nodes, setNodes, onNodesChange] = useNodesState(defaultNodes)
+  // Monta nodes iniciais: usa posições salvas do usuário, senão usa layout padrão
+  const initialNodes = useCallback(() => {
+    const fresh = buildNodes()
+    const saved = userId ? loadSavedPositions(userId) : null
+    if (!saved) return fresh
+    return fresh.map(n => saved[n.id] ? { ...n, position: saved[n.id] } : n)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes())
   const [edges, setEdgesLocal, onEdgesChange] = useEdgesState(buildEdges())
   const { fitView } = useReactFlow()
-
-  // Controla se é o primeiro mount: no primeiro mount usa layout padrão,
-  // em atualizações subsequentes de dados (loadingMap/dataMap) preserva posições.
   const isMountedRef = useRef(false)
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  // Centraliza a visão no primeiro render
+  useEffect(() => {
+    const t = setTimeout(() => fitView({ padding: 0.12 }), 100)
+    return () => clearTimeout(t)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Quando dados mudam (loading/data), reconstrói nodes preservando posições atuais
   useEffect(() => {
     if (!isMountedRef.current) {
-      // Primeira carga: aplica posições padrão e centraliza
       isMountedRef.current = true
-      const positions = computePositions(visibleIds)
-      setNodes(buildNodes().map(n => ({ ...n, position: positions[n.id] ?? n.position })))
-      const t = setTimeout(() => fitView({ padding: 0.12 }), 80)
-      return () => clearTimeout(t)
+      return
     }
-    // Atualizações de dados: reconstrói nodes mas preserva onde o usuário moveu
     setNodes(prev => {
       const fresh = buildNodes()
       return fresh.map(n => {
@@ -544,19 +573,38 @@ function FunnelCanvas({
         return old ? { ...n, position: old.position } : n
       })
     })
-  }, [visibleIds, dataMap, loadingMap]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [dataMap, loadingMap]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Quando a lista de cards muda (card adicionado/removido), reseta layout padrão
+  // Quando cards são adicionados/removidos, aplica posição salva (ou padrão para novos)
   useEffect(() => {
-    if (!isMountedRef.current) return
-    const positions = computePositions(visibleIds)
     setNodes(prev => {
       const fresh = buildNodes()
-      return fresh.map(n => ({ ...n, position: positions[n.id] ?? n.position }))
+      const saved = userId ? loadSavedPositions(userId) : null
+      return fresh.map(n => {
+        // Card já estava na tela: mantém posição atual (onde o usuário deixou)
+        const existing = prev.find(p => p.id === n.id)
+        if (existing) return { ...n, position: existing.position }
+        // Card novo: usa posição salva ou calcula padrão
+        if (saved?.[n.id]) return { ...n, position: saved[n.id] }
+        return n
+      })
     })
-    const t = setTimeout(() => fitView({ padding: 0.12 }), 80)
-    return () => clearTimeout(t)
   }, [visibleIds]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Intercepta movimentação: salva posições no localStorage após o usuário parar de arrastar
+  const handleNodesChange = useCallback((changes: any) => {
+    onNodesChange(changes)
+    const hasDrag = changes.some((c: any) => c.type === 'position' && c.dragging === false)
+    if (hasDrag && userId) {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+      saveTimerRef.current = setTimeout(() => {
+        setNodes(current => {
+          savePositions(userId, current)
+          return current
+        })
+      }, 300)
+    }
+  }, [onNodesChange, userId, setNodes])
 
   // Sync edges
   useEffect(() => {
@@ -584,13 +632,11 @@ function FunnelCanvas({
       <ReactFlow
         nodes={nodes}
         edges={edges}
-        onNodesChange={onNodesChange}
+        onNodesChange={handleNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
-        fitView
-        fitViewOptions={{ padding: 0.12 }}
         minZoom={0.25}
         maxZoom={2}
         colorMode="dark"

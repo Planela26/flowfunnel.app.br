@@ -445,6 +445,7 @@ export default function Dashboard() {
             }}
             onInsight={(cardType, data) => setInsightModal({ cardType, data })}
             planName={planInfo.plan}
+            userId={userId}
           />
         </div>
 
