@@ -553,6 +553,8 @@ function FunnelCanvas({
   const { fitView } = useReactFlow()
   const isMountedRef = useRef(false)
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'pending' | 'saved'>('idle')
+  const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Centraliza a visão no primeiro render
   useEffect(() => {
@@ -591,19 +593,28 @@ function FunnelCanvas({
     })
   }, [visibleIds]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Intercepta movimentação: salva posições no localStorage após o usuário parar de arrastar
+  // Intercepta movimentação: 5s de inatividade → salva e mostra indicador
   const handleNodesChange = useCallback((changes: any) => {
     onNodesChange(changes)
-    const hasDrag = changes.some((c: any) => c.type === 'position' && c.dragging === false)
-    if (hasDrag && userId) {
-      if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
-      saveTimerRef.current = setTimeout(() => {
-        setNodes(current => {
-          savePositions(userId, current)
-          return current
-        })
-      }, 300)
-    }
+    const isDragging = changes.some((c: any) => c.type === 'position')
+    if (!isDragging || !userId) return
+
+    // Marca como pendente assim que o usuário começa a mover
+    setSaveStatus('pending')
+
+    // Reinicia o timer a cada movimento — só salva depois de 5s parado
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+    if (savedTimerRef.current) clearTimeout(savedTimerRef.current)
+
+    saveTimerRef.current = setTimeout(() => {
+      setNodes(current => {
+        savePositions(userId, current)
+        return current
+      })
+      setSaveStatus('saved')
+      // Esconde o indicador depois de 3s
+      savedTimerRef.current = setTimeout(() => setSaveStatus('idle'), 3000)
+    }, 5000)
   }, [onNodesChange, userId, setNodes])
 
   // Sync edges
@@ -629,6 +640,34 @@ function FunnelCanvas({
 
   return (
     <div className="relative w-full h-[420px] sm:h-[520px] lg:h-[620px] rounded-2xl overflow-hidden border border-gray-700/50 shadow-2xl">
+
+      {/* Indicador de auto-save */}
+      {saveStatus !== 'idle' && (
+        <div className={`
+          absolute top-3 right-3 z-50 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium
+          shadow-lg border transition-all duration-300
+          ${saveStatus === 'pending'
+            ? 'bg-gray-800/90 border-gray-600 text-gray-400'
+            : 'bg-emerald-900/90 border-emerald-600 text-emerald-300'}
+        `}>
+          {saveStatus === 'pending' ? (
+            <>
+              <svg className="w-3 h-3 animate-spin" viewBox="0 0 24 24" fill="none">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8h4z"/>
+              </svg>
+              Salvando…
+            </>
+          ) : (
+            <>
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/>
+              </svg>
+              Layout salvo
+            </>
+          )}
+        </div>
+      )}
       <ReactFlow
         nodes={nodes}
         edges={edges}
