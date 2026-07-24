@@ -51,7 +51,12 @@ export async function POST(req: Request) {
     await prisma.$transaction([
       prisma.user.update({
         where: { id: resetToken.userId },
-        data: { password: hashedPassword },
+        data: {
+          password: hashedPassword,
+          // Se ainda não verificou o email, marca agora — o link de reset
+          // já prova que o usuário tem acesso à caixa de entrada.
+          emailVerified: resetToken.user.emailVerified ?? new Date(),
+        },
       }),
       prisma.passwordResetToken.update({
         where: { id: resetToken.id },
