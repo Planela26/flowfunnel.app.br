@@ -103,7 +103,7 @@ export default function TrialBanner() {
           <span className="truncate">
             {days === 0
               ? `Você está explorando a Plataforma. Adicione um cartão ou pague via PIX para liberar integrações.`
-              : `Você está conhecendo a plataforma — ${days} ${days === 1 ? 'dia' : 'dias'} pra decidir. Adicione cartão (7 dias grátis) ou pague via PIX.`}
+              : `Você está conhecendo a plataforma. Adicione cartão (7 dias grátis) ou pague via PIX.`}
           </span>
         </div>
         <div className="flex items-center gap-2 shrink-0">
