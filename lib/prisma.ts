@@ -5,7 +5,16 @@ const globalForPrisma = globalThis as unknown as {
   prismaBase: PrismaClient | undefined
 }
 
-const supabasePoolerUrl = process.env.SUPABASE_DATABASE_URL
+// Supabase Transaction Pooler (port 6543) requer pgbouncer=true para que o Prisma
+// desabilite prepared statements — sem isso ocorre 42P05 "prepared statement already exists"
+// porque o pooler pode redirecionar queries para conexões de servidor diferentes.
+function buildPoolerUrl(raw: string | undefined): string | undefined {
+  if (!raw) return undefined
+  if (raw.includes('pgbouncer=true')) return raw
+  return raw.includes('?') ? `${raw}&pgbouncer=true` : `${raw}?pgbouncer=true`
+}
+
+const supabasePoolerUrl = buildPoolerUrl(process.env.SUPABASE_DATABASE_URL)
 
 const prismaClientOptions = supabasePoolerUrl
   ? {
