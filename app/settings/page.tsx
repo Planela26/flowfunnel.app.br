@@ -5,9 +5,10 @@ import Link from 'next/link'
 import {
   MessageCircle, Settings, Database, Bell, Link as LinkIcon,
   Save, Check, Facebook, ShoppingCart, ExternalLink,
-  ChevronDown, ChevronUp, CheckCircle, XCircle, Loader2,
+  ChevronDown, ChevronUp, CheckCircle, XCircle, Loader2, Lock,
 } from 'lucide-react'
 import ThemeToggle from '@/components/ThemeToggle'
+import { usePlanContext } from '@/contexts/PlanContext'
 import {
   ALERT_RULES,
   DEFAULT_ALERT_SETTINGS,
@@ -22,6 +23,7 @@ function IntegrationPanel({
   color,
   connected,
   tutorialHref,
+  locked,
   children,
 }: {
   icon: React.ReactNode
@@ -29,6 +31,7 @@ function IntegrationPanel({
   color: string
   connected: boolean
   tutorialHref: string
+  locked?: boolean
   children: React.ReactNode
 }) {
   const [open, setOpen] = useState(true)
@@ -82,8 +85,23 @@ function IntegrationPanel({
 
       {/* Body */}
       {open && (
-        <div className="border-t dark:border-gray-700 px-4 py-4 bg-white dark:bg-gray-800">
-          {children}
+        <div className="border-t dark:border-gray-700 bg-white dark:bg-gray-800 relative">
+          <div className={locked && !connected ? 'opacity-40 pointer-events-none select-none px-4 py-4' : 'px-4 py-4'}>
+            {children}
+          </div>
+          {locked && !connected && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="flex items-center gap-2 px-4 py-2.5 bg-amber-50 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-700 rounded-xl shadow-sm">
+                <Lock className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0" />
+                <span className="text-sm text-amber-800 dark:text-amber-300 font-medium">
+                  Disponível apenas com plano ativo —{' '}
+                  <a href="/pricing" className="underline font-semibold hover:text-amber-900">
+                    ver planos
+                  </a>
+                </span>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -117,6 +135,9 @@ const inputMonoCls = inputCls + ' font-mono'
 
 // ─── Main settings page ───────────────────────────────────────────────────────
 export default function ConfigPage() {
+  const { info: planInfo } = usePlanContext()
+  // Bloqueia conexão de novas integrações enquanto não houver pagamento confirmado
+  const paymentLocked = planInfo.exploringOnly
   const [saved, setSaved] = useState(false)
   const [integrations, setIntegrations] = useState({ facebook: false, whatsapp: false, hotmart: false, eduzz: false, monetizze: false, kiwify: false, google: false, tiktok: false })
   const [fbStatus, setFbStatus] = useState<'idle' | 'saving' | 'ok' | 'error'>('idle')
@@ -354,6 +375,7 @@ export default function ConfigPage() {
                 color="bg-blue-100 dark:bg-blue-900/40"
                 connected={integrations.facebook}
                 tutorialHref="/facebook-connect"
+                locked={paymentLocked && !integrations.facebook}
               >
                 <div className="grid md:grid-cols-2 gap-3">
                   <div className="md:col-span-2">
@@ -422,6 +444,7 @@ export default function ConfigPage() {
                 color="bg-gradient-to-br from-blue-500 via-red-400 to-yellow-400"
                 connected={integrations.google}
                 tutorialHref="https://ads.google.com/intl/pt-BR/home/"
+                locked={paymentLocked && !integrations.google}
               >
                 <div className="grid md:grid-cols-2 gap-3">
                   <div>
@@ -508,6 +531,7 @@ export default function ConfigPage() {
                 color="bg-black"
                 connected={integrations.tiktok}
                 tutorialHref="https://ads.tiktok.com/marketing_api/docs"
+                locked={paymentLocked && !integrations.tiktok}
               >
                 <div className="grid md:grid-cols-2 gap-3">
                   <div>
@@ -591,6 +615,7 @@ export default function ConfigPage() {
                 color="bg-green-100 dark:bg-green-900/40"
                 connected={integrations.whatsapp}
                 tutorialHref="/whatsapp-connect"
+                locked={paymentLocked && !integrations.whatsapp}
               >
                 <div className="grid md:grid-cols-2 gap-3">
                   <div className="md:col-span-2">
@@ -662,6 +687,7 @@ export default function ConfigPage() {
                 color="bg-orange-100 dark:bg-orange-900/40"
                 connected={integrations.hotmart}
                 tutorialHref="/hotmart-connect"
+                locked={paymentLocked && !integrations.hotmart}
               >
                 <div className="grid md:grid-cols-2 gap-3">
                   <div>
@@ -724,6 +750,7 @@ export default function ConfigPage() {
                 color="bg-green-100 dark:bg-green-900/40"
                 connected={integrations.kiwify}
                 tutorialHref="/kiwify-connect"
+                locked={paymentLocked && !integrations.kiwify}
               >
                 <div className="grid md:grid-cols-2 gap-3">
                   <div>
@@ -776,6 +803,7 @@ export default function ConfigPage() {
                 color="bg-purple-100 dark:bg-purple-900/40"
                 connected={integrations.eduzz}
                 tutorialHref="/eduzz-connect"
+                locked={paymentLocked && !integrations.eduzz}
               >
                 <div className="grid md:grid-cols-2 gap-3">
                   <div>
@@ -827,6 +855,7 @@ export default function ConfigPage() {
                 color="bg-rose-100 dark:bg-rose-900/40"
                 connected={integrations.monetizze}
                 tutorialHref="/monetizze-connect"
+                locked={paymentLocked && !integrations.monetizze}
               >
                 <div className="grid md:grid-cols-2 gap-3">
                   <div>
