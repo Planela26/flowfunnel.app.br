@@ -121,31 +121,13 @@ export default function SubscriptionCard() {
       )}
 
       <div className="flex flex-col sm:flex-row gap-2 mt-4">
-        {data?.hasStripe ? (
-          <button
-            onClick={openPortal}
-            disabled={portalLoading}
-            className="flex-1 flex items-center justify-center gap-2 py-2 px-4 bg-white dark:bg-gray-700 text-gray-800 dark:text-white text-sm font-medium rounded-xl border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition disabled:opacity-60"
-          >
-            {portalLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
-            Gerenciar assinatura
-          </button>
-        ) : (
+        {planKey !== 'SCALE' && (
           <Link
             href="/pricing"
             className="flex-1 flex items-center justify-center gap-2 py-2 px-4 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700 transition"
           >
             <ArrowRight className="w-4 h-4" />
             {planKey === 'FREE' ? 'Ver planos' : 'Fazer upgrade'}
-          </Link>
-        )}
-        {data?.hasStripe && planKey !== 'SCALE' && (
-          <Link
-            href="/pricing"
-            className="flex-1 flex items-center justify-center gap-2 py-2 px-4 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700 transition"
-          >
-            <ArrowRight className="w-4 h-4" />
-            Fazer upgrade
           </Link>
         )}
       </div>

@@ -5,7 +5,6 @@ import { prisma } from '@/lib/prisma'
 import { checkRateLimit, getClientIp } from '@/lib/security-utils'
 import { logAudit } from '@/lib/audit'
 import { TRIAL_DAYS } from '@/lib/trial'
-import { sendTrialActivatedEmail } from '@/lib/email'
 
 const PLAN_VALUES: Record<string, number> = { START: 97, PRO: 147, SCALE: 297 }
 
@@ -79,9 +78,8 @@ export async function POST(request: Request) {
       },
     })
 
-    if (user?.email) {
-      sendTrialActivatedEmail(user.email, user.name || '', planKey, trialEndsAt).catch(() => {})
-    }
+    // Sem cartão = sem email de "teste grátis". O email só é enviado quando
+    // o usuário de fato adiciona um cartão via activate-trial.
 
     await logAudit({
       action: 'billing.trial_explore_started',

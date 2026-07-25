@@ -6,7 +6,7 @@ import { useNavigation } from './NavigationContext'
 import {
   Settings, LayoutDashboard, Phone, Megaphone, Webhook,
   BarChart2, Users2, UserCog, Users, FileText, CreditCard,
-  Target, Gift, Route, Brain,
+  Target, Gift, Route, Brain, SlidersHorizontal,
 } from 'lucide-react'
 import UserMenu from './UserMenu'
 import PlanBadge from './PlanBadge'
@@ -60,6 +60,7 @@ const navGroups: NavGroup[] = [
       { href: '/affiliate', label: 'Afiliados', icon: Gift },
       { href: '/settings/team', label: 'Time', icon: Users2 },
       { href: '/settings', label: 'Integrações', icon: Settings },
+      { href: '/configuracoes', label: 'Configurações', icon: SlidersHorizontal },
     ],
   },
   {

@@ -8,7 +8,6 @@ import {
   ChevronDown, ChevronUp, CheckCircle, XCircle, Loader2,
 } from 'lucide-react'
 import ThemeToggle from '@/components/ThemeToggle'
-import SubscriptionCard from '@/components/SubscriptionCard'
 import {
   ALERT_RULES,
   DEFAULT_ALERT_SETTINGS,
@@ -320,11 +319,6 @@ export default function ConfigPage() {
       </header>
 
       <main className="container mx-auto px-4 py-8 max-w-4xl">
-
-        {/* ── Assinatura ──────────────────────────────────────────────────── */}
-        <div className="mb-6">
-          <SubscriptionCard />
-        </div>
 
         {/* ── Integrations ──────────────────────────────────────────────────── */}
         <section className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border dark:border-gray-700 p-6 mb-6 transition-colors">
