@@ -302,7 +302,7 @@ function RegisterPageContent() {
                   required
                 >
                   <option value="" disabled>— Selecione um plano —</option>
-                  <option value="start">START — gratuito</option>
+                  <option value="start">START</option>
                   <option value="pro">PRO</option>
                   <option value="scale">SCALE</option>
                 </select>

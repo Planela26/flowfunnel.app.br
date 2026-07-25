@@ -10,7 +10,7 @@ import {
   useStripe,
   useElements,
 } from '@stripe/react-stripe-js'
-import { Shield, CreditCard, Lock, Clock, CheckCircle, Loader2, AlertCircle } from 'lucide-react'
+import { Shield, CreditCard, Lock, Clock, CheckCircle, Loader2, AlertCircle, Eye } from 'lucide-react'
 import Link from 'next/link'
 
 const PLAN_LABELS: Record<string, string> = {
@@ -18,6 +18,15 @@ const PLAN_LABELS: Record<string, string> = {
 }
 const PLAN_PRICES: Record<string, string> = {
   START: 'R$ 97', PRO: 'R$ 147', SCALE: 'R$ 297',
+}
+
+function BillingIcon({ className = 'w-4 h-4' }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
+      <rect x="2" y="5" width="20" height="14" rx="2" />
+      <line x1="2" y1="10" x2="22" y2="10" />
+    </svg>
+  )
 }
 
 // ── Inner form that uses Stripe hooks (must be inside <Elements>) ─────────────
@@ -194,6 +203,8 @@ function ActivateTrialInner() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const [alreadyActive, setAlreadyActive] = useState(false)
+  const [step, setStep] = useState<'choose' | 'card' | 'exploring'>('choose')
+  const [exploring, setExploring] = useState(false)
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -221,6 +232,24 @@ function ActivateTrialInner() {
           return
         }
 
+        // Tela inicial: usuário escolhe entre adicionar cartão agora ou
+        // conhecer a plataforma primeiro (sem cartão). Não chama a Stripe até
+        // ele escolher uma das opções.
+        setStep('choose')
+        setLoading(false)
+      } catch (err: any) {
+        setError(err.message || 'Erro ao carregar configurações.')
+        setLoading(false)
+      }
+    }
+
+    init()
+  }, [status, plan])
+
+  async function startCardFlow() {
+    setError(null)
+    setLoading(true)
+    try {
         // Load Stripe
         const configRes = await fetch('/api/stripe/config')
         const configData = await configRes.json()
@@ -276,10 +305,31 @@ function ActivateTrialInner() {
         setError(err.message || 'Erro ao carregar configurações.')
         setLoading(false)
       }
-    }
+  }
 
-    init()
-  }, [status, plan])
+  async function startExploreFlow() {
+    setError(null)
+    setExploring(true)
+    try {
+      const res = await fetch('/api/stripe/explore-trial', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setError(data.error || 'Erro ao iniciar exploração.')
+        setExploring(false)
+        return
+      }
+      // Marca o pixel/best-effort; o StartTrial ainda dispara quando o
+      // usuário adicionar cartão depois — não duplicamos o evento aqui.
+      router.push('/dashboard')
+    } catch (err: any) {
+      setError(err.message || 'Erro ao iniciar exploração.')
+      setExploring(false)
+    }
+  }
 
   if (status === 'loading' || (status === 'authenticated' && loading)) {
     return (
@@ -308,94 +358,176 @@ function ActivateTrialInner() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 flex items-center justify-center p-4">
       <div className="max-w-lg w-full">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-1.5 rounded-full text-sm font-medium mb-4">
-            <Clock className="w-4 h-4" />
-            7 dias grátis — Plano {planLabel}
-          </div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            Adicione seu cartão
-          </h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-2">
-            Nenhum valor cobrado durante o período de teste.
-          </p>
-        </div>
-
-        {/* Benefits */}
-        <div className="grid grid-cols-3 gap-3 mb-6">
-          {[
-            { icon: <Shield className="w-4 h-4" />, label: 'Sem cobrança agora' },
-            { icon: <Clock className="w-4 h-4" />, label: '7 dias completos' },
-            { icon: <CheckCircle className="w-4 h-4" />, label: 'Cancele quando quiser' },
-          ].map((b, i) => (
-            <div key={i} className="flex flex-col items-center gap-2 bg-white dark:bg-gray-900 rounded-xl p-3 shadow-sm border border-gray-100 dark:border-gray-800 text-center">
-              <div className="w-8 h-8 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-green-600 dark:text-green-400">
-                {b.icon}
+        {step === 'choose' ? (
+          <>
+            {/* Header */}
+            <div className="text-center mb-8">
+              <div className="mx-auto mb-5 w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-600/30">
+                <BillingIcon className="w-7 h-7 text-white" />
               </div>
-              <span className="text-xs font-medium text-gray-600 dark:text-gray-400">{b.label}</span>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+                Ative seu teste grátis
+              </h1>
+              <p className="text-gray-500 dark:text-gray-400 mt-2 max-w-sm mx-auto">
+                Para acessar o plano <strong className="text-gray-700 dark:text-gray-200">{planLabel}</strong>,
+                adicione um cartão de crédito. Você{' '}
+                <strong className="text-gray-700 dark:text-gray-200">não será cobrado</strong>{' '}
+                durante os 7 dias de teste.
+              </p>
             </div>
-          ))}
-        </div>
 
-        {/* Card form */}
-        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 p-6">
-          {error ? (
-            <div className="space-y-4">
-              <div className="flex items-start gap-3 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 p-4">
+            {/* Benefits list */}
+            <ul className="space-y-3 mb-6 bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 p-5">
+              {[
+                { icon: <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />, label: '7 dias grátis com acesso completo ao plano ' + planLabel },
+                { icon: <Shield className="w-4 h-4 text-green-600 dark:text-green-400" />, label: 'Sem cobrança durante o teste — cancele a qualquer momento' },
+                { icon: <Clock className="w-4 h-4 text-blue-600 dark:text-blue-400" />, label: `Após os 7 dias: ${PLAN_PRICES[plan] ?? ''}/mês (pode cancelar antes)` },
+              ].map((b, i) => (
+                <li key={i} className="flex items-start gap-3">
+                  <span className="mt-0.5 flex-shrink-0 w-6 h-6 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                    {b.icon}
+                  </span>
+                  <span className="text-sm text-gray-700 dark:text-gray-300">{b.label}</span>
+                </li>
+              ))}
+            </ul>
+
+            {error && (
+              <div className="mb-4 flex items-start gap-3 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 p-4">
                 <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
                 <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
               </div>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => { setError(null); setLoading(true); window.location.reload() }}
-                  className="flex-1 px-4 py-2.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-medium rounded-xl text-sm"
-                >
-                  Tentar novamente
-                </button>
-                <Link
-                  href="/pricing"
-                  className="flex-1 px-4 py-2.5 text-center text-gray-500 dark:text-gray-400 text-sm"
-                >
-                  Ver planos
-                </Link>
-              </div>
-            </div>
-          ) : stripePromise && clientSecret && subscriptionId ? (
-            <Elements
-              stripe={stripePromise}
-              options={{
-                clientSecret,
-                appearance: {
-                  theme: 'stripe',
-                  variables: {
-                    colorPrimary: '#2563eb',
-                    borderRadius: '8px',
-                    fontFamily: 'ui-sans-serif, system-ui, sans-serif',
-                  },
-                },
-              }}
-            >
-              <TrialSetupForm
-                subscriptionId={subscriptionId}
-                plan={plan}
-                trialEndsAt={trialEndsAt}
-                onSuccess={() => setSuccess(true)}
-              />
-            </Elements>
-          ) : (
-            <div className="flex items-center justify-center py-10">
-              <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
-            </div>
-          )}
-        </div>
+            )}
 
-        <p className="text-center text-xs text-gray-400 dark:text-gray-600 mt-6">
-          Já tem uma conta paga?{' '}
-          <Link href="/billing" className="text-blue-500 hover:underline">
-            Ver minha assinatura
-          </Link>
-        </p>
+            {/* Action buttons */}
+            <div className="space-y-3">
+              <button
+                type="button"
+                onClick={() => { setStep('card'); startCardFlow() }}
+                disabled={exploring}
+                className="w-full flex items-center justify-center gap-2 px-6 py-3.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-all duration-200 shadow-lg shadow-blue-600/20"
+              >
+                <CreditCard className="w-4 h-4" />
+                Adicionar cartão e ativar teste
+                <span aria-hidden="true">→</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={startExploreFlow}
+                disabled={exploring}
+                className="w-full flex items-center justify-center gap-2 px-6 py-3.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed text-gray-700 dark:text-gray-200 font-semibold rounded-xl transition-colors"
+              >
+                {exploring ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Ativando teste...
+                  </>
+                ) : (
+                  <>
+                    <Eye className="w-4 h-4" />
+                    Conhecer a plataforma primeiro
+                  </>
+                )}
+              </button>
+            </div>
+
+            <p className="text-center text-xs text-gray-400 dark:text-gray-600 mt-5">
+              Pagamento seguro via Stripe. Dados do cartão criptografados.
+            </p>
+          </>
+        ) : (
+          <>
+            {/* Header (cartão) */}
+            <div className="text-center mb-8">
+              <div className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-1.5 rounded-full text-sm font-medium mb-4">
+                <Clock className="w-4 h-4" />
+                7 dias grátis — Plano {planLabel}
+              </div>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+                Adicione seu cartão
+              </h1>
+              <p className="text-gray-500 dark:text-gray-400 mt-2">
+                Nenhum valor cobrado durante o período de teste.
+              </p>
+            </div>
+
+            {/* Benefits */}
+            <div className="grid grid-cols-3 gap-3 mb-6">
+              {[
+                { icon: <Shield className="w-4 h-4" />, label: 'Sem cobrança agora' },
+                { icon: <Clock className="w-4 h-4" />, label: '7 dias completos' },
+                { icon: <CheckCircle className="w-4 h-4" />, label: 'Cancele quando quiser' },
+              ].map((b, i) => (
+                <div key={i} className="flex flex-col items-center gap-2 bg-white dark:bg-gray-900 rounded-xl p-3 shadow-sm border border-gray-100 dark:border-gray-800 text-center">
+                  <div className="w-8 h-8 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-green-600 dark:text-green-400">
+                    {b.icon}
+                  </div>
+                  <span className="text-xs font-medium text-gray-600 dark:text-gray-400">{b.label}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Card form */}
+            <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 p-6">
+              {error ? (
+                <div className="space-y-4">
+                  <div className="flex items-start gap-3 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 p-4">
+                    <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
+                  </div>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => { setError(null); setLoading(true); window.location.reload() }}
+                      className="flex-1 px-4 py-2.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-medium rounded-xl text-sm"
+                    >
+                      Tentar novamente
+                    </button>
+                    <button
+                      onClick={() => { setError(null); setStep('choose') }}
+                      className="flex-1 px-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 font-medium rounded-xl text-sm"
+                    >
+                      Voltar
+                    </button>
+                  </div>
+                </div>
+              ) : stripePromise && clientSecret && subscriptionId ? (
+                <Elements
+                  stripe={stripePromise}
+                  options={{
+                    clientSecret,
+                    appearance: {
+                      theme: 'stripe',
+                      variables: {
+                        colorPrimary: '#2563eb',
+                        borderRadius: '8px',
+                        fontFamily: 'ui-sans-serif, system-ui, sans-serif',
+                      },
+                    },
+                  }}
+                >
+                  <TrialSetupForm
+                    subscriptionId={subscriptionId}
+                    plan={plan}
+                    trialEndsAt={trialEndsAt}
+                    onSuccess={() => setSuccess(true)}
+                  />
+                </Elements>
+              ) : (
+                <div className="flex items-center justify-center py-10">
+                  <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+                </div>
+              )}
+            </div>
+
+            <p className="text-center text-xs text-gray-400 dark:text-gray-600 mt-6">
+              Já tem uma conta paga?{' '}
+              <Link href="/billing" className="text-blue-500 hover:underline">
+                Ver minha assinatura
+              </Link>
+            </p>
+          </>
+        )}
       </div>
     </div>
   )
