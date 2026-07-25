@@ -5,6 +5,7 @@
 - [.replit userenv secret leak](replit-userenv-secret-leak.md) — `[userenv.*]` in .replit is repo-tracked plaintext; secrets belong in Replit Secrets (requestEnvVar). Rotating a signing secret logs everyone out.
 - [Stripe card-required trial](stripe-trial-card-required.md) — set trial_settings.end_behavior.missing_payment_method='cancel' or Stripe skips the setup intent and a trial activates with no card; verify type==='card' before granting.
 - [Free-trial UX honesty](free-trial-card-required-ux.md) — banner "teste grátis N dias" só vale com cartão; gate integração com hasPaidAccess(user) em todos os POST; PIX libera imediato porque MP webhook seta subscriptionStatus='active'.
+- [MP payment overrides Stripe state](mp-payment-overrides-stripe-state.md) — UI billing MUST prefer User.subscriptionStatus (banco) sobre subscription.status (Stripe); pagamento PIX zera trialing órfão automaticamente.
 - [Prisma RLS multi-tenant](rls-prisma-tenant.md) — per-op $extends tenant client: await INSIDE the ALS scope (Prisma is lazy), $transaction array bypasses it (use withTenantTx), User needs self-only RLS + bypass for cross-user reads.
 - [Mandatory 2FA enforcement](mandatory-2fa-enforcement.md) — enforce role-mandatory 2FA at the disable mutation route (DB role check, not stale JWT); block OAuth login fail-closed; recovery codes consumed atomically.
 - [Usage-limit source of truth](usage-limit-source-of-truth.md) — when de-duping two divergent usage counters, align enforcement with the metric the user-facing meter shows, not the "ideal" one.

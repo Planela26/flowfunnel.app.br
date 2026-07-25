@@ -457,7 +457,6 @@ function buildMetrics(id: string, data: any): any[] | null {
         { label: 'Faturamento', value: data.faturamento || '—' },
       ]
     case 'stripe':
-    case 'mercadopago':
       return [
         { label: 'Transações', value: data.transactions || 0 },
         { label: 'Faturamento', value: data.revenue || '—' },

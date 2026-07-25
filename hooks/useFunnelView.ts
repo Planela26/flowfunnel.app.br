@@ -23,7 +23,6 @@ export const AVAILABLE_INTEGRATIONS: IntegrationCard[] = [
   { id: 'eduzz', label: 'Eduzz', type: 'checkout', icon: 'E', color: '#6366f1', borderColor: 'border-indigo-500/50', connectHref: '/eduzz-connect' },
   { id: 'monetizze', label: 'Monetizze', type: 'checkout', icon: 'M', color: '#8b5cf6', borderColor: 'border-purple-500/50', connectHref: '/monetizze-connect' },
   { id: 'stripe', label: 'Stripe', type: 'payment', icon: 'S', color: '#635bff', borderColor: 'border-violet-500/50', connectHref: '/settings' },
-  { id: 'mercadopago', label: 'Mercado Pago', type: 'payment', icon: 'MP', color: '#00b1ea', borderColor: 'border-cyan-500/50', connectHref: '/settings' },
   { id: 'crm', label: 'CRM', type: 'crm', icon: 'CRM', color: '#64748b', borderColor: 'border-slate-500/50', connectHref: '/settings' },
 ]
 

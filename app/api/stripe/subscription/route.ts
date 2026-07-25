@@ -13,7 +13,15 @@ export async function GET() {
 
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { plan: true, stripeCustomerId: true, stripeSubscriptionId: true, email: true, trialStatus: true },
+      select: {
+        plan: true,
+        stripeCustomerId: true,
+        stripeSubscriptionId: true,
+        email: true,
+        trialStatus: true,
+        subscriptionStatus: true,
+        gracePeriodEndsAt: true,
+      },
     })
 
     if (!user) {
@@ -21,6 +29,26 @@ export async function GET() {
     }
 
     if (!user.stripeCustomerId || !user.stripeSubscriptionId) {
+      // Mas mesmo sem Stripe, o usuário pode ter pago via PIX MercadoPago —
+      // nesse caso subscriptionStatus='active' e o panel deve refletir isso.
+      if (user.subscriptionStatus === 'active') {
+        return NextResponse.json({
+          plan: user.plan,
+          status: 'active',
+          hasStripe: false,
+          subscription: {
+            id: 'mercadopago',
+            status: 'active',
+            cancelAtPeriodEnd: false,
+            currentPeriodEnd:
+              user.gracePeriodEndsAt
+                ? new Date(user.gracePeriodEndsAt).toLocaleDateString('pt-BR')
+                : null,
+            priceId: null,
+            amountBrl: null,
+          },
+        })
+      }
       return NextResponse.json({
         plan: user.plan,
         status: 'free',
@@ -50,10 +78,39 @@ export async function GET() {
       throw stripeErr
     }
 
-    // Regra de negócio: uma assinatura em 'trialing' SÓ conta como teste grátis
-    // depois que o cartão foi cadastrado (activate-trial marca trialStatus='active').
-    // Se a Stripe ainda mostra 'trialing' mas o trial não foi ativado no nosso
-    // banco, o usuário NÃO completou o cadastro do cartão — não exiba "Em trial".
+    // Regra de negócio:
+// 1) PIX / MercadoPago pagamento confirmado → User.subscriptionStatus='active'.
+//    Não importa o que a Stripe diz (sub 'trialing' órfão, etc.) — manter
+//    status 'active' e ignorar a janela de trial remanescente.
+// 2) Stripe em 'trialing' SÓ conta como trial válido se o cartão foi cadastrado
+//    (activate-trial marca trialStatus='active'). Sem isso, "Em trial" não pode
+//    aparecer — exibe como 'free' para evitar prometer período grátis sem
+//    cartão de fato registrado.
+
+// Calcula os campos derivados ANTES das ramificações (eram declarados tarde demais).
+const periodEnd = subscription.current_period_end
+      ? new Date(subscription.current_period_end * 1000).toLocaleDateString('pt-BR')
+      : null
+const priceId = subscription.items?.data?.[0]?.price?.id
+const amount = subscription.items?.data?.[0]?.price?.unit_amount
+const buildSub = (status: string) => ({
+      id: subscription.id,
+      status,
+      cancelAtPeriodEnd: subscription.cancel_at_period_end,
+      currentPeriodEnd: periodEnd,
+      priceId,
+      amountBrl: amount ? (amount / 100).toFixed(2) : null,
+    })
+
+    if (user.subscriptionStatus === 'active') {
+      return NextResponse.json({
+        plan: user.plan,
+        status: 'active',
+        hasStripe: true,
+        subscription: buildSub('active'),
+      })
+    }
+
     if (subscription.status === 'trialing' && user.trialStatus !== 'active') {
       return NextResponse.json({
         plan: user.plan,
@@ -63,25 +120,11 @@ export async function GET() {
       })
     }
 
-    const periodEnd = subscription.current_period_end
-      ? new Date(subscription.current_period_end * 1000).toLocaleDateString('pt-BR')
-      : null
-
-    const priceId = subscription.items?.data?.[0]?.price?.id
-    const amount = subscription.items?.data?.[0]?.price?.unit_amount
-
     return NextResponse.json({
       plan: user.plan,
       status: subscription.status,
       hasStripe: true,
-      subscription: {
-        id: subscription.id,
-        status: subscription.status,
-        cancelAtPeriodEnd: subscription.cancel_at_period_end,
-        currentPeriodEnd: periodEnd,
-        priceId,
-        amountBrl: amount ? (amount / 100).toFixed(2) : null,
-      },
+      subscription: buildSub(subscription.status),
     })
   } catch (error: any) {
     console.error('Erro ao buscar assinatura:', error)
