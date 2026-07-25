@@ -370,40 +370,52 @@ export default function Dashboard() {
       {/* Faixa azul no topo — mobile only */}
       <div className="h-1 bg-gradient-to-r from-blue-900 via-blue-700 to-blue-500 lg:hidden" />
 
-      {/* Header — mobile only (simplificado) */}
+      {/* Header — mobile only */}
       <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-blue-100 dark:border-gray-700 transition-colors lg:hidden">
-        <div className="container mx-auto pl-14 pr-4 py-2">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-full overflow-hidden flex-shrink-0">
-                <img src="/flowfunnel-logo.jpg" alt="FlowFunnel" className="w-full h-full object-cover" />
-              </div>
-              <span className="text-sm font-extrabold text-blue-900 dark:text-white tracking-tight leading-none">FlowFunnel</span>
+        {/* Linha única: hamburger (fixo via AppShell) | logo | espaço | notif + plano + avatar */}
+        <div className="flex items-center gap-2 pl-14 pr-3 h-12">
+          {/* Logo */}
+          <div className="flex items-center gap-1.5 min-w-0">
+            <div className="w-6 h-6 rounded-full overflow-hidden flex-shrink-0">
+              <img src="/flowfunnel-logo.jpg" alt="FlowFunnel" className="w-full h-full object-cover" />
             </div>
-            <div className="flex items-center gap-2">
-              <NotificationCenter />
-              <PlanBadge />
-              <UserMenu />
-            </div>
+            <span className="text-sm font-extrabold text-blue-900 dark:text-white tracking-tight leading-none">FlowFunnel</span>
           </div>
-          {/* Ações rápidas — scroll horizontal no mobile */}
-          <div className="flex gap-2 mt-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
-            <Link href="/whatsapp-numbers" className="flex items-center gap-1 px-2.5 py-1 text-[11px] bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 rounded-lg font-medium whitespace-nowrap">
-              📱 WhatsApp
-            </Link>
-            <Link href="/campaigns" className="flex items-center gap-1 px-2.5 py-1 text-[11px] bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 rounded-lg font-medium whitespace-nowrap">
-              📢 Campanhas
-            </Link>
-            <Link href="/analytics" className="flex items-center gap-1 px-2.5 py-1 text-[11px] bg-blue-600 text-white rounded-lg font-medium whitespace-nowrap">
-              📊 Analytics
-            </Link>
-            <button onClick={handleExportCSV} className="flex items-center gap-1 px-2.5 py-1 text-[11px] bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg font-medium whitespace-nowrap">
-              <Download className="w-3 h-3" /> CSV
-            </button>
-            <Link href="/settings" className="flex items-center gap-1 px-2.5 py-1 text-[11px] bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg font-medium whitespace-nowrap">
-              <Settings className="w-3 h-3" /> Config
+
+          <div className="flex-1" />
+
+          {/* Direita: notificações + plano + avatar */}
+          <div className="flex items-center gap-1.5">
+            <NotificationCenter />
+            <PlanBadge />
+            {/* Avatar compacto → abre /account */}
+            <Link
+              href="/account"
+              className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-600 to-blue-400 flex items-center justify-center text-[11px] font-bold text-white shadow-sm flex-shrink-0"
+              title="Minha conta"
+            >
+              {(session?.user?.name?.[0] ?? session?.user?.email?.[0] ?? 'U').toUpperCase()}
             </Link>
           </div>
+        </div>
+
+        {/* Linha 2: ações rápidas */}
+        <div className="flex gap-1.5 px-3 pb-2 overflow-x-auto scrollbar-hide">
+          <Link href="/whatsapp-numbers" className="flex items-center gap-1 px-2.5 py-1 text-[11px] bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 rounded-lg font-medium whitespace-nowrap flex-shrink-0">
+            📱 WhatsApp
+          </Link>
+          <Link href="/campaigns" className="flex items-center gap-1 px-2.5 py-1 text-[11px] bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 rounded-lg font-medium whitespace-nowrap flex-shrink-0">
+            📢 Campanhas
+          </Link>
+          <Link href="/analytics" className="flex items-center gap-1 px-2.5 py-1 text-[11px] bg-blue-600 text-white rounded-lg font-medium whitespace-nowrap flex-shrink-0">
+            📊 Analytics
+          </Link>
+          <button onClick={handleExportCSV} className="flex items-center gap-1 px-2.5 py-1 text-[11px] bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg font-medium whitespace-nowrap flex-shrink-0">
+            <Download className="w-3 h-3" /> CSV
+          </button>
+          <Link href="/settings" className="flex items-center gap-1 px-2.5 py-1 text-[11px] bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg font-medium whitespace-nowrap flex-shrink-0">
+            <Settings className="w-3 h-3" /> Config
+          </Link>
         </div>
       </header>
 
