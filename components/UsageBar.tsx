@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { Zap, AlertTriangle } from 'lucide-react'
 import { useCachedJSON } from '@/lib/clientCache'
+import { usePlanContext } from '@/contexts/PlanContext'
 
 interface Usage {
   plan: string
@@ -18,8 +19,11 @@ interface Usage {
 
 export default function UsageBar() {
   const { data: usage } = useCachedJSON<Usage>('/api/usage', { refreshIntervalMs: 300000 })
+  const { info } = usePlanContext()
 
-  if (!usage || usage.unlimited) return null
+  // Só exibe o contador para quem tem plano pago ou trial com cartão.
+  // Usuário em modo "explorando" (sem pagamento/cartão) não tem limite ativo.
+  if (!usage || usage.unlimited || info.exploringOnly) return null
 
   const barColor = usage.isOverLimit
     ? 'bg-red-500'

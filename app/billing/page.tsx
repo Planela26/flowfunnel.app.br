@@ -9,6 +9,7 @@ import {
   Calendar, AlertCircle, Loader2, ExternalLink, TrendingUp, Shield
 } from 'lucide-react'
 import DashboardSidebar from '@/components/DashboardSidebar'
+import { usePlanContext } from '@/contexts/PlanContext'
 
 interface SubscriptionData {
   plan: string
@@ -101,6 +102,7 @@ const PLAN_LABELS: Record<string, string> = {
 }
 
 export default function BillingPage() {
+  const { info: planInfo } = usePlanContext()
   const { data: session, status } = useSession()
   const router = useRouter()
   const [sub, setSub] = useState<SubscriptionData | null>(null)
@@ -184,101 +186,103 @@ const subStatus = sub?.status || 'free'
             </p>
           </div>
 
-          {/* Plano atual + uso */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
-            {/* Plano atual */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
-              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
-                Plano Atual
-              </p>
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
-                  <Zap className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                </div>
-                <div>
-                  <p className="text-xl font-bold text-gray-900 dark:text-white">
-                    {PLAN_LABELS[currentPlan] || currentPlan}
-                  </p>
-                  <p className={`text-xs font-medium ${
-                    subStatus === 'active' || subStatus === 'trialing' || subStatus === 'free' && currentPlan !== 'FREE' ? 'text-green-600 dark:text-green-400'
-                    : subStatus === 'past_due' ? 'text-amber-600 dark:text-amber-400'
-                    : subStatus === 'canceled' ? 'text-red-600 dark:text-red-400'
-                    : 'text-gray-500 dark:text-gray-400'
-                  }`}>
-                    {subStatus === 'active' ? '● Ativa'
-                      : subStatus === 'trialing' ? '● Ativa'
-                      : subStatus === 'past_due' ? '⚠ Pagamento pendente'
-                      : subStatus === 'canceled' ? '✕ Cancelada'
-                      : '● Plano gratuito'}
-                  </p>
-                </div>
-              </div>
-
-              {cancelAtEnd && periodEnd && (
-                <div className="mb-3 p-2.5 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 text-xs text-amber-700 dark:text-amber-300 flex items-center gap-2">
-                  <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
-                  Cancela em {periodEnd}. Acesso até esta data.
-                </div>
-              )}
-
-              {periodEnd && !cancelAtEnd && (
-                <div className="mb-3 flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-                  <Calendar className="w-3.5 h-3.5" />
-                  Próxima cobrança: {periodEnd}
-                </div>
-              )}
-
-              {sub?.hasStripe && (
-                <button
-                  onClick={openPortal}
-                  disabled={portalLoading}
-                  className="w-full flex items-center justify-center gap-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium py-2.5 px-4 rounded-lg transition"
-                >
-                  {portalLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ExternalLink className="w-4 h-4" />}
-                  Gerenciar no Stripe
-                </button>
-              )}
-            </div>
-
-            {/* Uso do mês */}
-            {usage && (
+          {/* Plano atual + uso — só exibe para quem tem plano ativo ou trial com cartão */}
+          {!planInfo.exploringOnly && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+              {/* Plano atual */}
               <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
                 <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
-                  Uso em {new Date().toLocaleDateString('pt-BR', { month: 'long' })}
+                  Plano Atual
                 </p>
-                {usage.unlimited ? (
-                  <div className="flex flex-col items-center justify-center h-24 gap-2">
-                    <CheckCircle className="w-10 h-10 text-emerald-500" />
-                    <p className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">Conversas Ilimitadas</p>
-                    <p className="text-xs text-gray-400">{usage.used.toLocaleString('pt-BR')} neste mês</p>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
+                    <Zap className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                   </div>
-                ) : (
-                  <>
-                    <div className="flex items-end gap-2 mb-3">
-                      <span className="text-3xl font-black text-gray-900 dark:text-white">
-                        {usage.used.toLocaleString('pt-BR')}
-                      </span>
-                      <span className="text-sm text-gray-400 mb-1">/ {usage.limit.toLocaleString('pt-BR')}</span>
-                    </div>
-                    <div className="relative h-3 rounded-full bg-gray-100 dark:bg-gray-700 mb-2 overflow-hidden">
-                      <div
-                        className={`h-full rounded-full transition-all ${
-                          usage.percent >= 100 ? 'bg-red-500'
-                          : usage.percent >= 80 ? 'bg-amber-500'
-                          : 'bg-blue-600'
-                        }`}
-                        style={{ width: `${Math.min(100, usage.percent)}%` }}
-                      />
-                    </div>
-                    <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-                      <span>{usage.percent}% utilizado</span>
-                      <span>Renova {new Date(usage.resetDate).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}</span>
-                    </div>
-                  </>
+                  <div>
+                    <p className="text-xl font-bold text-gray-900 dark:text-white">
+                      {PLAN_LABELS[currentPlan] || currentPlan}
+                    </p>
+                    <p className={`text-xs font-medium ${
+                      subStatus === 'active' || subStatus === 'trialing' ? 'text-green-600 dark:text-green-400'
+                      : subStatus === 'past_due' ? 'text-amber-600 dark:text-amber-400'
+                      : subStatus === 'canceled' ? 'text-red-600 dark:text-red-400'
+                      : 'text-gray-500 dark:text-gray-400'
+                    }`}>
+                      {subStatus === 'active' ? '● Ativa'
+                        : subStatus === 'trialing' ? '● Ativa'
+                        : subStatus === 'past_due' ? '⚠ Pagamento pendente'
+                        : subStatus === 'canceled' ? '✕ Cancelada'
+                        : '● Ativa'}
+                    </p>
+                  </div>
+                </div>
+
+                {cancelAtEnd && periodEnd && (
+                  <div className="mb-3 p-2.5 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 text-xs text-amber-700 dark:text-amber-300 flex items-center gap-2">
+                    <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                    Cancela em {periodEnd}. Acesso até esta data.
+                  </div>
+                )}
+
+                {periodEnd && !cancelAtEnd && (
+                  <div className="mb-3 flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                    <Calendar className="w-3.5 h-3.5" />
+                    Próxima cobrança: {periodEnd}
+                  </div>
+                )}
+
+                {sub?.hasStripe && (
+                  <button
+                    onClick={openPortal}
+                    disabled={portalLoading}
+                    className="w-full flex items-center justify-center gap-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium py-2.5 px-4 rounded-lg transition"
+                  >
+                    {portalLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ExternalLink className="w-4 h-4" />}
+                    Gerenciar no Stripe
+                  </button>
                 )}
               </div>
-            )}
-          </div>
+
+              {/* Uso do mês */}
+              {usage && (
+                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+                    Uso em {new Date().toLocaleDateString('pt-BR', { month: 'long' })}
+                  </p>
+                  {usage.unlimited ? (
+                    <div className="flex flex-col items-center justify-center h-24 gap-2">
+                      <CheckCircle className="w-10 h-10 text-emerald-500" />
+                      <p className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">Conversas Ilimitadas</p>
+                      <p className="text-xs text-gray-400">{usage.used.toLocaleString('pt-BR')} neste mês</p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex items-end gap-2 mb-3">
+                        <span className="text-3xl font-black text-gray-900 dark:text-white">
+                          {usage.used.toLocaleString('pt-BR')}
+                        </span>
+                        <span className="text-sm text-gray-400 mb-1">/ {usage.limit.toLocaleString('pt-BR')}</span>
+                      </div>
+                      <div className="relative h-3 rounded-full bg-gray-100 dark:bg-gray-700 mb-2 overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all ${
+                            usage.percent >= 100 ? 'bg-red-500'
+                            : usage.percent >= 80 ? 'bg-amber-500'
+                            : 'bg-blue-600'
+                          }`}
+                          style={{ width: `${Math.min(100, usage.percent)}%` }}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                        <span>{usage.percent}% utilizado</span>
+                        <span>Renova {new Date(usage.resetDate).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}</span>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Comparativo de planos */}
           <div className="mb-6">
