@@ -39,6 +39,16 @@ const nextConfig = {
         source: '/:path*',
         headers: SECURITY_HEADERS,
       },
+      // Páginas autenticadas não devem ser cacheadas por CDN/proxy:
+      // o HTML é pré-renderizado pelo Next mas contém referências a chunks
+      // que mudam a cada build — cachear o HTML causa "chunk not found" após
+      // um novo deploy (Opera/Chrome mostram "This page couldn't load").
+      {
+        source: '/(dashboard|conta|configuracoes|configurações|analises|análises|leads|relatorios|relatórios|admin/:path*|afiliado|painel/:path*|checkout/:path*|faturamento|campanhas|metas|webhooks)',
+        headers: [
+          { key: 'Cache-Control', value: 'no-store, must-revalidate' },
+        ],
+      },
     ]
   },
 }
