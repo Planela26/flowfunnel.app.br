@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { encryptSecret, decryptSecret, checkRateLimit } from '@/lib/security-utils'
 import { logAudit } from '@/lib/audit'
 import { safeIntegration } from '@/lib/integration-sanitize'
+import { assertCanCreateIntegration } from '@/lib/integration-gate'
 
 // Conectar Meta Ads com Access Token de longa duração
 export async function POST(request: Request) {
@@ -15,6 +16,8 @@ export async function POST(request: Request) {
     }
     const rl = await checkRateLimit(`integrations:meta:post:${session.user.id}`, 20, 60_000)
     if (!rl.ok) return NextResponse.json({ error: 'Muitas tentativas' }, { status: 429 })
+    const gate = await assertCanCreateIntegration(request)
+    if (gate) return gate
 
     const { accessToken, adAccountId, appId, appSecret } = await request.json()
 

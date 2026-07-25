@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { getPlanFeatures, getHistoryLimitDays, getPlanLimit, isUnlimited, normalizePlan, PLAN_LABELS } from '@/lib/plans'
-import { getEffectivePlan, isTrialActive, isTrialExpired, isPendingPayment, isPendingEmail, trialDaysLeft } from '@/lib/trial'
+import { getEffectivePlan, hasPaidAccess, isTrialActive, isTrialExpired, isPendingPayment, isPendingEmail, trialDaysLeft } from '@/lib/trial'
 
 export async function GET() {
   const session = await getServerSession(authOptions)
@@ -12,13 +12,28 @@ export async function GET() {
   }
   const u = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { plan: true, role: true, trialEndsAt: true, trialPlan: true, trialStatus: true },
+    select: {
+      plan: true,
+      role: true,
+      trialEndsAt: true,
+      trialPlan: true,
+      trialStatus: true,
+      subscriptionStatus: true,
+      paymentMethodAddedAt: true,
+    },
   })
 
   const effectivePlan = getEffectivePlan(u ?? { plan: 'FREE' })
   const onTrial = isTrialActive(u ?? { plan: 'FREE' })
   const trialExpired = isTrialExpired(u ?? { plan: 'FREE' })
   const daysLeft = trialDaysLeft(u?.trialEndsAt)
+  const cardAdded = Boolean(u?.paymentMethodAddedAt)
+  const paidAccess = hasPaidAccess({
+    subscriptionStatus: u?.subscriptionStatus,
+    paymentMethodAddedAt: u?.paymentMethodAddedAt,
+  })
+  // Modo explorar — sem cartão E sem assinatura. Pode usar o funil, mas sem criar integrações reais.
+  const exploringOnly = !paidAccess
 
   return NextResponse.json(
     {
@@ -37,6 +52,9 @@ export async function GET() {
       trialStatus: u?.trialStatus ?? 'none',
       trialPendingPayment: isPendingPayment(u ?? { plan: 'FREE' }),
       trialPendingEmail: isPendingEmail(u ?? { plan: 'FREE' }),
+      cardAdded,
+      paidAccess,
+      exploringOnly,
     },
     {
       headers: {

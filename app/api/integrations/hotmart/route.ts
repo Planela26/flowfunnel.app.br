@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { ensureWebhookToken, buildWebhookUrl } from '@/lib/webhook-tenant'
+import { assertCanCreateIntegration } from '@/lib/integration-gate'
 
 // Connect Hotmart integration (POST)
 export async function POST(request: Request) {
@@ -11,6 +12,8 @@ export async function POST(request: Request) {
     if (!session?.user) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
+    const gate = await assertCanCreateIntegration(request)
+    if (gate) return gate
 
     const { hotmartId, webhookToken, email } = await request.json()
 

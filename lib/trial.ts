@@ -66,3 +66,26 @@ export function getEffectivePlan(user: TrialUser): Plan {
   }
   return normalizePlan(user.plan)
 }
+
+/**
+ * Determina se o usuário tem direito a criar/alterar integrações e dados de
+ * funil. Verdadeiro quando:
+ *  - assinatura paga ativa (Stripe ou MercadoPago, qualquer tier START/PRO/SCALE), OU
+ *  - cartão adicionado (trial em curso — mesmo que trialEndsAt ainda não estourou).
+ *
+ * Falso (modo "explorar apenas") para:
+ *  - conta FREE recém-criada sem cartão, mesmo que trialEndsAt esteja populado.
+ *
+ * Por quê: o "teste grátis" só é realmente grátis (cancelável a qualquer
+ * momento antes da cobrança) se houver cartão cadastrado na Stripe. Sem
+ * cartão, o usuário só pode navegar — não pode adicionar Meta, WhatsApp,
+ * Eduzz, Kiwify, Hotmart, Monetizze ou Perfect Pay.
+ */
+export function hasPaidAccess(user: {
+  subscriptionStatus?: string | null
+  paymentMethodAddedAt?: Date | string | null
+}): boolean {
+  if (user.subscriptionStatus === 'active') return true
+  if (user.paymentMethodAddedAt) return true
+  return false
+}

@@ -20,6 +20,12 @@ export type PlanInfo = {
   trialStatus: string
   trialPendingPayment: boolean
   trialPendingEmail: boolean
+  /** Cartão de crédito adicionado (Stripe). trial só conta como realmente grátis se true. */
+  cardAdded: boolean
+  /** Assinatura paga ativa (Stripe mensal ou PIX MercadoPago aprovado). */
+  paidAccess: boolean
+  /** Sem cartão e sem assinatura: pode navegar mas sem criar integrações. */
+  exploringOnly: boolean
 }
 
 const DEFAULT: PlanInfo = {
@@ -50,6 +56,9 @@ const DEFAULT: PlanInfo = {
   trialStatus: 'none',
   trialPendingPayment: false,
   trialPendingEmail: false,
+  cardAdded: false,
+  paidAccess: false,
+  exploringOnly: true,
 }
 
 interface PlanContextType {

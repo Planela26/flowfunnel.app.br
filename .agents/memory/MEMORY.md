@@ -4,6 +4,7 @@
 - [npm audit fix drifts excluded chains](npm-audit-fix-scope.md) — `npm audit fix` silently upgrades pinned/out-of-scope transitive chains (Baileys, jsPDF); don't run blanket fixes when scope forbids touching a dependency chain.
 - [.replit userenv secret leak](replit-userenv-secret-leak.md) — `[userenv.*]` in .replit is repo-tracked plaintext; secrets belong in Replit Secrets (requestEnvVar). Rotating a signing secret logs everyone out.
 - [Stripe card-required trial](stripe-trial-card-required.md) — set trial_settings.end_behavior.missing_payment_method='cancel' or Stripe skips the setup intent and a trial activates with no card; verify type==='card' before granting.
+- [Free-trial UX honesty](free-trial-card-required-ux.md) — banner "teste grátis N dias" só vale com cartão; gate integração com hasPaidAccess(user) em todos os POST; PIX libera imediato porque MP webhook seta subscriptionStatus='active'.
 - [Prisma RLS multi-tenant](rls-prisma-tenant.md) — per-op $extends tenant client: await INSIDE the ALS scope (Prisma is lazy), $transaction array bypasses it (use withTenantTx), User needs self-only RLS + bypass for cross-user reads.
 - [Mandatory 2FA enforcement](mandatory-2fa-enforcement.md) — enforce role-mandatory 2FA at the disable mutation route (DB role check, not stale JWT); block OAuth login fail-closed; recovery codes consumed atomically.
 - [Usage-limit source of truth](usage-limit-source-of-truth.md) — when de-duping two divergent usage counters, align enforcement with the metric the user-facing meter shows, not the "ideal" one.
