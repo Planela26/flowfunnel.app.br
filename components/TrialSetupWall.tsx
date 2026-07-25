@@ -1,6 +1,6 @@
 'use client'
 
-import { CreditCard, Shield, Clock, ArrowRight, Compass } from 'lucide-react'
+import { CreditCard, Shield, Clock, ArrowRight, Compass, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
@@ -19,6 +19,7 @@ export default function TrialSetupWall() {
   const router = useRouter()
   const { data: session } = useSession()
   const [dismissed, setDismissed] = useState(false)
+  const [exploring, setExploring] = useState(false)
 
   // Chave por usuário e por sessão — explorar primeiro vale só para a sessão atual,
   // o aviso volta no próximo login para continuar incentivando a ativação.
@@ -39,6 +40,7 @@ export default function TrialSetupWall() {
 
   const exploreFirst = () => {
     if (guardKey) { try { sessionStorage.setItem(guardKey, '1') } catch {} }
+    setExploring(true)
     setDismissed(true)
     router.push('/dashboard')
   }
@@ -86,10 +88,20 @@ export default function TrialSetupWall() {
 
         <button
           onClick={exploreFirst}
-          className="inline-flex items-center justify-center gap-2 w-full mt-3 px-6 py-3 text-gray-600 dark:text-gray-300 font-medium rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200"
+          disabled={exploring}
+          className="inline-flex items-center justify-center gap-2 w-full mt-3 px-6 py-3 text-gray-600 dark:text-gray-300 font-medium rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200 disabled:opacity-70 disabled:cursor-wait"
         >
-          <Compass className="w-4 h-4" />
-          Conhecer a plataforma primeiro
+          {exploring ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Indo para o dashboard…
+            </>
+          ) : (
+            <>
+              <Compass className="w-4 h-4" />
+              Conhecer a plataforma primeiro
+            </>
+          )}
         </button>
 
         <p className="mt-4 text-xs text-gray-400 dark:text-gray-600">

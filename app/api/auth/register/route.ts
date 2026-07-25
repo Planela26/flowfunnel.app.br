@@ -9,6 +9,7 @@ import { TRIAL_DAYS } from '@/lib/trial'
 import { isDisposableEmail } from '@/lib/email-blocklist'
 import { validatePasswordStrength } from '@/lib/password'
 import { sendMetaCapiEvent, readFbCookies } from '@/lib/meta-capi'
+import { ensureFunnelWithStages } from '@/lib/webhook-stages'
 import crypto from 'crypto'
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -110,6 +111,13 @@ export async function POST(request: Request) {
     await prisma.emailVerificationToken.create({
       data: { userId: user.id, token, expiresAt },
     })
+
+    // ── Seed the funnel board immediately so the new account lands on the
+    // dashboard with the default cards visible (Lead → Qualificado → Checkout
+    // → Pago, plus Recusado/Reembolsado/Chargeback/Abandonado). The user can
+    // drag/rename/delete them or add integrations later. Without this, the
+    // funnel only appears after the first webhook arrives.
+    await ensureFunnelWithStages(user.id)
 
     const verifyUrl = `${baseUrl}/api/auth/verify-email?token=${token}`
     sendVerificationEmail(user.email, user.name || '', verifyUrl).catch((err) => {

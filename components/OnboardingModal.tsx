@@ -5,7 +5,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import {
   MessageCircle, Webhook, BarChart2, ArrowRight, X, CheckCircle,
-  Users, Target, Zap, ChevronRight
+  Users, Target, Zap, ChevronRight, MousePointerClick, Hand
 } from 'lucide-react'
 
 interface Step {
@@ -79,6 +79,18 @@ const steps: Step[] = [
     description: 'Assim que os primeiros dados chegarem, você verá métricas em tempo real, funil de conversão e sugestões inteligentes.',
     action: { label: 'Ver o Dashboard', href: '/dashboard' },
   },
+  {
+    icon: <Hand className="w-10 h-10 text-cyan-600" />,
+    title: 'Mexa nos cards do funil',
+    description: 'Cada card é uma etapa da sua jornada de venda. Arraste pra reorganizar, clique pra ver estatísticas, ou use o botão + (canto inferior direito) pra adicionar Meta, Google ou TikTok. As posições que você definir ficam salvas no seu navegador.',
+    checklist: [
+      'Arraste qualquer card com o mouse pra reorganizar o funil',
+      'Clique no card pra abrir as estatísticas da etapa',
+      'Use o + azul (canto inferior direito) pra adicionar Meta, Google ou TikTok',
+      'As posições são salvas automaticamente no seu navegador',
+    ],
+    action: { label: 'Ir para o funil', href: '/funnel' },
+  },
 ]
 
 export default function OnboardingModal() {
@@ -121,6 +133,11 @@ export default function OnboardingModal() {
     if (guardKey) { try { localStorage.setItem(guardKey, '1') } catch {} }
     // keepalive garante que a requisição complete mesmo durante navegação de página
     fetch('/api/account/onboarding', { method: 'POST', keepalive: true }).catch(() => {})
+  }
+
+  const skipAll = () => {
+    // Igual ao dismiss mas com confirmação visual de que pulou o tutorial inteiro
+    dismiss()
   }
 
   const next = () => {
@@ -175,7 +192,7 @@ export default function OnboardingModal() {
             </ul>
           )}
 
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-4">
             <div className="flex gap-1.5">
               {steps.map((_, i) => (
                 <button
@@ -187,6 +204,14 @@ export default function OnboardingModal() {
             </div>
 
             <div className="flex items-center gap-2">
+              {!isLast && (
+                <button
+                  onClick={skipAll}
+                  className="px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition"
+                >
+                  Pular tutorial
+                </button>
+              )}
               {current.action && (
                 <button
                   onClick={() => handleAction(current.action!.href)}
