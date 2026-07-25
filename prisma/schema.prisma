@@ -20,6 +20,7 @@ model User {
   stripeCustomerId       String?   @unique
   stripeSubscriptionId   String?
   alertSettings          String?   // JSON com toggles de alertas automáticos
+  funnelLayout           String?   // JSON com posições dos cards do FunnelFlow (sincroniza entre navegadores)
   metaPurchase           String?   // JSON com Purchase pendente p/ disparo do Pixel (read-once na success page)
   onboardingCompletedAt  DateTime?
   trialEndsAt            DateTime?

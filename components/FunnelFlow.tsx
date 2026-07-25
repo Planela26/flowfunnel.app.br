@@ -41,10 +41,15 @@ export interface FunnelFlowProps {
   userId?: string
 }
 
-/* ─── Persistência de posições no localStorage ───────────────────────── */
+/* ─── Persistência de posições ────────────────────────────────────────
+ * Fonte da verdade: banco de dados (via /api/funnel-layout) → sincroniza
+ * entre navegadores e dispositivos. localStorage é só cache local para
+ * o primeiro render ser instantâneo. */
 const getPosKey = (userId: string) => `funnel_positions_${userId}`
 
-function loadSavedPositions(userId: string): Record<string, { x: number; y: number }> | null {
+type SavedPositions = Record<string, { x: number; y: number }>
+
+function loadSavedPositions(userId: string): SavedPositions | null {
   try {
     const raw = localStorage.getItem(getPosKey(userId))
     if (!raw) return null
@@ -54,12 +59,39 @@ function loadSavedPositions(userId: string): Record<string, { x: number; y: numb
   return null
 }
 
-function savePositions(userId: string, nodes: Node[]) {
+function cachePositionsLocally(userId: string, pos: SavedPositions) {
   try {
-    const pos: Record<string, { x: number; y: number }> = {}
-    for (const n of nodes) pos[n.id] = n.position
     localStorage.setItem(getPosKey(userId), JSON.stringify(pos))
   } catch { /* ignore */ }
+}
+
+async function fetchServerPositions(): Promise<SavedPositions | null> {
+  try {
+    const res = await fetch('/api/funnel-layout', { cache: 'no-store' })
+    if (!res.ok) return null
+    const data = await res.json()
+    if (data?.positions && typeof data.positions === 'object') return data.positions
+  } catch { /* ignore */ }
+  return null
+}
+
+async function saveServerPositions(pos: SavedPositions): Promise<boolean> {
+  try {
+    const res = await fetch('/api/funnel-layout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ positions: pos }),
+    })
+    return res.ok
+  } catch {
+    return false
+  }
+}
+
+function nodesToPositions(nodes: Node[]): SavedPositions {
+  const pos: SavedPositions = {}
+  for (const n of nodes) pos[n.id] = n.position
+  return pos
 }
 
 /* ─── Color helpers for dynamic cards ───────────────────────────────── */
@@ -553,7 +585,7 @@ function FunnelCanvas({
   const { fitView } = useReactFlow()
   const isMountedRef = useRef(false)
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'pending' | 'saved'>('idle')
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'pending' | 'saved' | 'error'>('idle')
   const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Centraliza a visão no primeiro render
@@ -561,6 +593,19 @@ function FunnelCanvas({
     const t = setTimeout(() => fitView({ padding: 0.12 }), 100)
     return () => clearTimeout(t)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Busca posições do servidor (fonte da verdade) e aplica — sincroniza entre navegadores
+  useEffect(() => {
+    if (!userId) return
+    let cancelled = false
+    fetchServerPositions().then(serverPos => {
+      if (cancelled || !serverPos || Object.keys(serverPos).length === 0) return
+      cachePositionsLocally(userId, serverPos)
+      setNodes(prev => prev.map(n => serverPos[n.id] ? { ...n, position: serverPos[n.id] } : n))
+      setTimeout(() => fitView({ padding: 0.12 }), 50)
+    })
+    return () => { cancelled = true }
+  }, [userId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Quando dados mudam (loading/data), reconstrói nodes preservando posições atuais
   useEffect(() => {
@@ -608,12 +653,15 @@ function FunnelCanvas({
 
     saveTimerRef.current = setTimeout(() => {
       setNodes(current => {
-        savePositions(userId, current)
+        const pos = nodesToPositions(current)
+        cachePositionsLocally(userId, pos)
+        // Salva no banco — só mostra "salvo" se o servidor confirmar
+        saveServerPositions(pos).then(ok => {
+          setSaveStatus(ok ? 'saved' : 'error')
+          savedTimerRef.current = setTimeout(() => setSaveStatus('idle'), ok ? 3000 : 5000)
+        })
         return current
       })
-      setSaveStatus('saved')
-      // Esconde o indicador depois de 3s
-      savedTimerRef.current = setTimeout(() => setSaveStatus('idle'), 3000)
     }, 5000)
   }, [onNodesChange, userId, setNodes])
 
@@ -648,7 +696,9 @@ function FunnelCanvas({
           shadow-lg border transition-all duration-300
           ${saveStatus === 'pending'
             ? 'bg-gray-800/90 border-gray-600 text-gray-400'
-            : 'bg-emerald-900/90 border-emerald-600 text-emerald-300'}
+            : saveStatus === 'error'
+              ? 'bg-red-900/90 border-red-600 text-red-300'
+              : 'bg-emerald-900/90 border-emerald-600 text-emerald-300'}
         `}>
           {saveStatus === 'pending' ? (
             <>
@@ -657,6 +707,13 @@ function FunnelCanvas({
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8h4z"/>
               </svg>
               Salvando…
+            </>
+          ) : saveStatus === 'error' ? (
+            <>
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+              Erro ao salvar — tente de novo
             </>
           ) : (
             <>
