@@ -10,7 +10,7 @@ import {
   useStripe,
   useElements,
 } from '@stripe/react-stripe-js'
-import { Shield, CreditCard, Lock, Clock, CheckCircle, Loader2, AlertCircle, Eye } from 'lucide-react'
+import { Shield, CreditCard, Lock, Clock, CheckCircle, Loader2, AlertCircle, Eye, QrCode } from 'lucide-react'
 import Link from 'next/link'
 
 const PLAN_LABELS: Record<string, string> = {
@@ -372,7 +372,7 @@ function ActivateTrialInner() {
                 Para acessar o plano <strong className="text-gray-700 dark:text-gray-200">{planLabel}</strong>,
                 adicione um cartão de crédito. Você{' '}
                 <strong className="text-gray-700 dark:text-gray-200">não será cobrado</strong>{' '}
-                durante os 7 dias de teste.
+                durante os 7 dias de teste. Ou pague à vista com Pix.
               </p>
             </div>
 
@@ -430,6 +430,20 @@ function ActivateTrialInner() {
                   </>
                 )}
               </button>
+
+              {/* ── Pagamento à vista via Pix (Mercado Pago) ───────────────
+                  Link direto pro /checkout: a página já cria a preferência no
+                  Mercado Pago com PIX/boleto/cartão, e o webhook faz a ativação
+                  do plano quando o pagamento é confirmado. Sem trial aqui — é
+                  pagamento único, acesso imediato ao plano escolhido. */}
+              <Link
+                href={`/checkout?plan=${plan}`}
+                className="w-full flex items-center justify-center gap-2 px-6 py-3.5 bg-cyan-50 dark:bg-cyan-950/30 border border-cyan-200 dark:border-cyan-800 hover:bg-cyan-100 dark:hover:bg-cyan-950/50 text-cyan-800 dark:text-cyan-200 font-semibold rounded-xl transition-colors"
+              >
+                <QrCode className="w-4 h-4" />
+                Pagar agora com Pix
+                <span aria-hidden="true">→</span>
+              </Link>
             </div>
 
             <p className="text-center text-xs text-gray-400 dark:text-gray-600 mt-5">
