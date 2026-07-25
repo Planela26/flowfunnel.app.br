@@ -587,6 +587,9 @@ function FunnelCanvas({
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [saveStatus, setSaveStatus] = useState<'idle' | 'pending' | 'saved' | 'error'>('idle')
   const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const hasLocalEditsRef = useRef(false)   // usuário moveu algo nesta sessão
+  const nodesRef = useRef<Node[]>([])      // snapshot p/ flush no unmount
+  nodesRef.current = nodes
 
   // Centraliza a visão no primeiro render
   useEffect(() => {
@@ -594,17 +597,43 @@ function FunnelCanvas({
     return () => clearTimeout(t)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Busca posições do servidor (fonte da verdade) e aplica — sincroniza entre navegadores
+  // Busca posições do servidor (fonte da verdade) e aplica — sincroniza entre navegadores.
+  // Se o usuário já começou a mover cards antes da resposta chegar, NÃO sobrescreve.
   useEffect(() => {
     if (!userId) return
     let cancelled = false
     fetchServerPositions().then(serverPos => {
       if (cancelled || !serverPos || Object.keys(serverPos).length === 0) return
+      if (hasLocalEditsRef.current) return // usuário já mexeu → local vence
       cachePositionsLocally(userId, serverPos)
       setNodes(prev => prev.map(n => serverPos[n.id] ? { ...n, position: serverPos[n.id] } : n))
       setTimeout(() => fitView({ padding: 0.12 }), 50)
     })
     return () => { cancelled = true }
+  }, [userId]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Flush: se sair da página com save pendente, salva imediatamente
+  useEffect(() => {
+    if (!userId) return
+    const flush = () => {
+      if (!hasLocalEditsRef.current || !saveTimerRef.current) return
+      clearTimeout(saveTimerRef.current)
+      saveTimerRef.current = null
+      const pos = nodesToPositions(nodesRef.current)
+      cachePositionsLocally(userId, pos)
+      // sendBeacon sobrevive ao fechamento da aba (fetch normal seria cancelado)
+      try {
+        navigator.sendBeacon?.(
+          '/api/funnel-layout',
+          new Blob([JSON.stringify({ positions: pos })], { type: 'application/json' })
+        )
+      } catch { /* ignore */ }
+    }
+    window.addEventListener('pagehide', flush)
+    return () => {
+      window.removeEventListener('pagehide', flush)
+      flush() // unmount (navegação interna) também salva
+    }
   }, [userId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Quando dados mudam (loading/data), reconstrói nodes preservando posições atuais
@@ -645,6 +674,7 @@ function FunnelCanvas({
     if (!isDragging || !userId) return
 
     // Marca como pendente assim que o usuário começa a mover
+    hasLocalEditsRef.current = true
     setSaveStatus('pending')
 
     // Reinicia o timer a cada movimento — só salva depois de 5s parado
