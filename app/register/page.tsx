@@ -25,7 +25,7 @@ function RegisterPageContent() {
     email: '',
     password: '',
     confirmPassword: '',
-    plan: (planParam || 'start').toLowerCase()
+    plan: (planParam && ['start','pro','scale'].includes(planParam.toLowerCase()) ? planParam.toLowerCase() : '')
   })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -95,7 +95,14 @@ function RegisterPageContent() {
       return
     }
 
-    if (!termsScrolled || !acceptedTerms) {
+    if (!formData.plan) {
+      setError('Selecione um plano para continuar')
+      setLoading(false)
+      return
+    }
+
+    const needsTerms = formData.plan === 'pro' || formData.plan === 'scale'
+    if (needsTerms && (!termsScrolled || !acceptedTerms)) {
       setError('Leia os termos até o final e aceite para continuar')
       setLoading(false)
       return
@@ -287,15 +294,24 @@ function RegisterPageContent() {
                   name="plan"
                   value={formData.plan}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className={`w-full px-4 py-3 rounded-lg border bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    !formData.plan
+                      ? 'border-red-400 dark:border-red-500'
+                      : 'border-gray-300 dark:border-gray-600'
+                  }`}
                   required
                 >
-                  <option value="start">START</option>
+                  <option value="" disabled>— Selecione um plano —</option>
+                  <option value="start">START — gratuito</option>
                   <option value="pro">PRO</option>
                   <option value="scale">SCALE</option>
                 </select>
+                {!formData.plan && (
+                  <p className="text-xs text-red-500 dark:text-red-400 mt-1">Escolha um plano para continuar</p>
+                )}
               </div>
 
+              {(formData.plan === 'pro' || formData.plan === 'scale') && (
               <div className="rounded-2xl border border-amber-200 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 p-4">
                 <div className="flex items-center justify-between gap-3 mb-3">
                   <div>
@@ -358,6 +374,7 @@ function RegisterPageContent() {
                   </span>
                 </label>
               </div>
+              )}
 
               {error && (
                 <div className="p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg text-red-700 dark:text-red-400 text-sm text-center">
@@ -367,7 +384,13 @@ function RegisterPageContent() {
 
               <button
                 type="submit"
-                disabled={loading || !termsScrolled || !acceptedTerms || emailStatus === 'invalid' || emailStatus === 'checking'}
+                disabled={
+                  loading ||
+                  !formData.plan ||
+                  emailStatus === 'invalid' ||
+                  emailStatus === 'checking' ||
+                  ((formData.plan === 'pro' || formData.plan === 'scale') && (!termsScrolled || !acceptedTerms))
+                }
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {loading ? (
