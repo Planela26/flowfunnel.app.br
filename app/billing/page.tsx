@@ -159,7 +159,9 @@ export default function BillingPage() {
 
   const currentPlan = sub?.plan || 'FREE'
   const currentPlanIndex = PLANS.findIndex(p => p.key === currentPlan)
-  const subStatus = sub?.subscription?.status || 'free'
+  // Usa o status normalizado do topo da resposta (já corrigido pelo backend para
+// 'active' quando o usuário pagou via PIX/MP, mesmo que a Stripe ainda mostre 'trialing').
+const subStatus = sub?.status || 'free'
   const cancelAtEnd = sub?.subscription?.cancelAtPeriodEnd
   const periodEnd = sub?.subscription?.currentPeriodEnd
     ? new Date(sub.subscription.currentPeriodEnd).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
@@ -198,13 +200,13 @@ export default function BillingPage() {
                     {PLAN_LABELS[currentPlan] || currentPlan}
                   </p>
                   <p className={`text-xs font-medium ${
-                    subStatus === 'active' || subStatus === 'trialing' ? 'text-green-600 dark:text-green-400'
+                    subStatus === 'active' || subStatus === 'trialing' || subStatus === 'free' && currentPlan !== 'FREE' ? 'text-green-600 dark:text-green-400'
                     : subStatus === 'past_due' ? 'text-amber-600 dark:text-amber-400'
                     : subStatus === 'canceled' ? 'text-red-600 dark:text-red-400'
                     : 'text-gray-500 dark:text-gray-400'
                   }`}>
                     {subStatus === 'active' ? '● Ativa'
-                      : subStatus === 'trialing' ? '● Em trial'
+                      : subStatus === 'trialing' ? '● Ativa'
                       : subStatus === 'past_due' ? '⚠ Pagamento pendente'
                       : subStatus === 'canceled' ? '✕ Cancelada'
                       : '● Plano gratuito'}

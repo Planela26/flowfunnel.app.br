@@ -26,7 +26,8 @@ const PLAN_INFO: Record<string, { label: string; icon: any; color: string; bg: s
 
 const STATUS_LABEL: Record<string, { label: string; color: string }> = {
   active: { label: 'Ativa', color: 'text-green-600 dark:text-green-400' },
-  trialing: { label: 'Em trial', color: 'text-blue-600 dark:text-blue-400' },
+  // 'trialing' = Stripe trial com cartão válido → exibir como ativa (acesso liberado)
+  trialing: { label: 'Ativa', color: 'text-green-600 dark:text-green-400' },
   past_due: { label: 'Pagamento pendente', color: 'text-yellow-600 dark:text-yellow-400' },
   canceled: { label: 'Cancelada', color: 'text-red-600 dark:text-red-400' },
   unpaid: { label: 'Não pago', color: 'text-red-600 dark:text-red-400' },
@@ -110,7 +111,7 @@ export default function SubscriptionCard() {
               Cancelamento agendado ao fim do período
             </div>
           )}
-          {sub.status === 'active' && !sub.cancelAtPeriodEnd && (
+          {(sub.status === 'active' || sub.status === 'trialing') && !sub.cancelAtPeriodEnd && (
             <div className="flex items-center gap-1.5 text-green-600 dark:text-green-400 text-xs mt-2 p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
               <CheckCircle className="w-3.5 h-3.5 flex-shrink-0" />
               Assinatura ativa e renovando automaticamente
