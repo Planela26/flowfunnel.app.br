@@ -20,6 +20,7 @@ export async function GET() {
         email: true,
         trialStatus: true,
         subscriptionStatus: true,
+        paymentMethodAddedAt: true,
         gracePeriodEndsAt: true,
       },
     })
@@ -111,7 +112,11 @@ const buildSub = (status: string) => ({
       })
     }
 
-    if (subscription.status === 'trialing' && user.trialStatus !== 'active') {
+    // Sub Stripe em 'trialing' SÓ é assinatura de verdade se houver cartão
+    // cadastrado (paymentMethodAddedAt). O modo "conhecer a plataforma" também
+    // seta trialStatus='active' SEM cartão — por isso trialStatus NÃO serve
+    // como critério aqui. Sem cartão e sem pagamento → exibir como plano grátis.
+    if (subscription.status === 'trialing' && !user.paymentMethodAddedAt) {
       return NextResponse.json({
         plan: user.plan,
         status: 'free',
