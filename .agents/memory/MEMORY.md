@@ -10,3 +10,4 @@
 - [Platform webhooks fail-closed](webhook-hmac-optin.md) — Eduzz/Kiwify/Monetizze/Perfect Pay require *_WEBHOOK_SECRET (guardWebhook requireSecret, auth-first); missing secret → 503, not unsigned-accept.
 - [Meta tracking architecture](meta-tracking.md) — CAPI+Pixel dedup; StartTrial timing; MP embedded Purchase; success-page race fix.
 - [Hostinger empty-commit skips rebuild](hostinger-empty-commit-skip.md) — hcdn serves cached chunks after an empty commit; push a real file diff to force Turbopack chunks with new hashes.
+- [FunnelFlow layout sync](funnel-layout-sync.md) — per-account UI prefs go to DB (User.funnelLayout), not localStorage; guard late fetch vs local edits, flush via sendBeacon.
