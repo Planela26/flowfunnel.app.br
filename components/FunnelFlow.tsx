@@ -717,7 +717,7 @@ function FunnelCanvas({
   const available = AVAILABLE_INTEGRATIONS.filter(i => !visibleIds.includes(i.id))
 
   return (
-    <div className="relative w-full h-[420px] sm:h-[520px] lg:h-[620px] rounded-2xl overflow-hidden border border-gray-700/50 shadow-2xl">
+    <div className="relative w-full h-[360px] sm:h-[520px] lg:h-[620px] rounded-2xl overflow-hidden border border-gray-700/50 shadow-2xl">
 
       {/* Indicador de auto-save */}
       {saveStatus !== 'idle' && (
