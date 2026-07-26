@@ -6,6 +6,7 @@ import {
   getSessions, getSession, sessionDir, broadcast, clearSessionFiles,
   type SessionInfo,
 } from '@/lib/whatsapp-sessions'
+import { assertCanCreateIntegration } from '@/lib/integration-gate'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 120
@@ -17,6 +18,12 @@ export async function GET(request: NextRequest) {
   }
 
   const userId = session.user.id
+
+  // Gate de pagamento: conectar WhatsApp cria/atualiza uma integração real,
+  // então segue a mesma regra dos POSTs de integração (402 sem cartão/assinatura).
+  const gateResp = await assertCanCreateIntegration(request)
+  if (gateResp) return gateResp
+
   const sessions = getSessions()
 
   const encoder = new TextEncoder()

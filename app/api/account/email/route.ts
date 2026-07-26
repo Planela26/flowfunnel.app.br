@@ -92,11 +92,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Este email já está em uso' }, { status: 400 })
     }
 
-    // Marca o código como usado.
-    await prisma.emailChangeCode.update({
-      where: { id: pending.id },
+    // Consome o código atomicamente: update condicional garante que duas
+    // requisições concorrentes não usem o mesmo código duas vezes.
+    const consumed = await prisma.emailChangeCode.updateMany({
+      where: { id: pending.id, used: false, expiresAt: { gt: new Date() } },
       data: { used: true },
     })
+    if (consumed.count !== 1) {
+      return NextResponse.json(
+        { error: 'Código já utilizado ou expirado. Solicite um novo código.' },
+        { status: 400 }
+      )
+    }
 
     // Aplica a troca. NÃO marca como verificado — exige nova confirmação no
     // NOVO email. Tokens antigos são invalidados (link de verify vai pro novo).

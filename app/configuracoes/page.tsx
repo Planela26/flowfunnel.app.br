@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useSession, signOut } from 'next-auth/react'
 import Link from 'next/link'
 import {
@@ -158,10 +158,12 @@ export default function ConfiguracoesPage() {
     setCodeResendIn(0)
   }
 
-  // countdown do reenvio
-  if (codeResendIn > 0 && emailStep === 'code') {
-    setTimeout(() => setCodeResendIn(s => Math.max(0, s - 1)), 1000)
-  }
+  // countdown do reenvio (useEffect evita agendar timers a cada render)
+  useEffect(() => {
+    if (codeResendIn <= 0 || emailStep !== 'code') return
+    const t = setTimeout(() => setCodeResendIn(s => Math.max(0, s - 1)), 1000)
+    return () => clearTimeout(t)
+  }, [codeResendIn, emailStep])
 
   // ── Deletar conta ────────────────────────────────────────────────────────
   const [delForm, setDelForm] = useState({ confirm: '', currentPassword: '', confirmEmail: '' })
