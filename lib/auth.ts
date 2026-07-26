@@ -203,47 +203,45 @@ export const authOptions: NextAuthOptions = {
         // Busca emailVerified do banco no momento do login
         const dbUser = await prisma.user.findUnique({
           where: { id: user.id },
-          select: { emailVerified: true, twoFactorEnabled: true, subscriptionStatus: true, gracePeriodEndsAt: true, trialEndsAt: true, trialPlan: true, trialStatus: true },
+          select: { emailVerified: true, twoFactorEnabled: true, subscriptionStatus: true, gracePeriodEndsAt: true, trialEndsAt: true, trialPlan: true, trialStatus: true, sessionVersion: true },
         })
         token.emailVerified = dbUser?.emailVerified ?? null
         token.twoFactorEnabled = dbUser?.twoFactorEnabled ?? false
         token.subscriptionStatus = dbUser?.subscriptionStatus ?? null
         token.gracePeriodEndsAt = dbUser?.gracePeriodEndsAt ?? null
+        token.sessionVersion = dbUser?.sessionVersion ?? 0
         // Trial expiration check for JWT
         token.trialExpired = isTrialExpiredForToken(dbUser)
       }
-      // Ao forçar update() no cliente (ex: após verificar email / (des)ativar 2FA),
-      // recarrega emailVerified e twoFactorEnabled.
-      if (trigger === 'update') {
+
+      // SEGURANÇA: verifica sessionVersion em toda renovação de token (não no login inicial).
+      // Ao trocar email ou senha, o backend incrementa sessionVersion no banco.
+      // Qualquer JWT com versão antiga é rejeitado → força logout imediato em todos os devices.
+      if (!user && token.id) {
         const dbUser = await prisma.user.findUnique({
           where: { id: token.id as string },
-          select: { emailVerified: true, twoFactorEnabled: true, subscriptionStatus: true, gracePeriodEndsAt: true, trialEndsAt: true, trialPlan: true, trialStatus: true },
+          select: {
+            sessionVersion: true, emailVerified: true, twoFactorEnabled: true,
+            subscriptionStatus: true, gracePeriodEndsAt: true,
+            trialEndsAt: true, trialPlan: true, trialStatus: true,
+          },
         })
-        if (dbUser) {
-          token.emailVerified = dbUser.emailVerified
-          token.twoFactorEnabled = dbUser.twoFactorEnabled
-          token.subscriptionStatus = dbUser.subscriptionStatus
-          token.gracePeriodEndsAt = dbUser.gracePeriodEndsAt
-          token.trialExpired = isTrialExpiredForToken(dbUser)
+
+        // Usuário deletado ou sessionVersion diferente → invalida token
+        if (!dbUser || dbUser.sessionVersion !== (token.sessionVersion as number ?? 0)) {
+          // Retornar null invalida a sessão e força redirect para /login
+          return null as any
         }
+
+        // Atualiza campos que podem ter mudado (emailVerified, 2FA, plano…)
+        token.emailVerified = dbUser.emailVerified
+        token.twoFactorEnabled = dbUser.twoFactorEnabled
+        token.subscriptionStatus = dbUser.subscriptionStatus
+        token.gracePeriodEndsAt = dbUser.gracePeriodEndsAt
+        token.sessionVersion = dbUser.sessionVersion
+        token.trialExpired = isTrialExpiredForToken(dbUser)
       }
-      // Fallback defensivo: se o token não tem emailVerified mas o usuário já verificou
-      // no banco (ex: update() falhou silenciosamente), atualiza o token automaticamente.
-      // Só bate no banco quando emailVerified ainda está null — período pré-verificação.
-      if (!token.emailVerified && token.id && !user && trigger !== 'update') {
-        const dbUser = await prisma.user.findUnique({
-          where: { id: token.id as string },
-          select: { emailVerified: true, subscriptionStatus: true, gracePeriodEndsAt: true, trialEndsAt: true, trialPlan: true, trialStatus: true },
-        })
-        if (dbUser?.emailVerified) {
-          token.emailVerified = dbUser.emailVerified
-        }
-        if (token.subscriptionStatus === undefined) {
-          token.subscriptionStatus = dbUser?.subscriptionStatus ?? null
-          token.gracePeriodEndsAt = dbUser?.gracePeriodEndsAt ?? null
-          token.trialExpired = isTrialExpiredForToken(dbUser)
-        }
-      }
+
       return token
     }
   },

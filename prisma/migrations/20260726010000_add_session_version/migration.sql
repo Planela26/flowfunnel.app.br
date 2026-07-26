@@ -1,0 +1,2 @@
+-- AlterTable: adiciona sessionVersion para invalidação de JWTs em todos os devices
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "sessionVersion" INTEGER NOT NULL DEFAULT 0;

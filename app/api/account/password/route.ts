@@ -44,9 +44,10 @@ export async function POST(request: Request) {
     }
 
     const hashed = await bcrypt.hash(newPassword, 12)
+    // Incrementa sessionVersion → invalida todos os JWTs anteriores em outros devices.
     await prisma.user.update({
       where: { id: user.id },
-      data: { password: hashed },
+      data: { password: hashed, sessionVersion: { increment: 1 } },
     })
 
     await logAudit({

@@ -106,10 +106,11 @@ export async function POST(request: Request) {
     }
 
     // Aplica a troca. NÃO marca como verificado — exige nova confirmação no
-    // NOVO email. Tokens antigos são invalidados (link de verify vai pro novo).
+    // NOVO email. Incrementa sessionVersion → todos os JWTs com a versão
+    // anterior (outros browsers/devices) são invalidados na próxima requisição.
     await prisma.user.update({
       where: { id: user.id },
-      data: { email: normalized, emailVerified: null },
+      data: { email: normalized, emailVerified: null, sessionVersion: { increment: 1 } },
     })
     await prisma.emailVerificationToken.deleteMany({ where: { userId: user.id } })
 
