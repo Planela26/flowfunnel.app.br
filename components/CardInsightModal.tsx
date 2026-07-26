@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { X, Lightbulb, AlertTriangle, TrendingUp, Sparkles, Loader2 } from 'lucide-react'
 
 const CARD_LABELS: Record<string, { name: string; icon: string; color: string }> = {
@@ -41,13 +41,24 @@ export default function CardInsightModal({ cardType, cardData, onClose }: CardIn
   const [lastGeneratedAt, setLastGeneratedAt] = useState<number | null>(null)
   const [nowTick, setNowTick] = useState(Date.now())
 
+  // Ref para guardar o estado de "tentativa em andamento" sem entrar nas deps
+  // do useCallback — evita que mudanças de loading/fetched recriem a função
+  // e disparem o useEffect em loop.
+  const attemptedRef = useRef(false)
+  const loadingRef = useRef(false)
+
   const COOLDOWN_MS = 90 * 60 * 1000
   const cooldownRemaining = lastGeneratedAt ? Math.max(0, COOLDOWN_MS - (nowTick - lastGeneratedAt)) : 0
   const cooldownMinutes = Math.ceil(cooldownRemaining / 60000)
   const dataReady = hasMeaningfulData(cardType, cardData)
 
   const fetchInsight = useCallback(async () => {
-    if (!cardType || fetched || loading || !dataReady) return
+    // Usa refs para os guards de "já tentou" e "está carregando" — assim a função
+    // não precisa de fetched/loading nas deps e não se recria a cada mudança de estado,
+    // o que era a raiz do loop infinito.
+    if (!cardType || attemptedRef.current || loadingRef.current || !dataReady) return
+    attemptedRef.current = true
+    loadingRef.current = true
     setLoading(true)
     setError('')
     try {
@@ -63,21 +74,29 @@ export default function CardInsightModal({ cardType, cardData, onClose }: CardIn
       setLastGeneratedAt(Date.now())
     } catch (e: any) {
       setError(e.message || 'Erro ao buscar análise')
+      // Em caso de erro, marca como "tentado" para não entrar em loop automático.
+      // O usuário pode clicar "Regenerar" manualmente para tentar de novo.
     } finally {
+      loadingRef.current = false
       setLoading(false)
     }
-  }, [cardType, cardData, fetched, loading])
+  }, [cardType, cardData, dataReady]) // fetched e loading fora das deps — usamos refs
 
   useEffect(() => {
     setInsight(null)
     setError('')
     setFetched(false)
     setLastGeneratedAt(null)
+    attemptedRef.current = false
+    loadingRef.current = false
   }, [cardType])
 
+  // Dispara apenas uma vez por cardType: quando abre o modal e os dados estão prontos.
+  // Não depende de fetched/loading/fetchInsight para evitar re-disparos em loop.
   useEffect(() => {
-    if (cardType && !fetched && !loading && dataReady) fetchInsight()
-  }, [cardType, fetched, loading, dataReady, fetchInsight])
+    if (cardType && dataReady) fetchInsight()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cardType, dataReady])
 
   useEffect(() => {
     if (!lastGeneratedAt || cooldownRemaining <= 0) return
@@ -213,7 +232,10 @@ export default function CardInsightModal({ cardType, cardData, onClose }: CardIn
           <button
             onClick={() => {
               if (cooldownRemaining > 0 || !dataReady) return
+              attemptedRef.current = false
+              loadingRef.current = false
               setFetched(false)
+              setError('')
               fetchInsight()
             }}
             disabled={loading || cooldownRemaining > 0 || !dataReady}
