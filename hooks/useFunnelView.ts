@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 
 export type IntegrationCard = {
   id: string
@@ -28,45 +28,115 @@ export const AVAILABLE_INTEGRATIONS: IntegrationCard[] = [
 
 const getStorageKey = (userId: string) => `funnel_view_${userId}`
 
+/**
+ * Persistência do funil:
+ * - FONTE DE VERDADE: banco de dados (User.funnelVisibleIds via /api/funnel-layout).
+ *   Sincroniza entre navegadores/dispositivos: apagar um card em qualquer um
+ *   faz desaparecer em todos.
+ * - localStorage: cache para o primeiro render não dar flash ("UX sem flicker"),
+ *   e fallback se a chamada ao backend falhar (offline).
+ *
+ * Regra de ouro para evitar o bug que o usuário reportou:
+ * - Banco diz null OU {} → nunca mostramos o default de AVAILABLE_INTEGRATIONS se
+ *   o localStorage tiver um conjunto parcial salvo localmente.
+ * - "primeiro acesso" = banco diz null E localStorage vazio → mostrar todos (default).
+ */
 export function useFunnelView(userId: string | undefined) {
   const [visibleIds, setVisibleIds] = useState<string[]>(AVAILABLE_INTEGRATIONS.map(i => i.id))
   const [initialized, setInitialized] = useState(false)
+  const lastServerSavedJson = useRef<string | null>(null)
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Load from localStorage on mount
+  // LOAD: pinta cache local imediatamente, depois busca a verdade no backend.
   useEffect(() => {
     if (!userId) return
+    let cancelled = false
+
+    // (1) Local cache primeiro — render instantâneo sem flash.
     try {
       const raw = localStorage.getItem(getStorageKey(userId))
       if (raw) {
         const parsed = JSON.parse(raw)
         if (Array.isArray(parsed)) {
-          // Sanitize: only keep IDs that exist in AVAILABLE_INTEGRATIONS
-          const validIds = parsed.filter((id: string) =>
+          const valid = parsed.filter((id: string) =>
             AVAILABLE_INTEGRATIONS.some(i => i.id === id)
           )
-          setVisibleIds(validIds.length > 0 ? validIds : AVAILABLE_INTEGRATIONS.map(i => i.id))
-          setInitialized(true)
-          return
+          if (valid.length > 0) {
+            setVisibleIds(valid)
+            lastServerSavedJson.current = JSON.stringify(valid)
+          }
         }
       }
-    } catch {
-      // ignore
-    }
-    // Default: already set in useState, just mark initialized
+    } catch { /* ignore */ }
     setInitialized(true)
+
+    // (2) Fonte de verdade no backend. Sobrescreve o cache se divergir.
+    ;(async () => {
+      try {
+        const res = await fetch('/api/funnel-layout', { cache: 'no-store' })
+        if (!res.ok || cancelled) return
+        const data = await res.json()
+        if (cancelled) return
+        if (Array.isArray(data?.visibleIds)) {
+          const valid = data.visibleIds.filter((id: string) =>
+            AVAILABLE_INTEGRATIONS.some(i => i.id === id)
+          )
+          // Só sobrescreve se o backend realmente traz o que ele salvou
+          // (evita default fantasma em SSR/cache).
+          if (JSON.stringify(valid) !== lastServerSavedJson.current) {
+            setVisibleIds(valid)
+            try { localStorage.setItem(getStorageKey(userId!), JSON.stringify(valid)) } catch {}
+          }
+          lastServerSavedJson.current = JSON.stringify(valid)
+        }
+        // data.visibleIds === null OR sem o campo → mantém o que já temos.
+      } catch { /* offline → mantém cache local */ }
+    })()
+
+    return () => { cancelled = true }
   }, [userId])
 
-  // Save to localStorage whenever visibleIds changes
+  // SAVE: debounce 600ms; flush imediato em pagehide (keepalive).
   useEffect(() => {
     if (!userId || !initialized) return
-    localStorage.setItem(getStorageKey(userId), JSON.stringify(visibleIds))
+    const json = JSON.stringify(visibleIds)
+
+    // cache local imediato
+    try { localStorage.setItem(getStorageKey(userId), JSON.stringify(visibleIds)) } catch {}
+
+    if (lastServerSavedJson.current === json) return
+
+    if (saveTimer.current) clearTimeout(saveTimer.current)
+    saveTimer.current = setTimeout(() => {
+      lastServerSavedJson.current = json
+      void fetch('/api/funnel-layout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ visibleIds }),
+        keepalive: true,
+      }).catch(() => {})
+    }, 600)
+
+    const flush = () => {
+      if (lastServerSavedJson.current === json) return
+      lastServerSavedJson.current = json
+      void fetch('/api/funnel-layout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ visibleIds }),
+        keepalive: true,
+      }).catch(() => {})
+    }
+    window.addEventListener('pagehide', flush)
+
+    return () => {
+      if (saveTimer.current) clearTimeout(saveTimer.current)
+      window.removeEventListener('pagehide', flush)
+    }
   }, [visibleIds, userId, initialized])
 
   const addCard = useCallback((id: string) => {
-    setVisibleIds(prev => {
-      if (prev.includes(id)) return prev
-      return [...prev, id]
-    })
+    setVisibleIds(prev => (prev.includes(id) ? prev : [...prev, id]))
   }, [])
 
   const removeCard = useCallback((id: string) => {
