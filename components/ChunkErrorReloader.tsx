@@ -35,6 +35,7 @@ function maybeReload() {
 
 export default function ChunkErrorReloader() {
   useEffect(() => {
+    // 1) Erros JS clássicos: window.onerror / unhandledrejection.
     const onError = (e: ErrorEvent) => {
       if (isChunkError(e.error) || isChunkError(e.message)) maybeReload()
     }
@@ -43,8 +44,31 @@ export default function ChunkErrorReloader() {
     }
     window.addEventListener('error', onError)
     window.addEventListener('unhandledrejection', onRejection)
+
+    // 2) Captura erros de <script>/<link> via captura no window (evento "error"
+    // borbulha em resources de script/css). Quando o chunk fetch falha, o
+    // navegador dispara este evento COM o elemento alvo —我们 recarregamos para
+    // pegar a versão nova do build.
+    const onResourceError = (e: Event) => {
+      const target = e.target as HTMLElement | null
+      if (!target) return
+      const tag = target.tagName?.toLowerCase?.()
+      if (tag !== 'script' && tag !== 'link' && tag !== 'img') return
+      const src =
+        (target as HTMLScriptElement).src ||
+        (target as HTMLLinkElement).href ||
+        (target as HTMLImageElement).src ||
+        ''
+      if (!src) return
+      // Match chunks do Next/Turbopack: qualquer caminho com "_next/static" e
+      // extensão .js/.css, OU chunk numérico estilo Turbopack.
+      if (/_next\/static\/.+\.(js|css|mjs)(\?|$)/.test(src)) maybeReload()
+    }
+    window.addEventListener('error', onResourceError, true)
+
     return () => {
       window.removeEventListener('error', onError)
+      window.removeEventListener('error', onResourceError, true)
       window.removeEventListener('unhandledrejection', onRejection)
     }
   }, [])
