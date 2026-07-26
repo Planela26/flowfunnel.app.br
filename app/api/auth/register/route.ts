@@ -66,11 +66,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: pw.error }, { status: 400 })
     }
 
-    const existingUser = await prisma.user.findUnique({
-      where: { email: normalizedEmail }
-    })
-
-    if (existingUser) {
+    // Unicidade case-insensitive: query bruta para cobrir variações de caixa
+    // e ignorar qualquer camada de RLS que pudesse esconder outros usuários.
+    const [emailTaken] = await prisma.$queryRaw<{ id: string }[]>`
+      SELECT id FROM "User" WHERE lower(email) = lower(${normalizedEmail}) LIMIT 1
+    `
+    if (emailTaken) {
       await logAudit({
         action: 'user.register',
         result: 'failure',
@@ -79,7 +80,7 @@ export async function POST(request: Request) {
         metadata: { email: normalizedEmail, reason: 'email_already_exists' },
       })
       return NextResponse.json(
-        { error: 'Este email já está cadastrado' },
+        { error: 'Este email já está cadastrado.' },
         { status: 400 }
       )
     }
@@ -90,18 +91,27 @@ export async function POST(request: Request) {
     const trialPlan = wantsTrial ? normalizedPlan : null
     const trialStatus = wantsTrial ? 'pending_email' : 'none'
 
-    const user = await prisma.user.create({
-      data: {
-        name,
-        email: normalizedEmail,
-        password: hashedPassword,
-        plan: 'FREE',
-        role: 'PRODUTOR',
-        emailVerified: null,
-        trialPlan,
-        trialStatus,
+    let user: Awaited<ReturnType<typeof prisma.user.create>>
+    try {
+      user = await prisma.user.create({
+        data: {
+          name,
+          email: normalizedEmail,
+          password: hashedPassword,
+          plan: 'FREE',
+          role: 'PRODUTOR',
+          emailVerified: null,
+          trialPlan,
+          trialStatus,
+        }
+      })
+    } catch (e: any) {
+      // P2002 = unique constraint violation — race condition entre o check acima e o insert.
+      if (e?.code === 'P2002') {
+        return NextResponse.json({ error: 'Este email já está cadastrado.' }, { status: 400 })
       }
-    })
+      throw e
+    }
 
     const token = crypto.randomBytes(32).toString('hex')
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000)

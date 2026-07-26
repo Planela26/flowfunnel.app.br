@@ -52,10 +52,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Este já é o seu email atual' }, { status: 400 })
     }
 
-    // Verifica unicidade cross-user (precisa enxergar outros usuários → bypass).
-    const exists = await prisma.user.findUnique({ where: { email: normalized } })
-    if (exists) {
-      return NextResponse.json({ error: 'Este email já está em uso' }, { status: 400 })
+    // Unicidade cross-user: query bruta case-insensitive para cobrir variações
+    // de caixa (ex: "User@Gmail.com" vs "user@gmail.com") e ignorar qualquer
+    // camada de RLS que pudesse esconder outros usuários.
+    const [emailTaken] = await prisma.$queryRaw<{ id: string }[]>`
+      SELECT id FROM "User" WHERE lower(email) = lower(${normalized}) LIMIT 1
+    `
+    if (emailTaken) {
+      return NextResponse.json({ error: 'Este email já está em uso por outra conta.' }, { status: 400 })
     }
 
     // Gera código de 6 dígitos (1 em 1.000.000 — força bruta inviabilizada

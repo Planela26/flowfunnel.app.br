@@ -83,13 +83,15 @@ export async function POST(request: Request) {
     const pwdOk = await bcrypt.compare(currentPassword, user.password)
     if (!pwdOk) return NextResponse.json({ error: 'Senha atual incorreta' }, { status: 400 })
 
-    // Unicidade cross-user (RLS self-only em User esconderia o conflito).
-    if (user.email === normalized) {
+    // Unicidade cross-user: query bruta case-insensitive (mesmo padrão do request).
+    if (user.email.toLowerCase() === normalized) {
       return NextResponse.json({ error: 'Este já é o seu email atual' }, { status: 400 })
     }
-    const exists = await prisma.user.findUnique({ where: { email: normalized } })
-    if (exists) {
-      return NextResponse.json({ error: 'Este email já está em uso' }, { status: 400 })
+    const [emailTaken] = await prisma.$queryRaw<{ id: string }[]>`
+      SELECT id FROM "User" WHERE lower(email) = lower(${normalized}) LIMIT 1
+    `
+    if (emailTaken) {
+      return NextResponse.json({ error: 'Este email já está em uso por outra conta.' }, { status: 400 })
     }
 
     // Consome o código atomicamente: update condicional garante que duas
@@ -108,10 +110,18 @@ export async function POST(request: Request) {
     // Aplica a troca. NÃO marca como verificado — exige nova confirmação no
     // NOVO email. Incrementa sessionVersion → todos os JWTs com a versão
     // anterior (outros browsers/devices) são invalidados na próxima requisição.
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { email: normalized, emailVerified: null, sessionVersion: { increment: 1 } },
-    })
+    // Catch P2002 como última barreira contra race condition de unicidade.
+    try {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { email: normalized, emailVerified: null, sessionVersion: { increment: 1 } },
+      })
+    } catch (e: any) {
+      if (e?.code === 'P2002') {
+        return NextResponse.json({ error: 'Este email já está em uso por outra conta.' }, { status: 400 })
+      }
+      throw e
+    }
     await prisma.emailVerificationToken.deleteMany({ where: { userId: user.id } })
 
     const token = crypto.randomBytes(32).toString('hex')
