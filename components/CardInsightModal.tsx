@@ -4,12 +4,16 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import { X, Lightbulb, AlertTriangle, TrendingUp, Sparkles, Loader2 } from 'lucide-react'
 
 const CARD_LABELS: Record<string, { name: string; icon: string; color: string }> = {
-  facebook: { name: 'Facebook Ads', icon: 'f', color: 'text-blue-600' },
-  google: { name: 'Google Ads', icon: 'G', color: 'text-yellow-600' },
-  tiktok: { name: 'TikTok Ads', icon: '🎵', color: 'text-pink-600' },
-  whatsapp: { name: 'WhatsApp', icon: '💬', color: 'text-green-600' },
-  hotmart: { name: 'Hotmart', icon: '🔥', color: 'text-orange-600' },
-  kiwify: { name: 'Kiwify', icon: '🌿', color: 'text-emerald-600' },
+  facebook:  { name: 'Facebook Ads', icon: '📘', color: 'text-blue-600' },
+  google:    { name: 'Google Ads',   icon: '🔵', color: 'text-yellow-600' },
+  tiktok:    { name: 'TikTok Ads',   icon: '🎵', color: 'text-pink-600' },
+  whatsapp:  { name: 'WhatsApp',     icon: '💬', color: 'text-green-600' },
+  hotmart:   { name: 'Hotmart',      icon: '🔥', color: 'text-orange-600' },
+  kiwify:    { name: 'Kiwify',       icon: '🌿', color: 'text-emerald-600' },
+  eduzz:     { name: 'Eduzz',        icon: '⚡', color: 'text-violet-600' },
+  monetizze: { name: 'Monetizze',    icon: '💳', color: 'text-blue-500' },
+  stripe:    { name: 'Stripe',       icon: '💜', color: 'text-indigo-600' },
+  crm:       { name: 'CRM',          icon: '🎯', color: 'text-cyan-600' },
 }
 
 interface InsightData {

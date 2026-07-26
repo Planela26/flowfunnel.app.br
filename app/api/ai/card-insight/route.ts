@@ -158,6 +158,102 @@ Responda em JSON com exatamente este formato:
   "dicas": ["estratégia 1", "estratégia 2", "estratégia 3"],
   "estimativa": "impacto esperado"
 }`,
+
+  eduzz: (data) => `
+Você é um especialista em vendas digitais e plataformas de infoprodutos. Analise os dados da Eduzz e forneça insights em português brasileiro.
+
+Dados atuais:
+- Checkouts iniciados: ${data.checkoutsIniciados ?? 'N/A'}
+- Checkouts abandonados: ${data.checkoutsNaoTerminados ?? 'N/A'}
+- Pagamentos confirmados: ${data.pagamentosConfirmados ?? 'N/A'}
+- Taxa de conversão: ${data.taxaConversaoCheckout ?? 'N/A'}
+- Ticket médio: ${data.ticketMedio ?? 'N/A'}
+- Faturamento: ${data.faturamento ?? 'N/A'}
+
+Forneça:
+1. Uma análise geral do funil de checkout (2-3 frases)
+2. O principal gargalo identificado
+3. 3 táticas para recuperar abandono e aumentar conversão
+4. Recomendação para aumentar o ticket médio
+
+Responda em JSON com exatamente este formato:
+{
+  "resumo": "análise geral em 2-3 frases",
+  "atencao": "principal gargalo identificado",
+  "dicas": ["tática 1", "tática 2", "tática 3"],
+  "estimativa": "potencial de aumento de receita"
+}`,
+
+  monetizze: (data) => `
+Você é um especialista em vendas digitais e plataformas de pagamento. Analise os dados da Monetizze e forneça insights em português brasileiro.
+
+Dados atuais:
+- Checkouts iniciados: ${data.checkoutsIniciados ?? 'N/A'}
+- Checkouts abandonados: ${data.checkoutsNaoTerminados ?? 'N/A'}
+- Pagamentos confirmados: ${data.pagamentosConfirmados ?? 'N/A'}
+- Taxa de conversão: ${data.taxaConversaoCheckout ?? 'N/A'}
+- Ticket médio: ${data.ticketMedio ?? 'N/A'}
+- Faturamento: ${data.faturamento ?? 'N/A'}
+
+Forneça:
+1. Uma análise geral do funil de vendas (2-3 frases)
+2. O maior risco ou gargalo identificado
+3. 3 estratégias para melhorar conversão na Monetizze
+4. Dica sobre precificação ou oferta
+
+Responda em JSON com exatamente este formato:
+{
+  "resumo": "análise geral em 2-3 frases",
+  "atencao": "maior risco ou gargalo",
+  "dicas": ["estratégia 1", "estratégia 2", "estratégia 3"],
+  "estimativa": "impacto esperado das melhorias"
+}`,
+
+  stripe: (data) => `
+Você é um especialista em pagamentos digitais e métricas de receita. Analise os dados do Stripe e forneça insights em português brasileiro.
+
+Dados atuais:
+- Transações: ${data.transactions ?? 'N/A'}
+- Faturamento: ${data.revenue ?? 'N/A'}
+- Reembolsos: ${data.refunds ?? 'N/A'}
+- Taxa de reembolso: ${data.refundRate ?? 'N/A'}
+
+Forneça:
+1. Uma análise geral da saúde financeira (2-3 frases)
+2. O maior ponto de atenção (taxa de reembolso, inadimplência, chargeback)
+3. 3 ações para reduzir reembolsos e aumentar retenção
+4. Estimativa de impacto se a taxa de reembolso cair à metade
+
+Responda em JSON com exatamente este formato:
+{
+  "resumo": "análise geral em 2-3 frases",
+  "atencao": "maior ponto de atenção",
+  "dicas": ["ação 1", "ação 2", "ação 3"],
+  "estimativa": "impacto esperado"
+}`,
+
+  crm: (data) => `
+Você é um especialista em CRM, funil de vendas e gestão de leads. Analise os dados abaixo e forneça insights em português brasileiro.
+
+Dados atuais:
+- Leads: ${data.leads ?? 'N/A'}
+- Oportunidades: ${data.opportunities ?? 'N/A'}
+- Conversões: ${data.conversions ?? 'N/A'}
+- Taxa de conversão: ${data.conversionRate ?? 'N/A'}
+
+Forneça:
+1. Uma análise geral da qualidade do funil (2-3 frases)
+2. O maior gargalo entre lead e conversão
+3. 3 estratégias para aumentar a taxa de fechamento
+4. Estimativa de receita adicional se a conversão melhorar 10%
+
+Responda em JSON com exatamente este formato:
+{
+  "resumo": "análise geral em 2-3 frases",
+  "atencao": "maior gargalo identificado",
+  "dicas": ["estratégia 1", "estratégia 2", "estratégia 3"],
+  "estimativa": "impacto esperado"
+}`,
 }
 
 export async function POST(request: Request) {
