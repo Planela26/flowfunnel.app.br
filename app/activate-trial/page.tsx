@@ -232,6 +232,18 @@ function ActivateTrialInner() {
           return
         }
 
+        // SEMPRE marca o prompt como visto quando o usuário entra aqui e tem
+        // um estado válido (trialStatus === 'none' ou estado inválido).
+        // Modal "Ative seu teste grátis" só aparece UMA VEZ por usuário.
+        // Próximas visitas redirecionam direto pro dashboard.
+        if (planData.trialPromptSeenAt) {
+          router.replace('/dashboard')
+          return
+        }
+        try {
+          await fetch('/api/account/trial-prompt-seen', { method: 'POST' })
+        } catch { /* best-effort; próxima entrada vai redirecionar de novo se o flag não foi gravado */ }
+
         // Tela inicial: usuário escolhe entre adicionar cartão agora ou
         // conhecer a plataforma primeiro (sem cartão). Não chama a Stripe até
         // ele escolher uma das opções.

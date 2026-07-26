@@ -71,6 +71,7 @@ export async function POST(request: Request) {
         trialStartedAt: new Date(),
         trialEndsAt,
         trialPlan: planKey,
+        trialPromptSeenAt: new Date(),
         // Sem stripeSubscriptionId nem paymentMethodAddedAt: marca registrada
         // de que este trial foi iniciado sem cartão. Páginas futuras (billing,
         // subscription-required) usam paymentMethodAddedAt===null para oferecer

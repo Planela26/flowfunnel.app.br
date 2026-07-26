@@ -28,6 +28,7 @@ model User {
   trialPlan              String?
   trialStatus            String?   @default("none")
   trialStartedAt         DateTime?
+  trialPromptSeenAt      DateTime? // primeira vez que o usuário viu o modal "Ative seu teste grátis"; usado para mostrar 1x só
   paymentMethodAddedAt   DateTime?
   trialPaymentFingerprint String?
   twoFactorEnabled       Boolean   @default(false)
