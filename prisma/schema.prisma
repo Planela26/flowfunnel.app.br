@@ -47,6 +47,7 @@ model User {
   workspaces           Workspace[]
   passwordResetTokens  PasswordResetToken[]
   emailVerificationTokens EmailVerificationToken[]
+  emailChangeCodes      EmailChangeCode[]
   teamMemberships      TeamMember[]
   leadStatuses         LeadStatus[]
   affiliateProfile     Affiliate?
@@ -94,6 +95,22 @@ model EmailVerificationToken {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([token])
+  @@index([userId])
+}
+
+// Código numérico enviado para o email ATUAL antes de permitir trocar.
+// Prova que o dono da conta controla o email atual. Curta duração + 1 uso.
+model EmailChangeCode {
+  id          String   @id @default(cuid())
+  userId      String
+  codeHash    String   @unique
+  pendingEmail String  // novo email solicitado (ainda não aplicado)
+  expiresAt   DateTime
+  used        Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@index([userId])
 }
 

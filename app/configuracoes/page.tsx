@@ -68,12 +68,41 @@ export default function ConfiguracoesPage() {
     }
   }
 
-  // ── Email ────────────────────────────────────────────────────────────────
-  const [emailForm, setEmailForm] = useState({ newEmail: '', currentPassword: '' })
+  // ── Email (2 passos: pedir código → confirmar) ──────────────────────────
+  // step 1: usuário digita novo email + senha e pede código (enviado p/ email ATUAL)
+  // step 2: usuário cola o código de 6 dígitos que recebeu → email é trocado
+  const [emailStep, setEmailStep] = useState<'form' | 'code'>('form')
+  const [emailForm, setEmailForm] = useState({ newEmail: '', currentPassword: '', code: '' })
   const [emailMsg, setEmailMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null)
   const [emailLoading, setEmailLoading] = useState(false)
+  const [codeResendIn, setCodeResendIn] = useState(0) // cooldown em s para reenviar
 
-  const handleEmail = async (e: React.FormEvent) => {
+  const handleRequestEmailChange = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setEmailMsg(null)
+    setEmailLoading(true)
+    try {
+      const res = await fetch('/api/account/email/request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ newEmail: emailForm.newEmail, currentPassword: emailForm.currentPassword }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Erro')
+      setEmailMsg({
+        type: 'ok',
+        text: `Código enviado para ${data.sentTo}. Confira a caixa de entrada (e o spam).`,
+      })
+      setEmailStep('code')
+      setCodeResendIn(30)
+    } catch (err: any) {
+      setEmailMsg({ type: 'err', text: err.message })
+    } finally {
+      setEmailLoading(false)
+    }
+  }
+
+  const handleConfirmEmailChange = async (e: React.FormEvent) => {
     e.preventDefault()
     setEmailMsg(null)
     setEmailLoading(true)
@@ -81,12 +110,17 @@ export default function ConfiguracoesPage() {
       const res = await fetch('/api/account/email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(emailForm),
+        body: JSON.stringify({
+          newEmail: emailForm.newEmail,
+          code: emailForm.code,
+          currentPassword: emailForm.currentPassword,
+        }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Erro')
       setEmailMsg({ type: 'ok', text: 'Email alterado! Redirecionando para login…' })
-      setEmailForm({ newEmail: '', currentPassword: '' })
+      setEmailForm({ newEmail: '', currentPassword: '', code: '' })
+      setEmailStep('form')
       await update()
       setTimeout(() => signOut({ callbackUrl: '/login' }), 1500)
     } catch (err: any) {
@@ -94,6 +128,39 @@ export default function ConfiguracoesPage() {
     } finally {
       setEmailLoading(false)
     }
+  }
+
+  const handleResendCode = async () => {
+    if (codeResendIn > 0) return
+    setEmailMsg(null)
+    setEmailLoading(true)
+    try {
+      const res = await fetch('/api/account/email/request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ newEmail: emailForm.newEmail, currentPassword: emailForm.currentPassword }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Erro')
+      setEmailMsg({ type: 'ok', text: `Novo código enviado para ${data.sentTo}.` })
+      setCodeResendIn(30)
+    } catch (err: any) {
+      setEmailMsg({ type: 'err', text: err.message })
+    } finally {
+      setEmailLoading(false)
+    }
+  }
+
+  const cancelEmailChange = () => {
+    setEmailForm({ newEmail: '', currentPassword: '', code: '' })
+    setEmailMsg(null)
+    setEmailStep('form')
+    setCodeResendIn(0)
+  }
+
+  // countdown do reenvio
+  if (codeResendIn > 0 && emailStep === 'code') {
+    setTimeout(() => setCodeResendIn(s => Math.max(0, s - 1)), 1000)
   }
 
   // ── Deletar conta ────────────────────────────────────────────────────────
@@ -218,32 +285,88 @@ export default function ConfiguracoesPage() {
                 <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
                   Email atual: <strong>{session?.user?.email}</strong>
                 </p>
-                <form onSubmit={handleEmail} className="space-y-3">
-                  <input
-                    type="email"
-                    placeholder="Novo email"
-                    value={emailForm.newEmail}
-                    onChange={e => setEmailForm({ ...emailForm, newEmail: e.target.value })}
-                    className={inputCls}
-                    required
-                  />
-                  <input
-                    type="password"
-                    placeholder="Senha atual (para confirmar)"
-                    value={emailForm.currentPassword}
-                    onChange={e => setEmailForm({ ...emailForm, currentPassword: e.target.value })}
-                    className={inputCls}
-                  />
-                  <Msg msg={emailMsg} />
-                  <button
-                    type="submit"
-                    disabled={emailLoading}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium disabled:opacity-50 inline-flex items-center gap-2 transition"
-                  >
-                    {emailLoading && <Loader2 className="w-4 h-4 animate-spin" />}
-                    Alterar email
-                  </button>
-                </form>
+
+                {emailStep === 'form' ? (
+                  <form onSubmit={handleRequestEmailChange} className="space-y-3">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      Enviaremos um código de confirmação para o seu email atual.
+                    </p>
+                    <input
+                      type="email"
+                      placeholder="Novo email"
+                      value={emailForm.newEmail}
+                      onChange={e => setEmailForm({ ...emailForm, newEmail: e.target.value })}
+                      className={inputCls}
+                      required
+                    />
+                    <input
+                      type="password"
+                      placeholder="Senha atual"
+                      value={emailForm.currentPassword}
+                      onChange={e => setEmailForm({ ...emailForm, currentPassword: e.target.value })}
+                      className={inputCls}
+                      required
+                    />
+                    <Msg msg={emailMsg} />
+                    <button
+                      type="submit"
+                      disabled={emailLoading}
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium disabled:opacity-50 inline-flex items-center gap-2 transition"
+                    >
+                      {emailLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+                      Enviar código de confirmação
+                    </button>
+                  </form>
+                ) : (
+                  <form onSubmit={handleConfirmEmailChange} className="space-y-3">
+                    <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-xl p-3 text-xs text-blue-800 dark:text-blue-200">
+                      📩 Enviamos um código de <strong>6 dígitos</strong> para <strong>{session?.user?.email}</strong>.
+                      <br />Insire-o abaixo para confirmar a troca para <strong>{emailForm.newEmail}</strong>.
+                    </div>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      maxLength={6}
+                      placeholder="000000"
+                      value={emailForm.code}
+                      onChange={e =>
+                        setEmailForm({ ...emailForm, code: e.target.value.replace(/\D/g, '').slice(0, 6) })
+                      }
+                      className={`${inputCls} text-center text-2xl tracking-[0.5em] font-mono font-bold`}
+                      required
+                    />
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      O código expira em 15 minutos.
+                    </p>
+                    <Msg msg={emailMsg} />
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <button
+                        type="submit"
+                        disabled={emailLoading || emailForm.code.length !== 6}
+                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium disabled:opacity-50 inline-flex items-center gap-2 transition"
+                      >
+                        {emailLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+                        Confirmar troca
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleResendCode}
+                        disabled={emailLoading || codeResendIn > 0}
+                        className="px-3 py-2 text-xs text-blue-600 dark:text-blue-400 hover:underline disabled:opacity-50 disabled:no-underline"
+                      >
+                        {codeResendIn > 0 ? `Reenviar em ${codeResendIn}s` : 'Reenviar código'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={cancelEmailChange}
+                        className="px-3 py-2 text-xs text-gray-500 dark:text-gray-400 hover:underline"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </form>
+                )}
               </div>
             </Card>
           </div>

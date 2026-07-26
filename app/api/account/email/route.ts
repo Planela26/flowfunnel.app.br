@@ -1,13 +1,18 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { prisma, prismaAdmin } from '@/lib/prisma'
+import { prismaAdmin as prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
 import crypto from 'crypto'
 import { checkRateLimit } from '@/lib/security-utils'
 import { logAudit } from '@/lib/audit'
 import { sendVerificationEmail } from '@/lib/email'
 
+/**
+ * Confirma a troca de email. Exige o código numérico enviado para o
+ * email ATUAL em /api/account/email/request. Sem o código correto,
+ * nenhum email é alterado — protege contra invasores com senha.
+ */
 export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions)
@@ -15,36 +20,25 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
 
-    const rl = await checkRateLimit(`account:email:${session.user.id}`, 5, 60_000)
+    const rl = await checkRateLimit(`account:email:confirm:${session.user.id}`, 5, 60_000)
     if (!rl.ok) return NextResponse.json({ error: 'Muitas tentativas' }, { status: 429 })
 
-    const { newEmail, currentPassword } = await request.json()
+    const { newEmail, code, currentPassword } = await request.json()
     const normalized = String(newEmail || '').toLowerCase().trim()
+    const codeStr = String(code || '').trim()
 
     if (!normalized || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized)) {
-      return NextResponse.json({ error: 'Email inválido' }, { status: 400 })
+      return NextResponse.json({ error: 'Novo email inválido' }, { status: 400 })
+    }
+    if (!/^\d{6}$/.test(codeStr)) {
+      return NextResponse.json({ error: 'Código de 6 dígitos obrigatório' }, { status: 400 })
     }
 
     const user = await prisma.user.findUnique({ where: { id: session.user.id } })
     if (!user) return NextResponse.json({ error: 'Usuário não encontrado' }, { status: 404 })
 
-    if (user.email === normalized) {
-      return NextResponse.json({ error: 'Este já é o seu email atual' }, { status: 400 })
-    }
-
-    // Se a conta tem senha, exigir senha atual para confirmar.
-    if (user.password) {
-      if (!currentPassword) {
-        return NextResponse.json({ error: 'Senha atual é obrigatória' }, { status: 400 })
-      }
-      const valid = await bcrypt.compare(currentPassword, user.password)
-      if (!valid) {
-        return NextResponse.json({ error: 'Senha atual incorreta' }, { status: 400 })
-      }
-    } else {
-      // Contas de login social não têm senha local: o e-mail é gerenciado pelo
-      // provedor (Google). Trocá-lo aqui não tem segundo fator confiável e
-      // quebraria o vínculo OAuth — por isso é bloqueado.
+    // Contas OAuth não têm senha local — email é gerido pelo provedor.
+    if (!user.password) {
       return NextResponse.json(
         {
           error: 'Sua conta usa login do Google. O e-mail é gerenciado pelo provedor e não pode ser alterado aqui.',
@@ -53,23 +47,65 @@ export async function POST(request: Request) {
       )
     }
 
-    // Checagem de unicidade é cross-user (precisa enxergar OUTROS usuários) →
-    // usa o cliente bypass; RLS self-only em User esconderia o conflito.
-    const exists = await prismaAdmin.user.findUnique({ where: { email: normalized } })
+    // Bloqueia troca se o código não está nas mãos certas. O código foi
+    // enviado para o email ATUAL — provar que sabe o código prova controle.
+    const pendingCodes = await prisma.emailChangeCode.findMany({
+      where: {
+        userId: user.id,
+        used: false,
+        expiresAt: { gt: new Date() },
+        pendingEmail: normalized,
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 1,
+    })
+    const pending = pendingCodes[0]
+
+    if (!pending) {
+      return NextResponse.json(
+        { error: 'Nenhum código válido para esse email. Solicite um novo código.' },
+        { status: 400 }
+      )
+    }
+
+    const codeOk = await bcrypt.compare(codeStr, pending.codeHash)
+    if (!codeOk) {
+      return NextResponse.json({ error: 'Código incorreto ou expirado' }, { status: 400 })
+    }
+
+    // Defesa em profundidade: senha atual também é exigida. Garante que
+    // quem vê a caixa de entrada do email atual não consegue trocar sem
+    // ter a senha (a sessão NextAuth pode estar em dispositivo de alguém
+    // que esqueceu o celular, por exemplo).
+    if (!currentPassword) {
+      return NextResponse.json({ error: 'Senha atual é obrigatória' }, { status: 400 })
+    }
+    const pwdOk = await bcrypt.compare(currentPassword, user.password)
+    if (!pwdOk) return NextResponse.json({ error: 'Senha atual incorreta' }, { status: 400 })
+
+    // Unicidade cross-user (RLS self-only em User esconderia o conflito).
+    if (user.email === normalized) {
+      return NextResponse.json({ error: 'Este já é o seu email atual' }, { status: 400 })
+    }
+    const exists = await prisma.user.findUnique({ where: { email: normalized } })
     if (exists) {
       return NextResponse.json({ error: 'Este email já está em uso' }, { status: 400 })
     }
 
-    // SEGURANÇA: trocar o e-mail NÃO marca como verificado. Marcamos como não
-    // verificado e enviamos um link de verificação para o NOVO e-mail. O acesso
-    // completo só volta após a confirmação (middleware bloqueia rotas protegidas).
+    // Marca o código como usado.
+    await prisma.emailChangeCode.update({
+      where: { id: pending.id },
+      data: { used: true },
+    })
+
+    // Aplica a troca. NÃO marca como verificado — exige nova confirmação no
+    // NOVO email. Tokens antigos são invalidados (link de verify vai pro novo).
     await prisma.user.update({
       where: { id: user.id },
       data: { email: normalized, emailVerified: null },
     })
-
-    // Invalida tokens antigos e gera um novo para o novo e-mail
     await prisma.emailVerificationToken.deleteMany({ where: { userId: user.id } })
+
     const token = crypto.randomBytes(32).toString('hex')
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000)
     await prisma.emailVerificationToken.create({
@@ -89,7 +125,7 @@ export async function POST(request: Request) {
       entityType: 'User',
       entityId: user.id,
       request,
-      metadata: { from: user.email, to: normalized },
+      metadata: { from: user.email, to: normalized, verified_via: 'change_code' },
     })
 
     return NextResponse.json({

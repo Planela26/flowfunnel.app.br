@@ -74,6 +74,60 @@ export async function sendPasswordResetEmail(to: string, name: string, resetUrl:
   )
 }
 
+export async function sendEmailChangeCode(to: string, name: string, code: string, pendingEmail: string) {
+  return sendEmail(
+    to,
+    "Código para trocar seu email - FlowFunnel",
+    `<div style="font-family: -apple-system, sans-serif; max-width: 560px; margin: 0 auto; background: #ffffff;">
+      <div style="background: linear-gradient(135deg, #1e3a8a, #1e40af, #3b82f6); text-align: center; padding: 40px 24px;">
+        <div style="display: inline-flex; align-items: center; gap: 10px;">
+          <div style="width: 44px; height: 44px; border-radius: 50%; overflow: hidden; background: #ffffff;">
+            <img src="${APP_URL}/flowfunnel-logo.jpg" alt="FlowFunnel" style="width: 100%; height: 100%; object-fit: cover;" />
+          </div>
+          <span style="color: #ffffff; font-size: 26px; font-weight: 800;">FlowFunnel</span>
+        </div>
+      </div>
+      <div style="padding: 40px 32px;">
+        <div style="text-align: center; margin-bottom: 24px;">
+          <div style="width: 64px; height: 64px; border-radius: 50%; background: linear-gradient(135deg, #1e40af, #3b82f6); display: inline-flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
+            <span style="font-size: 28px;">🔐</span>
+          </div>
+          <h2 style="color: #111827; font-size: 24px; font-weight: 800; margin: 0;">Ola, ${name || "usuario"}!</h2>
+        </div>
+        <p style="color: #4b5563; font-size: 16px; line-height: 1.7; text-align: center; margin-bottom: 24px;">
+          Alguem (esperamos que voce) solicitou a troca do email da sua conta para:
+        </p>
+        <div style="background: #fef3c7; border: 1px solid #fbbf24; border-radius: 12px; padding: 14px 18px; text-align: center; margin-bottom: 28px;">
+          <p style="color: #92400e; font-size: 15px; margin: 0; font-weight: 600;">
+            Novo email solicitado: <span style="color: #78350f;">${pendingEmail}</span>
+          </p>
+        </div>
+        <p style="color: #4b5563; font-size: 16px; line-height: 1.7; text-align: center; margin-bottom: 16px;">
+          Para confirmar que <strong>voce e o dono desta conta</strong>, insira o codigo abaixo na pagina de configuracoes onde a troca foi solicitada:
+        </p>
+        <div style="text-align: center; margin: 24px 0 32px;">
+          <div style="display: inline-block; background: #f1f5f9; border: 2px dashed #cbd5e1; border-radius: 12px; padding: 18px 36px;">
+            <span style="font-family: Courier New, monospace; font-size: 36px; font-weight: 800; color: #1e40af; letter-spacing: 8px;">${code}</span>
+          </div>
+        </div>
+        <div style="background: #fee2e2; border: 1px solid #fca5a5; border-radius: 12px; padding: 16px; margin: 24px 0;">
+          <p style="color: #991b1b; font-size: 13px; line-height: 1.6; margin: 0; text-align: center;">
+            <strong>Este codigo expira em 15 minutos</strong> e so pode ser usado uma vez.<br/>
+            Se voce <strong>nao solicitou</strong> essa troca, ignore este email - sua conta continua segura.
+          </p>
+        </div>
+        <p style="color: #6b7280; font-size: 13px; text-align: center; margin-top: 24px;">
+          Por seguranca, o codigo e enviado para o email <strong>atual</strong> da conta, nunca para o novo email.
+        </p>
+      </div>
+      <div style="border-top: 1px solid #e2e8f0; padding: 24px; text-align: center;">
+        <p style="color: #94a3b8; font-size: 12px; margin: 0;">FlowFunnel</p>
+      </div>
+    </div>`
+  )
+}
+
+
 export async function sendVerificationEmail(to: string, name: string, verifyUrl: string) {
   return sendEmail(
     to,
