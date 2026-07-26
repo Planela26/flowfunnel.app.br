@@ -615,23 +615,29 @@ function FunnelCanvas({
   useEffect(() => {
     if (!userId) return
     const flush = () => {
-      if (!hasLocalEditsRef.current || !saveTimerRef.current) return
-      clearTimeout(saveTimerRef.current)
-      saveTimerRef.current = null
+      if (!hasLocalEditsRef.current) return
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current)
+        saveTimerRef.current = null
+      }
       const pos = nodesToPositions(nodesRef.current)
       cachePositionsLocally(userId, pos)
-      // sendBeacon sobrevive ao fechamento da aba (fetch normal seria cancelado)
+      // Usa fetch keepalive em vez de sendBeacon com application/json,
+      // porque sendBeacon ignora o Content-Type no Opera/Firefox e o servidor
+      // não consegue fazer req.json() — o fetch keepalive funciona em todos os browsers.
       try {
-        navigator.sendBeacon?.(
-          '/api/funnel-layout',
-          new Blob([JSON.stringify({ positions: pos })], { type: 'application/json' })
-        )
+        fetch('/api/funnel-layout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ positions: pos }),
+          keepalive: true,
+        }).catch(() => {})
       } catch { /* ignore */ }
     }
     window.addEventListener('pagehide', flush)
     return () => {
       window.removeEventListener('pagehide', flush)
-      flush() // unmount (navegação interna) também salva
+      flush() // unmount (navegação interna Next.js) também salva
     }
   }, [userId]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -666,33 +672,32 @@ function FunnelCanvas({
     })
   }, [visibleIds]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Intercepta movimentação: 5s de inatividade → salva e mostra indicador
+  // Detecta início de drag para mostrar indicador "salvando…"
   const handleNodesChange = useCallback((changes: any) => {
     onNodesChange(changes)
-    const isDragging = changes.some((c: any) => c.type === 'position')
-    if (!isDragging || !userId) return
-
-    // Marca como pendente assim que o usuário começa a mover
+    const startedDrag = changes.some((c: any) => c.type === 'position' && c.dragging === true)
+    if (!startedDrag || !userId) return
     hasLocalEditsRef.current = true
     setSaveStatus('pending')
+  }, [onNodesChange, userId])
 
-    // Reinicia o timer a cada movimento — só salva depois de 5s parado
-    if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
-    if (savedTimerRef.current) clearTimeout(savedTimerRef.current)
+  // Salva imediatamente ao soltar o card — mais confiável que debounce e funciona
+  // em todos os browsers (Chrome, Firefox, Opera, Safari) sem depender de timers.
+  const handleNodeDragStop = useCallback((_event: React.MouseEvent, _node: Node) => {
+    if (!userId) return
+    if (saveTimerRef.current) { clearTimeout(saveTimerRef.current); saveTimerRef.current = null }
+    if (savedTimerRef.current) { clearTimeout(savedTimerRef.current); savedTimerRef.current = null }
 
-    saveTimerRef.current = setTimeout(() => {
-      setNodes(current => {
-        const pos = nodesToPositions(current)
-        cachePositionsLocally(userId, pos)
-        // Salva no banco — só mostra "salvo" se o servidor confirmar
-        saveServerPositions(pos).then(ok => {
-          setSaveStatus(ok ? 'saved' : 'error')
-          savedTimerRef.current = setTimeout(() => setSaveStatus('idle'), ok ? 3000 : 5000)
-        })
-        return current
+    setNodes(current => {
+      const pos = nodesToPositions(current)
+      cachePositionsLocally(userId, pos)
+      saveServerPositions(pos).then(ok => {
+        setSaveStatus(ok ? 'saved' : 'error')
+        savedTimerRef.current = setTimeout(() => setSaveStatus('idle'), ok ? 3000 : 5000)
       })
-    }, 5000)
-  }, [onNodesChange, userId, setNodes])
+      return current
+    })
+  }, [userId, setNodes])
 
   // Sync edges
   useEffect(() => {
@@ -758,6 +763,7 @@ function FunnelCanvas({
         nodes={nodes}
         edges={edges}
         onNodesChange={handleNodesChange}
+        onNodeDragStop={handleNodeDragStop}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         nodeTypes={nodeTypes}
