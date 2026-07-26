@@ -1,8 +1,14 @@
 /** @type {import('next').NextConfig} */
+// Headers seguros em ambos ambientes (não dependem do host).
+// HSTS e X-Frame-Options ficam no middleware.ts, gated por NODE_ENV === 'production'.
+//   - HSTS em dev amarra o domínio *.replit.dev a HTTPS por 2 anos com preload;
+//     isso quebra a limpeza de cookies via Ctrl+Shift+Del no Opera (cookies do
+//     host prefixed com HSTS persistem).
+//   - X-Frame-Options SAMEORIGIN em dev bloqueia o preview do Replit (que roda
+//     em iframe cross-origin). Em dev, framing é controlado pelo CSP
+//     frame-ancestors já presente em middleware.ts.
 const SECURITY_HEADERS = [
-  { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
   { key: 'X-Content-Type-Options', value: 'nosniff' },
-  { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
   { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(), interest-cohort=()' },
   { key: 'X-DNS-Prefetch-Control', value: 'on' },

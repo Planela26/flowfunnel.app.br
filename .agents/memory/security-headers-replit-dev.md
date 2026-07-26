@@ -15,3 +15,13 @@ upgrade per host). In dev, framing is already controlled by the CSP
 **How to apply:** always-on headers (nosniff, Referrer-Policy, Permissions-Policy,
 X-DNS-Prefetch-Control) are safe in both envs; framing/HSTS go behind the prod
 check. Validate header behavior on the published app, not only the preview.
+
+**Regression 2026-07-26:** the same HSTS+SAMEORIGIN pair was ALSO listed in
+`next.config.js` `SECURITY_HEADERS` and emitted by `next.config` `headers()`
+unconditionally. `next.config` headers are applied BEFORE the middleware runs,
+so the `isProd` gate in `middleware.ts` had no effect and the headers still
+leaked in dev. Symptom: Opera refused to clear cookies via Ctrl+Shift+Del
+after the first visit (HSTS preload pins the host to HTTPS for 2 years,
+and Opera preserves cookies on HSTS-pinned hosts through "clear browsing
+data"); Chrome tolerated it. Fix: keep only always-true headers in
+`SECURITY_HEADERS`; rely on middleware for prod-only framing/HSTS.
