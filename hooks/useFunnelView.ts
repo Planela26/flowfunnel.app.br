@@ -40,12 +40,20 @@ const getStorageKey = (userId: string) => `funnel_view_${userId}`
  * - Banco diz null OU {} → nunca mostramos o default de AVAILABLE_INTEGRATIONS se
  *   o localStorage tiver um conjunto parcial salvo localmente.
  * - "primeiro acesso" = banco diz null E localStorage vazio → mostrar todos (default).
+ *
+ * SAVE sem debounce: ao adicionar/remover card, POST imediato. O bug original
+ * vinha de o SAVE debounced (600ms) ser morto pelo fetch inicial do servidor
+ * (que retornava um snapshot stale e zerava lastServerSavedJson); o timer
+ * pendente era cancelado no cleanup sem nunca disparar. Como add/remove são
+ * ações de baixa frequência (≤1 por segundo), o POST imediato é seguro.
+ *
+ * SAVE com debounce é apenas para POSIÇÕES (drag-and-drop em FunnelFlow) onde
+ * uma operação gera dezenas de updates por segundo.
  */
 export function useFunnelView(userId: string | undefined) {
   const [visibleIds, setVisibleIds] = useState<string[]>(AVAILABLE_INTEGRATIONS.map(i => i.id))
   const [initialized, setInitialized] = useState(false)
   const lastServerSavedJson = useRef<string | null>(null)
-  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // LOAD: pinta cache local imediatamente, depois busca a verdade no backend.
   useEffect(() => {
@@ -61,18 +69,21 @@ export function useFunnelView(userId: string | undefined) {
           const valid = parsed.filter((id: string) =>
             AVAILABLE_INTEGRATIONS.some(i => i.id === id)
           )
-          if (valid.length > 0) {
-            setVisibleIds(valid)
-            lastServerSavedJson.current = JSON.stringify(valid)
-          }
+          // IMPORTANTE: marcar como "salvo pelo servidor" mesmo quando valid=[]
+          // (decisão válida do usuário: ele apagou todos os cards).
+          setVisibleIds(valid)
+          lastServerSavedJson.current = JSON.stringify(valid)
         }
       }
     } catch { /* ignore */ }
     setInitialized(true)
 
-    // (2) Fonte de verdade no backend. Sobrescreve o cache se divergir.
+    // (2) Fonte de verdade no backend. CAPTURA snapshot de visibleIds no
+    // início do fetch — se o usuário clicar em apagar/adicionar um card
+    // durante o in-flight, NÃO sobrescrevemos com dados stale do servidor.
     ;(async () => {
       try {
+        const snapshot = JSON.stringify(visibleIds)
         const res = await fetch('/api/funnel-layout', { cache: 'no-store' })
         if (!res.ok || cancelled) return
         const data = await res.json()
@@ -81,13 +92,24 @@ export function useFunnelView(userId: string | undefined) {
           const valid = data.visibleIds.filter((id: string) =>
             AVAILABLE_INTEGRATIONS.some(i => i.id === id)
           )
-          // Só sobrescreve se o backend realmente traz o que ele salvou
-          // (evita default fantasma em SSR/cache).
-          if (JSON.stringify(valid) !== lastServerSavedJson.current) {
+          const serverJson = JSON.stringify(valid)
+
+          if (serverJson === snapshot) {
+            // Servidor concorda com o que já temos; marca como "salvo".
+            lastServerSavedJson.current = serverJson
+          } else if (JSON.stringify(visibleIds) === snapshot) {
+            // (a) Servidor tem estado diferente E o usuário não mexeu durante
+            // o fetch → aplica verdade do servidor.
             setVisibleIds(valid)
             try { localStorage.setItem(getStorageKey(userId!), JSON.stringify(valid)) } catch {}
+            lastServerSavedJson.current = serverJson
           }
-          lastServerSavedJson.current = JSON.stringify(valid)
+          // (b) serverJson !== snapshot E visibleIds !== snapshot:
+          // usuário mudou durante o fetch. NÃO mexemos em visibleIds nem em
+          // lastServerSavedJson. O SAVE effect (logo abaixo) já detectou a
+          // mudança do usuário e fez POST imediato — servidor será atualizado
+          // quando a requisição do usuário completar. Mantemos a intenção do
+          // usuário como source of truth aqui.
         }
         // data.visibleIds === null OR sem o campo → mantém o que já temos.
       } catch { /* offline → mantém cache local */ }
@@ -96,30 +118,31 @@ export function useFunnelView(userId: string | undefined) {
     return () => { cancelled = true }
   }, [userId])
 
-  // SAVE: debounce 600ms; flush imediato em pagehide (keepalive).
+  // SAVE: POST IMEDIATO em toda mudança de visibleIds (sem debounce).
+  // O pagehide handler serve apenas como rede de segurança caso o fetch
+  // imediato não tenha completado antes da aba fechar (keepalive no servidor).
   useEffect(() => {
     if (!userId || !initialized) return
     const json = JSON.stringify(visibleIds)
 
-    // cache local imediato
-    try { localStorage.setItem(getStorageKey(userId), JSON.stringify(visibleIds)) } catch {}
+    // cache local imediato (UX sem flash em reload)
+    try { localStorage.setItem(getStorageKey(userId), json) } catch {}
 
     if (lastServerSavedJson.current === json) return
 
-    if (saveTimer.current) clearTimeout(saveTimer.current)
-    saveTimer.current = setTimeout(() => {
-      lastServerSavedJson.current = json
-      void fetch('/api/funnel-layout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ visibleIds }),
-        keepalive: true,
-      }).catch(() => {})
-    }, 600)
+    lastServerSavedJson.current = json
+    void fetch('/api/funnel-layout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ visibleIds }),
+      keepalive: true,
+    }).catch(() => {})
 
+    // Pagehide safety net: se o fetch for cancelado por unload antes do
+    // round-trip, o segundo POST com keepalive garante a entrega.
     const flush = () => {
-      if (lastServerSavedJson.current === json) return
-      lastServerSavedJson.current = json
+      if (lastServerSavedJson.current === 'flushed:' + json) return
+      lastServerSavedJson.current = 'flushed:' + json
       void fetch('/api/funnel-layout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -130,7 +153,6 @@ export function useFunnelView(userId: string | undefined) {
     window.addEventListener('pagehide', flush)
 
     return () => {
-      if (saveTimer.current) clearTimeout(saveTimer.current)
       window.removeEventListener('pagehide', flush)
     }
   }, [visibleIds, userId, initialized])
