@@ -68,18 +68,27 @@ export default function ConfiguracoesPage() {
     }
   }
 
-  // ── Email (2 passos: pedir código → confirmar) ──────────────────────────
-  // step 1: usuário digita novo email + senha e pede código (enviado p/ email ATUAL)
-  // step 2: usuário cola o código de 6 dígitos que recebeu → email é trocado
+  // ── Email (2 passos: form → popup com código) ───────────────────────────
   const [emailStep, setEmailStep] = useState<'form' | 'code'>('form')
-  const [emailForm, setEmailForm] = useState({ newEmail: '', currentPassword: '', code: '' })
+  const [emailForm, setEmailForm] = useState({
+    currentEmail: '',   // usuário digita o próprio email atual (sem sugestão) para confirmar
+    newEmail: '',
+    currentPassword: '',
+    code: '',
+  })
   const [emailMsg, setEmailMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null)
+  const [emailCodeMsg, setEmailCodeMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null)
   const [emailLoading, setEmailLoading] = useState(false)
-  const [codeResendIn, setCodeResendIn] = useState(0) // cooldown em s para reenviar
+  const [codeResendIn, setCodeResendIn] = useState(0)
 
   const handleRequestEmailChange = async (e: React.FormEvent) => {
     e.preventDefault()
     setEmailMsg(null)
+    // Validação frontend: email atual digitado precisa bater com o da sessão
+    if (emailForm.currentEmail.trim().toLowerCase() !== (session?.user?.email ?? '').toLowerCase()) {
+      setEmailMsg({ type: 'err', text: 'O email atual digitado não corresponde ao da sua conta.' })
+      return
+    }
     setEmailLoading(true)
     try {
       const res = await fetch('/api/account/email/request', {
@@ -89,12 +98,10 @@ export default function ConfiguracoesPage() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Erro')
-      setEmailMsg({
-        type: 'ok',
-        text: `Código enviado para ${data.sentTo}. Confira a caixa de entrada (e o spam).`,
-      })
+      setEmailMsg(null)
+      setEmailCodeMsg({ type: 'ok', text: `Código enviado para ${data.sentTo}. Confira a caixa de entrada e o spam.` })
       setEmailStep('code')
-      setCodeResendIn(30)
+      setCodeResendIn(60)
     } catch (err: any) {
       setEmailMsg({ type: 'err', text: err.message })
     } finally {
@@ -104,7 +111,7 @@ export default function ConfiguracoesPage() {
 
   const handleConfirmEmailChange = async (e: React.FormEvent) => {
     e.preventDefault()
-    setEmailMsg(null)
+    setEmailCodeMsg(null)
     setEmailLoading(true)
     try {
       const res = await fetch('/api/account/email', {
@@ -118,13 +125,11 @@ export default function ConfiguracoesPage() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Erro')
-      setEmailMsg({ type: 'ok', text: 'Email alterado! Redirecionando para login…' })
-      setEmailForm({ newEmail: '', currentPassword: '', code: '' })
-      setEmailStep('form')
+      setEmailCodeMsg({ type: 'ok', text: 'Email alterado! Redirecionando para login…' })
       await update()
       setTimeout(() => signOut({ callbackUrl: '/login' }), 1500)
     } catch (err: any) {
-      setEmailMsg({ type: 'err', text: err.message })
+      setEmailCodeMsg({ type: 'err', text: err.message })
     } finally {
       setEmailLoading(false)
     }
@@ -132,7 +137,7 @@ export default function ConfiguracoesPage() {
 
   const handleResendCode = async () => {
     if (codeResendIn > 0) return
-    setEmailMsg(null)
+    setEmailCodeMsg(null)
     setEmailLoading(true)
     try {
       const res = await fetch('/api/account/email/request', {
@@ -142,23 +147,24 @@ export default function ConfiguracoesPage() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Erro')
-      setEmailMsg({ type: 'ok', text: `Novo código enviado para ${data.sentTo}.` })
-      setCodeResendIn(30)
+      setEmailCodeMsg({ type: 'ok', text: `Novo código enviado para ${data.sentTo}.` })
+      setCodeResendIn(60)
     } catch (err: any) {
-      setEmailMsg({ type: 'err', text: err.message })
+      setEmailCodeMsg({ type: 'err', text: err.message })
     } finally {
       setEmailLoading(false)
     }
   }
 
   const cancelEmailChange = () => {
-    setEmailForm({ newEmail: '', currentPassword: '', code: '' })
+    setEmailForm({ currentEmail: '', newEmail: '', currentPassword: '', code: '' })
     setEmailMsg(null)
+    setEmailCodeMsg(null)
     setEmailStep('form')
     setCodeResendIn(0)
   }
 
-  // countdown do reenvio (useEffect evita agendar timers a cada render)
+  // countdown do reenvio
   useEffect(() => {
     if (codeResendIn <= 0 || emailStep !== 'code') return
     const t = setTimeout(() => setCodeResendIn(s => Math.max(0, s - 1)), 1000)
@@ -284,90 +290,144 @@ export default function ConfiguracoesPage() {
                   <Mail className="w-4 h-4 text-gray-500 dark:text-gray-400" />
                   <span className="text-sm font-semibold text-gray-800 dark:text-white">Alterar email</span>
                 </div>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-                  Email atual: <strong>{session?.user?.email}</strong>
-                </p>
 
-                {emailStep === 'form' ? (
-                  <form onSubmit={handleRequestEmailChange} className="space-y-3">
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      Enviaremos um código de confirmação para o seu email atual.
-                    </p>
+                <form onSubmit={handleRequestEmailChange} className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                      Email atual
+                    </label>
                     <input
                       type="email"
-                      placeholder="Novo email"
+                      placeholder="Digite seu email atual"
+                      value={emailForm.currentEmail}
+                      onChange={e => setEmailForm({ ...emailForm, currentEmail: e.target.value })}
+                      className={inputCls}
+                      autoComplete="off"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                      Novo email
+                    </label>
+                    <input
+                      type="email"
+                      placeholder="Digite o novo email"
                       value={emailForm.newEmail}
                       onChange={e => setEmailForm({ ...emailForm, newEmail: e.target.value })}
                       className={inputCls}
+                      autoComplete="off"
                       required
                     />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                      Senha atual
+                    </label>
                     <input
                       type="password"
-                      placeholder="Senha atual"
+                      placeholder="Digite sua senha atual"
                       value={emailForm.currentPassword}
                       onChange={e => setEmailForm({ ...emailForm, currentPassword: e.target.value })}
                       className={inputCls}
+                      autoComplete="current-password"
                       required
                     />
-                    <Msg msg={emailMsg} />
-                    <button
-                      type="submit"
-                      disabled={emailLoading}
-                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium disabled:opacity-50 inline-flex items-center gap-2 transition"
-                    >
-                      {emailLoading && <Loader2 className="w-4 h-4 animate-spin" />}
-                      Enviar código de confirmação
-                    </button>
-                  </form>
-                ) : (
-                  <form onSubmit={handleConfirmEmailChange} className="space-y-3">
-                    <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-xl p-3 text-xs text-blue-800 dark:text-blue-200">
-                      📩 Enviamos um código de <strong>6 dígitos</strong> para <strong>{session?.user?.email}</strong>.
-                      <br />Insire-o abaixo para confirmar a troca para <strong>{emailForm.newEmail}</strong>.
-                    </div>
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      autoComplete="one-time-code"
-                      maxLength={6}
-                      placeholder="000000"
-                      value={emailForm.code}
-                      onChange={e =>
-                        setEmailForm({ ...emailForm, code: e.target.value.replace(/\D/g, '').slice(0, 6) })
-                      }
-                      className={`${inputCls} text-center text-2xl tracking-[0.5em] font-mono font-bold`}
-                      required
+                  </div>
+                  <Msg msg={emailMsg} />
+                  <button
+                    type="submit"
+                    disabled={emailLoading}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium disabled:opacity-50 inline-flex items-center gap-2 transition"
+                  >
+                    {emailLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+                    Solicitar troca de email
+                  </button>
+                </form>
+
+                {/* ── Modal popup do código ── */}
+                {emailStep === 'code' && (
+                  <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    {/* Backdrop */}
+                    <div
+                      className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                      onClick={cancelEmailChange}
                     />
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      O código expira em 15 minutos.
-                    </p>
-                    <Msg msg={emailMsg} />
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <button
-                        type="submit"
-                        disabled={emailLoading || emailForm.code.length !== 6}
-                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium disabled:opacity-50 inline-flex items-center gap-2 transition"
-                      >
-                        {emailLoading && <Loader2 className="w-4 h-4 animate-spin" />}
-                        Confirmar troca
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleResendCode}
-                        disabled={emailLoading || codeResendIn > 0}
-                        className="px-3 py-2 text-xs text-blue-600 dark:text-blue-400 hover:underline disabled:opacity-50 disabled:no-underline"
-                      >
-                        {codeResendIn > 0 ? `Reenviar em ${codeResendIn}s` : 'Reenviar código'}
-                      </button>
+                    {/* Dialog */}
+                    <div className="relative w-full max-w-sm bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 p-6 animate-in fade-in zoom-in-95 duration-200">
+                      {/* Fechar */}
                       <button
                         type="button"
                         onClick={cancelEmailChange}
-                        className="px-3 py-2 text-xs text-gray-500 dark:text-gray-400 hover:underline"
+                        className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition"
+                        aria-label="Fechar"
                       >
-                        Cancelar
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
                       </button>
+
+                      <div className="mb-5">
+                        <div className="w-12 h-12 rounded-2xl bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center mb-4">
+                          <Mail className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                        </div>
+                        <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1">
+                          Confirme a troca de email
+                        </h3>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+                          Enviamos um código de <strong className="text-gray-700 dark:text-gray-300">6 dígitos</strong> para{' '}
+                          <strong className="text-gray-700 dark:text-gray-300">{session?.user?.email}</strong>.
+                          <br />Cole-o abaixo para confirmar a troca para{' '}
+                          <strong className="text-gray-700 dark:text-gray-300">{emailForm.newEmail}</strong>.
+                        </p>
+                      </div>
+
+                      <form onSubmit={handleConfirmEmailChange} className="space-y-4">
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          autoComplete="one-time-code"
+                          maxLength={6}
+                          placeholder="000000"
+                          value={emailForm.code}
+                          onChange={e =>
+                            setEmailForm({ ...emailForm, code: e.target.value.replace(/\D/g, '').slice(0, 6) })
+                          }
+                          className={`${inputCls} text-center text-3xl tracking-[0.6em] font-mono font-bold py-4`}
+                          autoFocus
+                          required
+                        />
+                        <p className="text-xs text-gray-400 dark:text-gray-500 text-center">
+                          O código expira em 15 minutos.
+                        </p>
+
+                        {emailCodeMsg && (
+                          <p className={`text-sm text-center ${emailCodeMsg.type === 'ok' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                            {emailCodeMsg.text}
+                          </p>
+                        )}
+
+                        <button
+                          type="submit"
+                          disabled={emailLoading || emailForm.code.length !== 6}
+                          className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold disabled:opacity-50 inline-flex items-center justify-center gap-2 transition"
+                        >
+                          {emailLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+                          Enviar código
+                        </button>
+
+                        <div className="flex items-center justify-center gap-1">
+                          <span className="text-xs text-gray-400 dark:text-gray-500">Não recebeu?</span>
+                          <button
+                            type="button"
+                            onClick={handleResendCode}
+                            disabled={emailLoading || codeResendIn > 0}
+                            className="text-xs text-blue-600 dark:text-blue-400 hover:underline disabled:opacity-50 disabled:no-underline transition"
+                          >
+                            {codeResendIn > 0 ? `Reenviar em ${codeResendIn}s` : 'Reenviar código'}
+                          </button>
+                        </div>
+                      </form>
                     </div>
-                  </form>
+                  </div>
                 )}
               </div>
             </Card>
