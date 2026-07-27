@@ -29,48 +29,52 @@ export const AVAILABLE_INTEGRATIONS: IntegrationCard[] = [
 const getStorageKey = (userId: string) => `funnel_view_${userId}`
 
 /**
- * Persistência do funil:
- * - FONTE DE VERDADE: banco de dados (User.funnelVisibleIds via /api/funnel-layout).
- *   Sincroniza entre navegadores/dispositivos: apagar um card em qualquer um
- *   faz desaparecer em todos.
- * - localStorage: cache para o primeiro render não dar flash ("UX sem flicker"),
- *   e fallback se a chamada ao backend falhar (offline).
+ * Persistência de cards visíveis do funil.
  *
- * Regra de ouro para evitar o bug que o usuário reportou:
- * - Banco diz null OU {} → nunca mostramos o default de AVAILABLE_INTEGRATIONS se
- *   o localStorage tiver um conjunto parcial salvo localmente.
- * - "primeiro acesso" = banco diz null E localStorage vazio → mostrar todos (default).
+ * FONTE DE VERDADE: banco de dados via /api/funnel-layout.
+ * localStorage: cache para render instantâneo (sem flash no primeiro load).
  *
- * SAVE sem debounce: ao adicionar/remover card, POST imediato. O bug original
- * vinha de o SAVE debounced (600ms) ser morto pelo fetch inicial do servidor
- * (que retornava um snapshot stale e zerava lastServerSavedJson); o timer
- * pendente era cancelado no cleanup sem nunca disparar. Como add/remove são
- * ações de baixa frequência (≤1 por segundo), o POST imediato é seguro.
+ * ─── Regras anti-race ────────────────────────────────────────────────────
  *
- * SAVE com debounce é apenas para POSIÇÕES (drag-and-drop em FunnelFlow) onde
- * uma operação gera dezenas de updates por segundo.
+ * 1. SAVE bloqueado até GET completar (serverLoaded = true).
+ *    Sem isso, um browser sem localStorage (Edge, modo privado) dispara POST
+ *    com o estado default [todos os 10 cards] ANTES do GET resolver — sobrescrevendo
+ *    o estado real do servidor e revertendo deleções feitas em outros browsers.
+ *
+ * 2. Proteção contra stale closure: usamos `visibleIdsRef` (sempre atual)
+ *    e `userActionVersion` (monotônico) para detectar se o usuário mexeu
+ *    durante o in-flight sem depender do valor capturado no closure.
+ *
+ * 3. POST imediato em add/remove (sem debounce): ações de baixa frequência
+ *    (≤1/s), seguro ir direto. Posições de drag continuam debounced em
+ *    FunnelFlow.tsx.
  */
 export function useFunnelView(userId: string | undefined) {
   const [visibleIds, setVisibleIds] = useState<string[]>(AVAILABLE_INTEGRATIONS.map(i => i.id))
+
+  // Dois gates separados:
+  // - initialized: cache local lido (pode renderizar sem flash)
+  // - serverLoaded: GET do servidor completou → SAVE liberado
   const [initialized, setInitialized] = useState(false)
+  const [serverLoaded, setServerLoaded] = useState(false)
+
+  // Baseline do que o servidor já tem salvo. SAVE só posta se divergir daqui.
   const lastServerSavedJson = useRef<string | null>(null)
 
-  // Ref que espelha SEMPRE o valor atual de visibleIds (evita stale closure em
-  // handlers async). Atualizado antes de qualquer comparação pós-await.
+  // Ref que espelha sempre o visibleIds atual (evita stale closure em async).
   const visibleIdsRef = useRef<string[]>(visibleIds)
   useEffect(() => { visibleIdsRef.current = visibleIds }, [visibleIds])
 
-  // Contador monotônico que sobe a cada ação INTENCIONAL do usuário
-  // (addCard / removeCard). Permite que o fetch inicial detecte se o
-  // usuário mexeu durante o in-flight sem depender de closures stale.
+  // Contador que sobe a cada ação intencional do usuário (add/remove).
+  // Permite ao GET detectar mudanças durante o in-flight.
   const userActionVersion = useRef(0)
 
-  // LOAD: pinta cache local imediatamente, depois busca a verdade no backend.
+  // ─── LOAD ────────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!userId) return
     let cancelled = false
 
-    // (1) Local cache primeiro — render instantâneo sem flash.
+    // (1) Cache local primeiro — render sem flash.
     try {
       const raw = localStorage.getItem(getStorageKey(userId))
       if (raw) {
@@ -79,31 +83,39 @@ export function useFunnelView(userId: string | undefined) {
           const valid = parsed.filter((id: string) =>
             AVAILABLE_INTEGRATIONS.some(i => i.id === id)
           )
-          // Marca como "já visto pelo servidor" para o SAVE effect não
-          // disparar POST desnecessário ao inicializar.
           setVisibleIds(valid)
+          // Pré-define o baseline para o SAVE não postar desnecessariamente
+          // caso o servidor confirme o mesmo estado.
           lastServerSavedJson.current = JSON.stringify(valid)
         }
       }
     } catch { /* ignore */ }
     setInitialized(true)
 
-    // (2) Fonte de verdade no backend.
-    // PROTEÇÃO CONTRA STALE-CLOSURE + RACE:
-    //   - Capturamos userActionVersion.current ANTES do await.
-    //   - Após o await, comparamos com o valor atual do ref.
-    //   - Se divergir → usuário fez add/remove durante o fetch → mantemos
-    //     o estado do usuário (o SAVE effect já despachou POST imediato).
+    // (2) GET do servidor — fonte de verdade final.
     ;(async () => {
       try {
         const versionAtStart = userActionVersion.current
         const res = await fetch('/api/funnel-layout', { cache: 'no-store' })
-        if (!res.ok || cancelled) return
+        if (!res.ok || cancelled) {
+          // Mesmo em erro de rede: libera SAVE para não bloquear para sempre.
+          // O SAVE vai considerar o estado atual como baseline.
+          if (!cancelled) {
+            lastServerSavedJson.current = JSON.stringify(visibleIdsRef.current)
+            setServerLoaded(true)
+          }
+          return
+        }
         const data = await res.json()
         if (cancelled) return
 
-        // Usuário mudou algo durante o in-flight → não sobrescrevemos.
-        if (userActionVersion.current !== versionAtStart) return
+        // Usuário mexeu durante o in-flight → mantém a intenção do usuário.
+        // O SAVE effect já despachou POST imediato; servidor será atualizado.
+        // Liberamos serverLoaded para que futuros saves possam acontecer.
+        if (userActionVersion.current !== versionAtStart) {
+          setServerLoaded(true)
+          return
+        }
 
         if (Array.isArray(data?.visibleIds)) {
           const valid = data.visibleIds.filter((id: string) =>
@@ -113,31 +125,41 @@ export function useFunnelView(userId: string | undefined) {
           const currentJson = JSON.stringify(visibleIdsRef.current)
 
           if (serverJson !== currentJson) {
-            // Servidor tem estado diferente do local (outra aba adicionou/removeu
-            // um card) → aplica a verdade do servidor.
+            // Servidor tem estado diferente → aplica (outro browser salvou algo).
             setVisibleIds(valid)
             try { localStorage.setItem(getStorageKey(userId!), serverJson) } catch {}
           }
-          // Marca como salvo em ambos os casos (igual ou diferente).
+          // Baseline = o que o servidor tem. SAVE só posta se divergir daqui.
           lastServerSavedJson.current = serverJson
+        } else {
+          // Servidor nunca salvou (null) → trata estado atual como baseline
+          // para o SAVE não postar o default [todos os 10] desnecessariamente.
+          lastServerSavedJson.current = JSON.stringify(visibleIdsRef.current)
         }
-        // data.visibleIds === null OR sem o campo → mantém o que já temos.
-      } catch { /* offline → mantém cache local */ }
+      } catch {
+        // Offline / erro → libera SAVE com baseline = estado atual.
+        if (!cancelled) lastServerSavedJson.current = JSON.stringify(visibleIdsRef.current)
+      } finally {
+        if (!cancelled) setServerLoaded(true)
+      }
     })()
 
     return () => { cancelled = true }
   }, [userId])
 
-  // SAVE: POST IMEDIATO em toda mudança de visibleIds (sem debounce).
-  // add/remove-card são ações de baixa frequência (≤1/s); safe ir direto.
-  // Posições de drag permanecem debounced em FunnelFlow.tsx.
+  // ─── SAVE ────────────────────────────────────────────────────────────────
+  // serverLoaded garante que o GET completou antes de qualquer POST.
+  // Sem isso, Edge (sem localStorage) postaria [todos os 10 cards] antes
+  // do GET resolver e sobrescreveria o estado do servidor.
   useEffect(() => {
-    if (!userId || !initialized) return
+    if (!userId || !initialized || !serverLoaded) return
+
     const json = JSON.stringify(visibleIds)
 
-    // cache local imediato (UX sem flash em reload)
+    // Cache local imediato (UX sem flash em reload).
     try { localStorage.setItem(getStorageKey(userId), json) } catch {}
 
+    // Só posta se divergir do que o servidor já tem.
     if (lastServerSavedJson.current === json) return
 
     lastServerSavedJson.current = json
@@ -149,7 +171,7 @@ export function useFunnelView(userId: string | undefined) {
     }).catch(() => {})
 
     // Pagehide safety net: se a aba fechar antes do round-trip terminar,
-    // o segundo POST (keepalive=true) garante a entrega pelo browser.
+    // o segundo POST (keepalive) garante entrega.
     const flush = () => {
       void fetch('/api/funnel-layout', {
         method: 'POST',
@@ -159,12 +181,10 @@ export function useFunnelView(userId: string | undefined) {
       }).catch(() => {})
     }
     window.addEventListener('pagehide', flush)
+    return () => { window.removeEventListener('pagehide', flush) }
+  }, [visibleIds, userId, initialized, serverLoaded])
 
-    return () => {
-      window.removeEventListener('pagehide', flush)
-    }
-  }, [visibleIds, userId, initialized])
-
+  // ─── Ações do usuário ────────────────────────────────────────────────────
   const addCard = useCallback((id: string) => {
     userActionVersion.current += 1
     setVisibleIds(prev => (prev.includes(id) ? prev : [...prev, id]))
