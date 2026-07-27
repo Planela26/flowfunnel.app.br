@@ -199,16 +199,16 @@ export default function SaraAIWidget() {
         onClick={() => setOpen(o => !o)}
         className={`
           fixed bottom-5 right-5 z-[9998]
-          flex items-center gap-2 pl-3 pr-4 py-2.5
+          flex items-center gap-3 pl-5 pr-6 py-4
           rounded-full shadow-2xl
           bg-gradient-to-r from-blue-600 to-blue-500
-          text-white text-sm font-semibold
+          text-white text-lg font-semibold
           transition-all duration-300 hover:scale-105 hover:shadow-blue-500/40
           ${open ? 'opacity-0 pointer-events-none scale-75' : 'opacity-100 scale-100'}
         `}
         aria-label="Abrir Sara.ai"
       >
-        <Sparkles className="w-4 h-4 shrink-0" />
+        <Sparkles className="w-6 h-6 shrink-0" />
         <span>Sara.ai</span>
       </button>
 
@@ -217,8 +217,8 @@ export default function SaraAIWidget() {
         className={`
           fixed bottom-0 right-0 z-[9999]
           flex flex-col
-          w-full sm:w-[720px] sm:bottom-5 sm:right-5
-          h-[90dvh] sm:h-[780px]
+          w-full sm:w-[380px] sm:bottom-5 sm:right-5
+          h-[90dvh] sm:h-[600px]
           bg-gray-900 border border-gray-700/60
           sm:rounded-2xl shadow-2xl shadow-black/50
           transition-all duration-300 origin-bottom-right
