@@ -15,6 +15,7 @@ import PlanExpiredBanner from './PlanExpiredBanner'
 import TrialSetupWall from './TrialSetupWall'
 import { NavigationProvider } from './NavigationContext'
 import RouteLoadingOverlay from './RouteLoadingOverlay'
+import SaraAIWidget from './SaraAIWidget'
 
 const PREFETCH_ROUTES = [
   '/dashboard',
@@ -156,6 +157,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       )}
 
       {children}
+
+      {/* Sara.ai — floating chat widget, available across all pages */}
+      <SaraAIWidget />
     </div>
     </NavigationProvider>
   )
