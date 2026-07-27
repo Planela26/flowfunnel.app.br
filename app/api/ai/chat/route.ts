@@ -38,13 +38,15 @@ export async function POST(request: Request) {
     where: { userId: session.user.id },
     orderBy: { date: 'desc' },
     select: {
-      whatsappLeads: true,
-      whatsappConversions: true,
-      facebookClicks: true,
-      facebookImpressions: true,
-      facebookSpend: true,
-      hotmartSales: true,
-      hotmartRevenue: true,
+      vendas: true,
+      receita: true,
+      checkouts: true,
+      conversas: true,
+      leads: true,
+      reembolsos: true,
+      recusados: true,
+      abandonos: true,
+      gasto: true,
       date: true,
     },
   }).catch(() => null)
@@ -53,13 +55,25 @@ export async function POST(request: Request) {
   const funnel = await prisma.funnel.findFirst({
     where: { userId: session.user.id },
     select: {
+      id: true,
       name: true,
       stages: {
-        select: { name: true, leadCount: true, conversionRate: true, order: true },
+        select: { id: true, name: true, order: true },
         orderBy: { order: 'asc' },
       },
     },
   }).catch(() => null)
+
+  // Contagem de leads por estágio (via FunnelEvent)
+  const stageCounts: Record<string, number> = {}
+  if (funnel) {
+    const groups = await prisma.funnelEvent.groupBy({
+      by: ['stageId'],
+      where: { funnelId: funnel.id },
+      _count: { _all: true },
+    }).catch(() => [])
+    for (const g of groups) stageCounts[g.stageId] = g._count._all
+  }
 
   // Leads recentes (contagem)
   const leadCount = await prisma.trackedLead.count({
@@ -72,13 +86,14 @@ export async function POST(request: Request) {
     : 'nenhuma integração conectada'
 
   const metricsStr = snapshot ? [
-    snapshot.whatsappLeads != null && `WhatsApp: ${snapshot.whatsappLeads} leads, ${snapshot.whatsappConversions ?? 0} conversões`,
-    snapshot.facebookClicks != null && `Meta Ads: ${snapshot.facebookClicks} cliques, ${snapshot.facebookImpressions ?? 0} impressões, R$ ${snapshot.facebookSpend?.toFixed(2) ?? '0'} gasto`,
-    snapshot.hotmartSales != null && `Hotmart: ${snapshot.hotmartSales} vendas, R$ ${snapshot.hotmartRevenue?.toFixed(2) ?? '0'} receita`,
+    `Vendas: ${snapshot.vendas} | Receita R$ ${snapshot.receita?.toFixed(2) ?? '0'}`,
+    `Checkouts: ${snapshot.checkouts ?? 0} | Conversas WhatsApp: ${snapshot.conversas ?? 0}`,
+    `Leads: ${snapshot.leads ?? 0}`,
+    snapshot.gasto > 0 ? `Gasto em mídia: R$ ${snapshot.gasto.toFixed(2)}` : null,
   ].filter(Boolean).join(' | ') : 'sem dados de métricas disponíveis'
 
   const funnelStr = funnel
-    ? `Funil "${funnel.name}": ${funnel.stages.map(s => `${s.name}(${s.leadCount ?? 0} leads)`).join(' → ')}`
+    ? `Funil "${funnel.name}": ${funnel.stages.map(s => `${s.name}(${stageCounts[s.id] ?? 0} leads)`).join(' → ')}`
     : 'sem funil configurado'
 
   const contextBlock = `
