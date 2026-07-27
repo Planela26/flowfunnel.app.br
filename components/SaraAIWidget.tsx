@@ -195,22 +195,60 @@ export default function SaraAIWidget() {
   return (
     <>
       {/* ── Floating button ── */}
-      <button
-        onClick={() => setOpen(o => !o)}
-        className={`
-          fixed bottom-5 right-5 z-[9998]
-          flex items-center gap-3 pl-5 pr-6 py-4
-          rounded-full shadow-2xl
-          bg-gradient-to-r from-blue-600 to-blue-500
-          text-white text-lg font-semibold
-          transition-all duration-300 hover:scale-105 hover:shadow-blue-500/40
-          ${open ? 'opacity-0 pointer-events-none scale-75' : 'opacity-100 scale-100'}
-        `}
-        aria-label="Abrir Sara.ai"
+      <style>{`
+        @keyframes sara-rainbow-spin {
+          0%   { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `}</style>
+
+      <div
+        className={`fixed bottom-5 right-5 z-[9998] transition-all duration-300
+          ${open ? 'opacity-0 pointer-events-none scale-75' : 'opacity-100 scale-100'}`}
+        style={{ borderRadius: '9999px' }}
       >
-        <Sparkles className="w-6 h-6 shrink-0" />
-        <span>Sara.ai</span>
-      </button>
+        {/* Rainbow spinning ring */}
+        <div
+          aria-hidden
+          style={{
+            position: 'absolute',
+            inset: '-3px',
+            borderRadius: '9999px',
+            background: 'conic-gradient(from 0deg, #ff0000, #ff8800, #ffff00, #00ff88, #00aaff, #aa00ff, #ff0088, #ff0000)',
+            animation: 'sara-rainbow-spin 2.2s linear infinite',
+            filter: 'blur(1.5px)',
+            opacity: 0.92,
+          }}
+        />
+        {/* Glow layer */}
+        <div
+          aria-hidden
+          style={{
+            position: 'absolute',
+            inset: '-6px',
+            borderRadius: '9999px',
+            background: 'conic-gradient(from 0deg, #ff0000, #ff8800, #ffff00, #00ff88, #00aaff, #aa00ff, #ff0088, #ff0000)',
+            animation: 'sara-rainbow-spin 2.2s linear infinite',
+            filter: 'blur(8px)',
+            opacity: 0.35,
+          }}
+        />
+        {/* Actual button — sits on top */}
+        <button
+          onClick={() => setOpen(o => !o)}
+          className="
+            relative flex items-center gap-3 pl-5 pr-6 py-4
+            rounded-full shadow-2xl
+            bg-gradient-to-r from-blue-600 to-blue-500
+            text-white text-lg font-semibold
+            transition-transform duration-300 hover:scale-105
+          "
+          aria-label="Abrir Sara.ai"
+        >
+          <Sparkles className="w-6 h-6 shrink-0" />
+          <span>Sara.ai</span>
+        </button>
+      </div>
 
       {/* ── Chat panel ── */}
       <div
