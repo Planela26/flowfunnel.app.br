@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { getUncachableStripeClient } from '@/lib/stripeClient'
 import { prisma } from '@/lib/prisma'
 import { checkRateLimit } from '@/lib/security-utils'
+import { getBaseUrl } from '@/lib/base-url'
 
 const PLAN_PRICES: Record<string, string> = {
   START: process.env.STRIPE_PRICE_START || '',
