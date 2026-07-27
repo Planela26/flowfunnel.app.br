@@ -45,14 +45,17 @@ const nextConfig = {
         source: '/:path*',
         headers: SECURITY_HEADERS,
       },
-      // Páginas autenticadas não devem ser cacheadas por CDN/proxy:
-      // o HTML é pré-renderizado pelo Next mas contém referências a chunks
-      // que mudam a cada build — cachear o HTML causa "chunk not found" após
-      // um novo deploy (Opera/Chrome mostram "This page couldn't load").
+      // Impede que a CDN da Hostinger (hcdn/LiteSpeed) cache o HTML de qualquer
+      // rota da aplicação. Next.js define s-maxage=31536000 para páginas estáticas
+      // pré-renderizadas; sem este override a CDN serve o HTML por até 1 ano após
+      // um deploy, ignorando novos builds (confirmado via x-nextjs-cache: HIT).
+      // Arquivos de _next/static têm hash no nome e podem ser cacheados normalmente.
       {
-        source: '/(dashboard|conta|configuracoes|configurações|analises|análises|leads|relatorios|relatórios|admin/:path*|afiliado|painel/:path*|checkout/:path*|faturamento|campanhas|metas|webhooks)',
+        source: '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:png|jpg|jpeg|gif|webp|ico|svg|css|js|woff2?|ttf|eot)).*)',
         headers: [
-          { key: 'Cache-Control', value: 'no-store, must-revalidate' },
+          { key: 'Cache-Control', value: 'no-cache, no-store, must-revalidate' },
+          { key: 'CDN-Cache-Control', value: 'no-store' },
+          { key: 'Surrogate-Control', value: 'no-store' },
         ],
       },
     ]
