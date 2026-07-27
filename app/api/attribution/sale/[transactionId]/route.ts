@@ -5,12 +5,13 @@ import { getSaleOrigin } from '@/lib/journey'
 
 // GET /api/attribution/sale/:transactionId — "de onde veio esta venda?"
 // Retorna a atribuição + jornada completa do lead vinculado (se houver).
-export async function GET(_request: Request, { params }: { params: { transactionId: string } }) {
+export async function GET(_request: Request, { params }: { params: Promise<{ transactionId: string }> }) {
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
   }
-  const result = await getSaleOrigin(session.user.id, params.transactionId)
+  const { transactionId } = await params
+  const result = await getSaleOrigin(session.user.id, transactionId)
   if (!result) {
     return NextResponse.json({ error: 'Venda não encontrada' }, { status: 404 })
   }
