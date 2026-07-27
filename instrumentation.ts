@@ -40,6 +40,18 @@ export async function register() {
         return
       }
 
+      // Em produção (Hostinger) o DATABASE_URL aponta para o Supabase direto,
+      // sem pgbouncer. As migrations do stripe-replit-sync e o syncBackfill
+      // usam prepared statements que quebram contra o Connection Pooler, e
+      // contra a conexão direta podem derrubar o processo se a porta/credenciais
+      // não estiverem alinhadas. Por segurança, em produção pulamos a
+      // inicialização automática — webhooks continuam funcionando via
+      // /api/stripe/webhook (handler manual em lib/webhook-handlers.ts).
+      if (process.env.NODE_ENV === 'production') {
+        console.log('⏭️ Stripe auto-init desabilitado em produção (webhooks via /api/stripe/webhook)')
+        return
+      }
+
       const { runMigrations, StripeSync } = await import('stripe-replit-sync')
       await runMigrations({ databaseUrl })
 
