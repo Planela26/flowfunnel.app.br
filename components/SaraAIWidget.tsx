@@ -1,7 +1,31 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { X, Send, Sparkles, ChevronDown, RotateCcw, Loader2 } from 'lucide-react'
+import { Send, Sparkles, ChevronDown, RotateCcw, Loader2 } from 'lucide-react'
+
+// ── Typing animation — 3 bouncing dots ──────────────────────────────────────
+function TypingDots() {
+  return (
+    <div className="flex items-center gap-1 px-1 py-0.5">
+      {[0, 1, 2].map(i => (
+        <span
+          key={i}
+          className="w-2 h-2 rounded-full bg-blue-400 block"
+          style={{
+            animation: 'sara-bounce 1.1s ease-in-out infinite',
+            animationDelay: `${i * 0.18}s`,
+          }}
+        />
+      ))}
+      <style>{`
+        @keyframes sara-bounce {
+          0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+          40%            { transform: translateY(-6px); opacity: 1; }
+        }
+      `}</style>
+    </div>
+  )
+}
 
 // ── Types ────────────────────────────────────────────────────────────────────
 interface Message {
@@ -193,8 +217,8 @@ export default function SaraAIWidget() {
         className={`
           fixed bottom-0 right-0 z-[9999]
           flex flex-col
-          w-full sm:w-[380px] sm:bottom-5 sm:right-5
-          h-[90dvh] sm:h-[600px]
+          w-full sm:w-[700px] sm:bottom-5 sm:right-5
+          h-[90dvh] sm:h-[780px]
           bg-gray-900 border border-gray-700/60
           sm:rounded-2xl shadow-2xl shadow-black/50
           transition-all duration-300 origin-bottom-right
@@ -281,9 +305,15 @@ export default function SaraAIWidget() {
                 >
                   {msg.role === 'assistant' ? (
                     <>
-                      {renderMarkdown(msg.content || ' ')}
-                      {msg.streaming && (
-                        <span className="inline-block w-1.5 h-3.5 bg-blue-400 rounded-sm ml-0.5 animate-pulse" />
+                      {msg.streaming && msg.content === '' ? (
+                        <TypingDots />
+                      ) : (
+                        <>
+                          {renderMarkdown(msg.content || ' ')}
+                          {msg.streaming && (
+                            <span className="inline-block w-1.5 h-3.5 bg-blue-400 rounded-sm ml-0.5 animate-pulse" />
+                          )}
+                        </>
                       )}
                     </>
                   ) : (
