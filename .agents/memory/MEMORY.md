@@ -17,4 +17,5 @@
 - [prod-db-write-path](prod-db-write-path.md) — executeSql(env='production') is hard-read-only on this Replit DBs; for prod writes expose direct connection string and use pg.Client with statement_cache_size=0 ?pgbouncer=true.
 - [Funnel onboarding seed](funnel-onboarding-seed.md) — new account immediately gets Funnel + DEFAULT_STAGES (Lead/Qualificado/Checkout/Pago + 4 loss stages) via ensureFunnelWithStages in register route, so dashboard isn't empty until first webhook.
 
+- [Sale attribution engine](sale-attribution.md) — deterministic (checkout param/thank-you) > probabilistic; public pixel endpoints must never CREATE revenue rows, only promote webhook-confirmed sales.
 - [Email change requires code on CURRENT email](email-change-verification.md) — password alone ≠ proof of control; send 6-digit code to OLD inbox, bcrypt-hash + 15min TTL, require it back before swapping User.email.

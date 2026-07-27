@@ -49,6 +49,9 @@ export async function POST(request: Request) {
   }
 
   const utm = body.utm || {}
+  const clickIds = body.click_ids || {}
+  const visitorId = body.visitor_id ? String(body.visitor_id).slice(0, 80) : null
+  const sessionId = body.session_id ? String(body.session_id).slice(0, 80) : null
   const url = body.url ? String(body.url).slice(0, 2000) : null
   const referrer = body.referrer ? String(body.referrer).slice(0, 2000) : null
   const userAgent = request.headers.get('user-agent') || null
@@ -59,21 +62,31 @@ export async function POST(request: Request) {
     await prisma.trackedLead.upsert({
       where: { userId_leadId: { userId: user.id, leadId } },
       update: {
-        // só atualiza UTMs se o lead não tinha
+        // só atualiza UTMs/click IDs se o lead não tinha
         utmSource: utm.utm_source ?? undefined,
         utmCampaign: utm.utm_campaign ?? undefined,
         utmMedium: utm.utm_medium ?? undefined,
         utmContent: utm.utm_content ?? undefined,
         utmTerm: utm.utm_term ?? undefined,
+        fbclid: clickIds.fbclid ?? undefined,
+        gclid: clickIds.gclid ?? undefined,
+        ttclid: clickIds.ttclid ?? undefined,
+        msclkid: clickIds.msclkid ?? undefined,
+        visitorId: visitorId ?? undefined,
       },
       create: {
         userId: user.id,
         leadId,
+        visitorId,
         utmSource: utm.utm_source || null,
         utmCampaign: utm.utm_campaign || null,
         utmMedium: utm.utm_medium || null,
         utmContent: utm.utm_content || null,
         utmTerm: utm.utm_term || null,
+        fbclid: clickIds.fbclid || null,
+        gclid: clickIds.gclid || null,
+        ttclid: clickIds.ttclid || null,
+        msclkid: clickIds.msclkid || null,
         firstUrl: url,
         referrer,
         ipAddress: ip,
@@ -81,10 +94,27 @@ export async function POST(request: Request) {
       },
     })
 
+    // Sessão: upsert por (userId, sessionId) para agrupar a jornada
+    if (sessionId) {
+      await prisma.trackedSession.upsert({
+        where: { userId_sessionId: { userId: user.id, sessionId } },
+        update: { lastSeen: new Date() },
+        create: {
+          userId: user.id,
+          sessionId,
+          visitorId,
+          leadId,
+          firstUrl: url,
+          referrer,
+        },
+      })
+    }
+
     await prisma.trackedEvent.create({
       data: {
         userId: user.id,
         leadId,
+        sessionId,
         eventName: event.slice(0, 80),
         url,
         metadata: body.meta ? JSON.stringify(body.meta).slice(0, 4000) : null,

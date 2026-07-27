@@ -80,7 +80,28 @@ export async function POST(request: Request) {
         ? 'Forneça análise detalhada com comparações e sugestões táticas específicas.'
         : 'Forneça análise básica focando nos pontos mais críticos.'
 
-    const prompt = `Você é um especialista em marketing digital e vendas online. Analise as seguintes métricas de um funil de vendas e forneça ${suggestionsCount} sugestões práticas e acionáveis. ${depthInstruction}
+    // Contexto de atribuição real (jornadas rastreadas → vendas vinculadas)
+    let attributionContext = ''
+    try {
+      const { getAttributionSummary } = await import('@/lib/journey')
+      const summary = await getAttributionSummary(session.user.id, 30)
+      if (summary.total > 0) {
+        const campaigns = Object.entries(summary.byCampaign)
+          .sort((a, b) => b[1].revenue - a[1].revenue)
+          .slice(0, 5)
+          .map(([name, v]) => `  - ${name}: ${v.count} vendas, R$ ${v.revenue.toFixed(2)}`)
+          .join('\n')
+        attributionContext = `
+
+**Atribuição de Vendas (30 dias — dados reais de rastreamento):**
+- Vendas atribuídas: ${summary.total}
+- Vínculo determinístico (clique→venda confirmado): ${(summary.deterministicShare * 100).toFixed(0)}%
+- Receita por campanha:
+${campaigns}`
+      }
+    } catch {}
+
+    const prompt = `Você é um especialista em marketing digital e vendas online. Analise as seguintes métricas de um funil de vendas e forneça ${suggestionsCount} sugestões práticas e acionáveis. ${depthInstruction}${attributionContext}
 
 **WhatsApp:**
 - Conversas Iniciadas (30 dias): ${waConversas}

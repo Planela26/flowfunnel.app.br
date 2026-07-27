@@ -2,6 +2,7 @@ import { prismaAdmin as prisma } from './prisma'
 import { mapPlatformStatusToStage, ensureFunnelWithStages, pickStage } from './webhook-stages'
 import { isDuplicateTransaction } from './webhook-dedup'
 import { isIngestionBlockedForUser } from './account-status'
+import { attributeSale } from './attribution'
 
 // Atualiza o LeadStatus do contato a partir do resultado de uma venda.
 // Usado por TODAS as plataformas (Hotmart/Kiwify/Eduzz/Monetizze/Perfect Pay)
@@ -128,6 +129,26 @@ async function hotmartPurchaseComplete(data: any, userId: string) {
       email: data?.buyer?.email || null,
     },
   )
+
+  // Atribuição: o sck (injetado pelo tracker no link do checkout) volta aqui.
+  if (transactionId) {
+    await attributeSale(userId, {
+      platform: 'hotmart',
+      transactionId: String(transactionId),
+      value: price,
+      product: data?.product?.name || null,
+      buyerEmail: data?.buyer?.email || null,
+      buyerPhone: data?.buyer?.checkout_phone || data?.buyer?.phone || null,
+      saleTime: approvedDate ? new Date(approvedDate * 1000) : new Date(),
+      trackingParams: [
+        data?.purchase?.origin?.sck,
+        data?.purchase?.sckPaymentLink,
+        data?.purchase?.tracking?.source_sck,
+        data?.purchase?.checkout_origin?.sck,
+      ],
+      metadata: { source: 'webhook' },
+    })
+  }
 }
 
 async function hotmartPurchaseCanceled(data: any, userId: string, event?: string) {
@@ -273,6 +294,26 @@ export async function processKiwifyEvent(body: any, userId: string, startTime: n
     name: body.customer?.name || body.name || null,
     email: body.customer?.email || body.email || null,
   })
+
+  // Atribuição: s1 (injetado pelo tracker no link do checkout) volta aqui.
+  if (mapped.isPaid && orderId) {
+    await attributeSale(userId, {
+      platform: 'kiwify',
+      transactionId: String(orderId),
+      value: (body.amount || 0) / 100,
+      product: body.product?.name || body.product_name || null,
+      buyerEmail: body.customer?.email || body.email || null,
+      buyerPhone: body.customer?.phone || body.customer?.mobile || body.phone || null,
+      trackingParams: [
+        body.TrackingParameters?.s1,
+        body.TrackingParameters?.s2,
+        body.TrackingParameters?.s3,
+        body.tracking?.s1,
+        body.s1,
+      ],
+      metadata: { source: 'webhook' },
+    })
+  }
 }
 
 // ---------- EDUZZ ----------
@@ -329,6 +370,20 @@ export async function processEduzzEvent(body: any, userId: string, startTime: nu
     name: body.cus_name || body.name || null,
     email: body.cus_email || body.email || null,
   })
+
+  // Atribuição: utm_content (injetado pelo tracker) volta nos campos utm.
+  if (mapped.isPaid && transactionId) {
+    await attributeSale(userId, {
+      platform: 'eduzz',
+      transactionId: String(transactionId),
+      value: body.trans_value || body.amount || 0,
+      product: body.con_title || body.product_name || null,
+      buyerEmail: body.cus_email || body.email || null,
+      buyerPhone: body.cus_tel || body.cus_phone || body.phone || null,
+      trackingParams: [body.utm_content, body.trans_utm_content, body.tracker, body.tracker2, body.tracker3],
+      metadata: { source: 'webhook' },
+    })
+  }
 }
 
 // ---------- MONETIZZE ----------
@@ -385,6 +440,20 @@ export async function processMonetizzeEvent(body: any, userId: string, startTime
     name: body.buyer?.name || body.comprador?.nome || body.name || null,
     email: body.buyer?.email || body.comprador?.email || body.email || null,
   })
+
+  // Atribuição: src (injetado pelo tracker) volta no tracking do webhook.
+  if (mapped.isPaid && transactionId) {
+    await attributeSale(userId, {
+      platform: 'monetizze',
+      transactionId: String(transactionId),
+      value: body.amount || body.price || 0,
+      product: body.product?.name || body.product_name || null,
+      buyerEmail: body.buyer?.email || body.comprador?.email || body.email || null,
+      buyerPhone: body.buyer?.phone || body.comprador?.telefone || body.telefone || body.phone || null,
+      trackingParams: [body.tracking?.src, body.src, body.venda?.src, body.tracking?.utm_content],
+      metadata: { source: 'webhook' },
+    })
+  }
 }
 
 // ---------- PERFECT PAY ----------
@@ -445,4 +514,18 @@ export async function processPerfectPayEvent(body: any, userId: string, startTim
     name: buyerName || null,
     email: buyerEmail || null,
   })
+
+  // Atribuição: src (injetado pelo tracker) volta no tracking do webhook.
+  if (mapped.isPaid && transactionId) {
+    await attributeSale(userId, {
+      platform: 'perfect_pay',
+      transactionId: String(transactionId),
+      value: amount,
+      product: body.product?.name || body.product_name || null,
+      buyerEmail: buyerEmail || null,
+      buyerPhone: buyerPhone || null,
+      trackingParams: [body.tracking?.src, body.src, body.metadata?.src, body.tracking?.utm_content],
+      metadata: { source: 'webhook' },
+    })
+  }
 }

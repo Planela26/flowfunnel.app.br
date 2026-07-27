@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prismaAdmin as prisma } from '@/lib/prisma'
 import { checkRateLimit } from '@/lib/security-utils'
 import { isIngestionBlockedForUser } from '@/lib/account-status'
+import { attributeFromThankYouPage } from '@/lib/attribution'
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -32,6 +33,9 @@ export async function POST(request: Request) {
   const value = Number(body?.value) || 0
   const product = body?.product ? String(body.product).slice(0, 200) : null
   const source = (body?.source ? String(body.source) : 'tracker').slice(0, 40)
+  const orderId = body?.order_id ? String(body.order_id).slice(0, 120) : null
+  const platform = body?.platform ? String(body.platform).slice(0, 40).toLowerCase() : null
+  const currency = (body?.currency ? String(body.currency) : 'BRL').slice(0, 8).toUpperCase()
 
   const user = await prisma.user.findUnique({ where: { id: siteId }, select: { id: true } })
   if (!user) {
@@ -48,12 +52,29 @@ export async function POST(request: Request) {
       data: {
         userId: user.id,
         leadId,
+        orderId,
+        platform,
+        currency,
         value,
         product,
         source,
         metadata: body.meta ? JSON.stringify(body.meta).slice(0, 4000) : null,
       },
     })
+
+    // Atribuição determinística: a thank-you page devolveu o lead_id do
+    // localStorage — vincula (ou reconcilia) a venda ao clique original.
+    if (!leadId.startsWith('unknown_')) {
+      await attributeFromThankYouPage(user.id, {
+        leadId,
+        orderId,
+        platform,
+        value,
+        currency,
+        product,
+      }).catch((e) => console.error('[track/conversion] attribution error:', e?.message))
+    }
+
     return NextResponse.json({ ok: true }, { headers: CORS_HEADERS })
   } catch (err: any) {
     console.error('[track/conversion] erro:', err?.message)

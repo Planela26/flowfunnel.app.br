@@ -446,11 +446,16 @@ model TrackedLead {
   id          String   @id @default(cuid())
   userId      String
   leadId      String
+  visitorId   String?  // id do navegador — pode ter vários leadIds ao longo do tempo
   utmSource   String?
   utmCampaign String?
   utmMedium   String?
   utmContent  String?
   utmTerm     String?
+  fbclid      String?  // Meta click ID
+  gclid       String?  // Google click ID
+  ttclid      String?  // TikTok click ID
+  msclkid     String?  // Microsoft click ID
   firstUrl    String?
   referrer    String?
   ipAddress   String?
@@ -463,15 +468,70 @@ model TrackedLead {
   @@unique([userId, leadId])
   @@index([userId])
   @@index([leadId])
+  @@index([visitorId])
   @@index([utmSource])
   @@index([utmCampaign])
   @@index([createdAt])
+}
+
+// Sessão de visita: agrupa eventos de uma mesma jornada (janela de 30min de
+// inatividade encerra a sessão no tracker). Um visitorId pode ter N sessões.
+model TrackedSession {
+  id        String   @id @default(cuid())
+  userId    String
+  sessionId String
+  visitorId String?
+  leadId    String
+  firstUrl  String?
+  referrer  String?
+  startedAt DateTime @default(now())
+  lastSeen  DateTime @default(now())
+
+  @@unique([userId, sessionId])
+  @@index([userId, leadId])
+  @@index([visitorId])
+  @@index([startedAt])
+}
+
+// Vínculo explícito venda ↔ lead rastreado. method indica a estratégia usada:
+// 'deterministic' (lead_id devolvido pelo checkout/thank-you page) tem
+// prioridade absoluta; 'probabilistic' (email/telefone/janela temporal) é
+// fallback e nunca sobrescreve um vínculo determinístico existente.
+model SaleAttribution {
+  id            String   @id @default(cuid())
+  userId        String
+  platform      String   // hotmart | kiwify | eduzz | monetizze | perfect_pay | stripe | tracker
+  transactionId String   // id da transação na plataforma de origem (ou orderId)
+  leadId        String?  // TrackedLead.leadId quando resolvido
+  method        String   // 'deterministic' | 'probabilistic' | 'unmatched'
+  matchedBy     String?  // 'checkout_param' | 'thank_you_page' | 'email' | 'phone' | 'time_window' | null
+  confidence    Float    @default(0) // 1.0 determinístico; <1 probabilístico
+  utmSource     String?  // snapshot da origem no momento da atribuição
+  utmCampaign   String?
+  utmMedium     String?
+  utmContent    String?
+  fbclid        String?
+  gclid         String?
+  value         Float    @default(0)
+  currency      String   @default("BRL")
+  product       String?
+  buyerEmail    String?
+  buyerPhone    String?
+  metadata      String?  // JSON livre
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([userId, platform, transactionId])
+  @@index([userId, createdAt])
+  @@index([leadId])
+  @@index([method])
 }
 
 model TrackedEvent {
   id        String   @id @default(cuid())
   userId    String
   leadId    String
+  sessionId String?
   eventName String
   url       String?
   metadata  String?
@@ -489,6 +549,9 @@ model TrackedConversion {
   id        String   @id @default(cuid())
   userId    String
   leadId    String
+  orderId   String?  // id do pedido informado pela thank-you page — chave do match determinístico
+  platform  String?  // hotmart | kiwify | ... quando informado pela thank-you page
+  currency  String   @default("BRL")
   value     Float    @default(0)
   product   String?
   source    String?
@@ -499,6 +562,7 @@ model TrackedConversion {
 
   @@index([userId])
   @@index([leadId])
+  @@index([orderId])
   @@index([createdAt])
 }
 
