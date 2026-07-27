@@ -162,8 +162,8 @@ export default function AISuggestions({ metrics }: AISuggestionsProps) {
 
   const getModeLabel = () => {
     switch (mode) {
-      case 'ai':             return '✨ Powered by GPT-4'
-      case 'not_configured': return '⚙️ OpenAI não configurada'
+      case 'ai':             return '✨ Flow.ai ativa'
+      case 'not_configured': return '⚙️ Flow.ai não configurada'
       case 'error':          return '⚠️ Serviço indisponível'
       case 'demo':           return '🎯 Modo Demo'
       default:               return '📊 Análise Básica'
@@ -183,7 +183,7 @@ export default function AISuggestions({ metrics }: AISuggestionsProps) {
             <Sparkles className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white">Sugestões da IA</h3>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white">Flow.ai</h3>
             <p className="text-sm text-gray-600 dark:text-gray-400">{getModeLabel()}</p>
           </div>
         </div>
@@ -220,7 +220,7 @@ export default function AISuggestions({ metrics }: AISuggestionsProps) {
         {loading && suggestions.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-10 gap-3">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-500"></div>
-            <p className="text-sm text-gray-500 dark:text-gray-400">Analisando suas métricas...</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Flow.ai analisando suas métricas...</p>
           </div>
         ) : error ? (
           <div className="flex items-start gap-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg p-4">
@@ -278,9 +278,7 @@ export default function AISuggestions({ metrics }: AISuggestionsProps) {
       {(mode === 'demo' || mode === 'not_configured') && (
         <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
           <p className="text-xs text-gray-600 dark:text-gray-400">
-            💡 <strong>Para ativar análise por ChatGPT-4:</strong> adicione a variável{' '}
-            <code className="bg-gray-200 dark:bg-gray-700 px-1 rounded">OPENAI_API_KEY</code>{' '}
-            nos segredos do projeto. O ChatGPT-4 analisará suas métricas reais de WhatsApp, Facebook e Hotmart em tempo real.
+            💡 <strong>Para ativar a Flow.ai:</strong> configure a integração de IA nas configurações do projeto. A Flow.ai analisará suas métricas reais de WhatsApp, Facebook e Hotmart em tempo real.
           </p>
         </div>
       )}

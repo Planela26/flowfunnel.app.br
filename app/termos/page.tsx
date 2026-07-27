@@ -146,7 +146,31 @@ export default function TermosPage() {
             </section>
 
             <section className="space-y-3">
-              <h2 className="text-lg font-bold text-gray-900 dark:text-white">13. Contato</h2>
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white">13. Uso de Inteligência Artificial (Flow.ai)</h2>
+              <p>
+                A FlowFunnel disponibiliza a <strong>Flow.ai</strong>, assistente inteligente integrada à plataforma.
+              </p>
+              <p>
+                A Flow.ai utiliza modelos de inteligência artificial fornecidos pela <strong>OpenAI</strong> para interpretar solicitações,
+                gerar respostas e auxiliar na utilização dos recursos da plataforma.
+              </p>
+              <p>
+                As respostas da Flow.ai podem incluir conteúdo gerado por inteligência artificial e devem ser utilizadas como apoio
+                à tomada de decisão, não substituindo análise humana quando necessária.
+              </p>
+              <p>
+                Os dados enviados à Flow.ai poderão ser processados para gerar respostas e funcionalidades da plataforma, conforme
+                descrito em nossa Política de Privacidade e respeitando os mecanismos de segurança adotados pela FlowFunnel e
+                pelos provedores utilizados.
+              </p>
+              <p>
+                A identidade apresentada ao usuário é <strong>Flow.ai</strong>, enquanto os modelos da OpenAI são utilizados como
+                infraestrutura tecnológica para o funcionamento do assistente.
+              </p>
+            </section>
+
+            <section className="space-y-3">
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white">14. Contato</h2>
               <p>
                 Dúvidas sobre estes Termos podem ser enviadas para{' '}
                 <a href="mailto:contato@flowfunnel.app.br" className="text-blue-600 hover:underline">contato@flowfunnel.app.br</a>.

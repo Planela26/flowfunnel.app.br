@@ -271,14 +271,14 @@ export async function POST(request: Request) {
 
     if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === 'demo-mode') {
       return NextResponse.json({
-        resumo: 'Conecte sua chave OpenAI para ver análises detalhadas com IA.',
-        atencao: 'API Key não configurada.',
+        resumo: 'A Flow.ai não está ativa. Configure a integração de IA para ver análises detalhadas.',
+        atencao: 'Flow.ai não configurada.',
         dicas: [
-          'Configure a OPENAI_API_KEY nas configurações',
-          'Após configurar, análises detalhadas estarão disponíveis',
-          'A IA analisa CPM, CPC, CTR, conversões e ticket médio',
+          'Ative a Flow.ai nas configurações da plataforma',
+          'Após ativar, análises detalhadas estarão disponíveis em tempo real',
+          'A Flow.ai analisa CPM, CPC, CTR, conversões e ticket médio',
         ],
-        estimativa: 'Análises em tempo real disponíveis após configuração.',
+        estimativa: 'Análises em tempo real disponíveis após ativação da Flow.ai.',
       })
     }
 
@@ -286,7 +286,13 @@ export async function POST(request: Request) {
 
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
-      messages: [{ role: 'user', content: prompt }],
+      messages: [
+        {
+          role: 'system',
+          content: 'Você é a Flow.ai, assistente inteligente oficial da FlowFunnel. Especialista em marketing digital, funis de vendas, métricas e automações. Sempre responda em português do Brasil de forma clara e acionável. Nunca se identifique como GPT, ChatGPT ou qualquer produto da OpenAI.',
+        },
+        { role: 'user', content: prompt },
+      ],
       temperature: 0.7,
       max_tokens: 600,
       response_format: { type: 'json_object' },

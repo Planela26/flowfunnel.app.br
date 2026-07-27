@@ -73,7 +73,7 @@ export default function PrivacidadePage() {
               <ul className="list-disc pl-6 space-y-1">
                 <li><strong>Stripe</strong> — processamento de pagamentos</li>
                 <li><strong>Resend</strong> — envio de emails transacionais</li>
-                <li><strong>OpenAI</strong> — geração de sugestões e análises (quando habilitado)</li>
+                <li><strong>OpenAI</strong> — infraestrutura tecnológica da Flow.ai (assistente inteligente da plataforma)</li>
                 <li><strong>Meta, Google, TikTok</strong> — integrações de anúncios autorizadas pelo Usuário</li>
                 <li><strong>Hotmart, Kiwify, Eduzz, Monetizze, Perfect Pay</strong> — integrações de checkout autorizadas pelo Usuário</li>
                 <li><strong>Provedor de hospedagem em nuvem</strong> — armazenamento e processamento</li>

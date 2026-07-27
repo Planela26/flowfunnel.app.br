@@ -742,7 +742,7 @@ export default function Dashboard() {
           )
         })()}
 
-        {/* Sugestões do ChatGPT-4 */}
+        {/* Sugestões da Flow.ai */}
         <div className="mt-8">
           <AISuggestions
             metrics={{
