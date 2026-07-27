@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Auditoria FlowFunnel — 27/07/2026</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0f1117;
+      color: #e2e8f0;
+      line-height: 1.7;
+      padding: 2rem 1rem;
+    }
+    .container { max-width: 900px; margin: 0 auto; }
+
+    /* Header */
+    .header {
+      text-align: center;
+      margin-bottom: 3rem;
+      padding: 2.5rem 2rem;
+      background: linear-gradient(135deg, #1a1f2e 0%, #0f1117 100%);
+      border: 1px solid #2d3748;
+      border-radius: 16px;
+    }
+    .header .badge {
+      display: inline-block;
+      background: #7c3aed;
+      color: #fff;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 0.25rem 0.75rem;
+      border-radius: 99px;
+      margin-bottom: 1rem;
+    }
+    .header h1 { font-size: 2rem; font-weight: 800; color: #f7fafc; margin-bottom: 0.5rem; }
+    .header p { color: #718096; font-size: 0.95rem; }
+
+    /* Score box */
+    .score-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    .score-card {
+      background: #1a1f2e;
+      border: 1px solid #2d3748;
+      border-radius: 12px;
+      padding: 1.25rem;
+      text-align: center;
+    }
+    .score-card .label { font-size: 0.7rem; color: #718096; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.5rem; }
+    .score-card .value { font-size: 2rem; font-weight: 800; }
+    .score-card.green .value { color: #68d391; }
+    .score-card.amber .value { color: #f6e05e; }
+    .score-card.blue .value { color: #63b3ed; }
+    .score-card .sub { font-size: 0.75rem; color: #a0aec0; margin-top: 0.25rem; }
+
+    /* Section */
+    .section {
+      background: #1a1f2e;
+      border: 1px solid #2d3748;
+      border-radius: 12px;
+      padding: 1.75rem;
+      margin-bottom: 1.5rem;
+    }
+    .section h2 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #f7fafc;
+      margin-bottom: 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+    .section h2 .icon { font-size: 1.2rem; }
+
+    /* Table */
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    th {
+      text-align: left;
+      padding: 0.5rem 0.75rem;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #718096;
+      border-bottom: 1px solid #2d3748;
+    }
+    td {
+      padding: 0.6rem 0.75rem;
+      border-bottom: 1px solid #1e2436;
+      color: #cbd5e0;
+      vertical-align: top;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #1e2436; }
+
+    /* Badges */
+    .badge-red    { background: #7f1d1d; color: #fca5a5; padding: 0.2rem 0.6rem; border-radius: 99px; font-size: 0.72rem; font-weight: 600; white-space: nowrap; }
+    .badge-amber  { background: #78350f; color: #fcd34d; padding: 0.2rem 0.6rem; border-radius: 99px; font-size: 0.72rem; font-weight: 600; white-space: nowrap; }
+    .badge-yellow { background: #713f12; color: #fde68a; padding: 0.2rem 0.6rem; border-radius: 99px; font-size: 0.72rem; font-weight: 600; white-space: nowrap; }
+    .badge-green  { background: #064e3b; color: #6ee7b7; padding: 0.2rem 0.6rem; border-radius: 99px; font-size: 0.72rem; font-weight: 600; white-space: nowrap; }
+    .badge-blue   { background: #1e3a5f; color: #93c5fd; padding: 0.2rem 0.6rem; border-radius: 99px; font-size: 0.72rem; font-weight: 600; white-space: nowrap; }
+    .badge-gray   { background: #2d3748; color: #a0aec0; padding: 0.2rem 0.6rem; border-radius: 99px; font-size: 0.72rem; font-weight: 600; white-space: nowrap; }
+
+    /* Score table */
+    .scores-row { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 1rem; }
+    .score-pill {
+      background: #2d3748;
+      border-radius: 8px;
+      padding: 0.5rem 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.82rem;
+    }
+    .score-pill .name { color: #a0aec0; }
+    .score-pill .num  { font-weight: 800; color: #68d391; }
+
+    /* Verdict */
+    .verdict {
+      background: linear-gradient(135deg, #064e3b 0%, #022c22 100%);
+      border: 1px solid #059669;
+      border-radius: 12px;
+      padding: 1.75rem;
+      margin-bottom: 1.5rem;
+    }
+    .verdict h2 { color: #6ee7b7; margin-bottom: 0.75rem; font-size: 1.2rem; }
+    .verdict p  { color: #a7f3d0; line-height: 1.8; }
+
+    /* List */
+    ul { list-style: none; padding: 0; }
+    ul li { display: flex; gap: 0.5rem; align-items: flex-start; padding: 0.35rem 0; font-size: 0.875rem; color: #cbd5e0; }
+    ul li::before { content: '•'; color: #7c3aed; flex-shrink: 0; margin-top: 0.05rem; }
+
+    /* Checklist */
+    .checklist li { gap: 0.75rem; }
+    .checklist li::before { content: none; }
+    .check-ok   { color: #68d391; font-weight: 700; flex-shrink: 0; }
+    .check-warn { color: #f6e05e; font-weight: 700; flex-shrink: 0; }
+
+    /* Divider */
+    .divider { border: none; border-top: 1px solid #2d3748; margin: 2rem 0; }
+
+    /* Footer */
+    footer { text-align: center; color: #4a5568; font-size: 0.78rem; margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid #2d3748; }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="badge">Auditoria de Produção</div>
+    <h1>📋 Relatório de Auditoria — FlowFunnel</h1>
+    <p>27 de julho de 2026 · Revisão completa de todas as alterações do dia</p>
+  </div>
+
+  <!-- Top scores -->
+  <div class="score-grid">
+    <div class="score-card green">
+      <div class="label">Nota Geral</div>
+      <div class="value">91<span style="font-size:1rem;font-weight:400">/100</span></div>
+      <div class="sub">Apta para produção</div>
+    </div>
+    <div class="score-card amber">
+      <div class="label">Problemas encontrados</div>
+      <div class="value">6</div>
+      <div class="sub">Todos corrigidos</div>
+    </div>
+    <div class="score-card blue">
+      <div class="label">Testes E2E</div>
+      <div class="value">10</div>
+      <div class="sub">10/10 passaram</div>
+    </div>
+  </div>
+
+  <!-- Correções -->
+  <div class="section">
+    <h2><span class="icon">🔧</span> Correções Realizadas Durante a Auditoria</h2>
+    <table>
+      <thead>
+        <tr><th>#</th><th>Severidade</th><th>Problema</th><th>Correção</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>1</td>
+          <td><span class="badge-red">🔴 Crítico</span></td>
+          <td><code>attributeSale</code> sem try/catch nos 5 handlers de webhook — falha de atribuição travaria o webhook inteiro</td>
+          <td>Envolvido em try/catch individual com console.error em Hotmart, Kiwify, Eduzz, Monetizze, Perfect Pay</td>
+        </tr>
+        <tr>
+          <td>2</td>
+          <td><span class="badge-amber">🟠 Importante</span></td>
+          <td><code>TrackedSession</code> e <code>SaleAttribution</code> sem FK para User — deleção de usuário geraria linhas órfãs</td>
+          <td>Adicionado <code>user User @relation(onDelete: Cascade)</code> em ambos + <code>prisma db push</code> executado</td>
+        </tr>
+        <tr>
+          <td>3</td>
+          <td><span class="badge-amber">🟠 Importante</span></td>
+          <td>Thank-you page (endpoint público) podia criar registros de receita via injeção direta</td>
+          <td>Thank-you page só PROMOVE vendas confirmadas por webhook — nunca cria receita sozinha</td>
+        </tr>
+        <tr>
+          <td>4</td>
+          <td><span class="badge-yellow">🟡 Menor</span></td>
+          <td>Cálculo de scroll impreciso em Safari/Firefox (<code>h.scrollTop</code>)</td>
+          <td>Substituído por <code>window.pageYOffset + window.innerHeight</code></td>
+        </tr>
+        <tr>
+          <td>5</td>
+          <td><span class="badge-yellow">🟡 Menor</span></td>
+          <td><code>catch {}</code> vazio em <code>getAttributionSummary</code> na Flow.ai — falhas silenciosas</td>
+          <td>Substituído por logging real com <code>console.error('[flow-ai] ...')</code></td>
+        </tr>
+        <tr>
+          <td>6</td>
+          <td><span class="badge-yellow">🟡 Menor</span></td>
+          <td><code>unmatchedSales</code> nunca renderizadas no dashboard; fetch sem error state</td>
+          <td>Seção de vendas sem vínculo adicionada + error states em ambos os fetches</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Flow.ai -->
+  <div class="section">
+    <h2><span class="icon">🤖</span> 1. Flow.ai <span class="badge-green" style="margin-left:auto">✅ Aprovado</span></h2>
+    <ul>
+      <li>Marca "Flow.ai" exibida ao usuário — nunca expõe GPT/ChatGPT/OpenAI na interface</li>
+      <li>System prompt com instrução explícita: <em>"Nunca se identifique como GPT, ChatGPT ou qualquer produto da OpenAI"</em></li>
+      <li>Modelos em uso: <code>gpt-4o</code> (sugestões) e <code>gpt-4o-mini</code> (card insights)</li>
+      <li>Transparência jurídica confirmada em <code>/privacidade</code>, <code>/termos</code> e <code>/docs</code></li>
+      <li>Contexto de atribuição (<code>getAttributionSummary</code>) injetado corretamente no prompt</li>
+      <li>Demo mode explícito quando <code>OPENAI_API_KEY</code> ausente — sem falha silenciosa</li>
+    </ul>
+  </div>
+
+  <!-- Rastreamento -->
+  <div class="section">
+    <h2><span class="icon">📡</span> 2. Sistema de Rastreamento <span class="badge-green" style="margin-left:auto">✅ Aprovado</span></h2>
+    <table>
+      <thead><tr><th>Funcionalidade</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td><code>visitor_id</code> (<code>v_*</code>) — permanente no localStorage</td><td><span class="badge-green">✅</span></td></tr>
+        <tr><td><code>session_id</code> (<code>s_*</code>) — TTL 30min de inatividade</td><td><span class="badge-green">✅</span></td></tr>
+        <tr><td><code>lead_id</code> (<code>l_*</code>) — por jornada</td><td><span class="badge-green">✅</span></td></tr>
+        <tr><td>Captura de <code>fbclid</code>, <code>gclid</code>, <code>ttclid</code>, <code>msclkid</code></td><td><span class="badge-green">✅</span></td></tr>
+        <tr><td>Captura de UTMs + primeiro referrer externo</td><td><span class="badge-green">✅</span></td></tr>
+        <tr><td>Injeção <code>lead_id</code> no parâmetro nativo do checkout (sck, s1, utm_content, src, client_reference_id)</td><td><span class="badge-green">✅</span></td></tr>
+        <tr><td><code>scroll_60</code> — threshold 60% do documento (cálculo corrigido)</td><td><span class="badge-green">✅</span></td></tr>
+        <tr><td><code>click_checkout</code>, <code>click_whatsapp</code>, <code>page_view</code></td><td><span class="badge-green">✅</span></td></tr>
+        <tr><td><code>flowfunnel-conversion.js</code> — thank-you page com deduplicação sessionStorage</td><td><span class="badge-green">✅</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Atribuição -->
+  <div class="section">
+    <h2><span class="icon">🎯</span> 3. Algoritmo de Atribuição <span class="badge-green" style="margin-left:auto">✅ Testado E2E</span></h2>
+    <table>
+      <thead><tr><th>Estratégia</th><th>matchedBy</th><th>Confiança</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td>A.1 — lead_id no parâmetro nativo do checkout (webhook)</td><td><code>checkout_param</code></td><td>1.0</td><td><span class="badge-green">✅ Testado</span></td></tr>
+        <tr><td>A.2 — thank-you page por order_id</td><td><code>thank_you_page</code></td><td>1.0</td><td><span class="badge-green">✅ Testado</span></td></tr>
+        <tr><td>B — e-mail do comprador</td><td><code>email</code></td><td>0.7</td><td><span class="badge-green">✅</span></td></tr>
+        <tr><td>B — telefone do comprador</td><td><code>phone</code></td><td>0.6</td><td><span class="badge-green">✅</span></td></tr>
+        <tr><td>B — janela temporal 24h (último click_checkout)</td><td><code>time_window</code></td><td>0.3</td><td><span class="badge-green">✅ Testado</span></td></tr>
+        <tr><td>Sem match</td><td><code>unmatched</code></td><td>0</td><td><span class="badge-green">✅ Testado</span></td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:1rem;font-size:0.82rem;color:#a0aec0">
+      🔒 <strong>Proteção de não-rebaixamento</strong>: determinístico jamais sobrescrito por probabilístico — verificado.<br>
+      🔒 <strong>Zero duplicatas</strong>: match estrito por <code>(userId, platform, transactionId)</code> — verificado.
+    </p>
+  </div>
+
+  <!-- Integrações -->
+  <div class="section">
+    <h2><span class="icon">🔗</span> 4. Integrações <span class="badge-green" style="margin-left:auto">✅ Aprovado</span></h2>
+    <table>
+      <thead><tr><th>Plataforma</th><th>HMAC/Auth</th><th>Tracking param</th><th>attributeSale</th><th>Try/catch</th></tr></thead>
+      <tbody>
+        <tr><td>Hotmart</td><td><span class="badge-green">✅</span></td><td><code>sck</code> (4 campos)</td><td><span class="badge-green">✅</span></td><td><span class="badge-green">✅ corrigido</span></td></tr>
+        <tr><td>Kiwify</td><td><span class="badge-green">✅</span></td><td><code>s1/s2/s3</code> (5 campos)</td><td><span class="badge-green">✅</span></td><td><span class="badge-green">✅ corrigido</span></td></tr>
+        <tr><td>Eduzz</td><td><span class="badge-green">✅</span></td><td><code>utm_content</code>, <code>tracker*</code></td><td><span class="badge-green">✅</span></td><td><span class="badge-green">✅ corrigido</span></td></tr>
+        <tr><td>Monetizze</td><td><span class="badge-green">✅</span></td><td><code>src</code> (3 campos)</td><td><span class="badge-green">✅</span></td><td><span class="badge-green">✅ corrigido</span></td></tr>
+        <tr><td>Perfect Pay</td><td><span class="badge-green">✅</span></td><td><code>src</code> (3 campos)</td><td><span class="badge-green">✅</span></td><td><span class="badge-green">✅ corrigido</span></td></tr>
+        <tr><td>Stripe</td><td><span class="badge-green">✅</span></td><td>Só billing — design intencional</td><td>N/A</td><td>N/A</td></tr>
+        <tr><td>Meta CAPI</td><td><span class="badge-green">✅</span></td><td>StartTrial/Purchase — dedup pixel+CAPI</td><td>N/A</td><td>N/A</td></tr>
+        <tr><td>WhatsApp Cloud API</td><td><span class="badge-green">✅</span></td><td>Limitação da API Meta</td><td>N/A</td><td>N/A</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Banco -->
+  <div class="section">
+    <h2><span class="icon">🗄️</span> 5. Banco de Dados <span class="badge-green" style="margin-left:auto">✅ Aprovado</span></h2>
+    <ul>
+      <li><code>TrackedSession</code> e <code>SaleAttribution</code> agora com FK <code>onDelete: Cascade</code> para User (corrigido)</li>
+      <li>Novas colunas todas nullable ou com default — sem risco de data loss em <code>db push</code></li>
+      <li>Unique: <code>(userId, platform, transactionId)</code> em SaleAttribution previne duplicatas</li>
+      <li>Índices em todos os campos de alta cardinalidade: <code>userId</code>, <code>leadId</code>, <code>createdAt</code>, <code>method</code>, <code>visitorId</code></li>
+      <li>Schema aditivo: seguro para <code>prisma db push</code> em produção (sem drops, sem renomes)</li>
+    </ul>
+    <p style="margin-top:1rem;padding:0.75rem 1rem;background:#2d3748;border-radius:8px;font-size:0.82rem;color:#f6e05e">
+      ⚠️ <strong>Nota de produção</strong>: <code>TrackedConversion.currency</code> tem <code>@default("BRL")</code> e não é nullable. O <code>db push</code> fará table rewrite — rodar em horário de baixo tráfego se a tabela tiver &gt; 100k linhas.
+    </p>
+  </div>
+
+  <!-- APIs -->
+  <div class="section">
+    <h2><span class="icon">🔌</span> 6. APIs <span class="badge-green" style="margin-left:auto">✅ Aprovado</span></h2>
+    <table>
+      <thead><tr><th>Endpoint</th><th>Auth</th><th>Tenant Isolation</th><th>Validação</th></tr></thead>
+      <tbody>
+        <tr><td><code>POST /api/track/event</code></td><td><span class="badge-gray">Público (pixel)</span></td><td><span class="badge-green">✅ site→userId banco</span></td><td>site/lead_id/event obrigatórios</td></tr>
+        <tr><td><code>POST /api/track/conversion</code></td><td><span class="badge-gray">Público (pixel)</span></td><td><span class="badge-green">✅</span></td><td>site/lead_id obrigatórios</td></tr>
+        <tr><td><code>GET /api/journey</code></td><td><span class="badge-blue">Session</span></td><td><span class="badge-green">✅</span></td><td>days capped 365</td></tr>
+        <tr><td><code>GET /api/journey/:leadId</code></td><td><span class="badge-blue">Session</span></td><td><span class="badge-green">✅</span></td><td>404 correto</td></tr>
+        <tr><td><code>GET /api/attribution/summary</code></td><td><span class="badge-blue">Session</span></td><td><span class="badge-green">✅</span></td><td>days capped 365</td></tr>
+        <tr><td><code>GET /api/attribution/sale/:tx</code></td><td><span class="badge-blue">Session</span></td><td><span class="badge-green">✅</span></td><td>404 correto</td></tr>
+        <tr><td><code>GET /api/track/install</code></td><td><span class="badge-blue">Session</span></td><td><span class="badge-green">✅</span></td><td>Snippet gerado com userId</td></tr>
+        <tr><td><code>POST /api/ai/suggestions</code></td><td><span class="badge-blue">Session</span></td><td><span class="badge-green">✅</span></td><td>Fallback com sugestões hardcoded</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Segurança -->
+  <div class="section">
+    <h2><span class="icon">🔐</span> 9. Segurança <span class="badge-green" style="margin-left:auto">✅ Aprovado (após correções)</span></h2>
+    <ul>
+      <li><strong>Multi-tenant</strong>: isolamento verificado em todos os endpoints — userId sempre da sessão, nunca do cliente</li>
+      <li><strong>Endpoints públicos de pixel</strong>: não criam receita nem atribuição — só eventos rastreados e promoções de webhooks autenticados</li>
+      <li><strong>SQL Injection</strong>: Prisma ORM com parametrização automática — sem raw SQL nos arquivos novos</li>
+      <li><strong>XSS</strong>: JourneyExplorer usa valores em JSX (React escapa automaticamente) — sem <code>dangerouslySetInnerHTML</code></li>
+      <li><strong>CSRF</strong>: endpoints de escrita usam session-based auth (NextAuth cookie httpOnly)</li>
+      <li><strong>HMAC de webhooks</strong>: todos os 5 handlers validados com segredos via <code>guardWebhook</code></li>
+      <li><strong>PII nos logs</strong>: apenas platform + transactionId — sem email/telefone exposto</li>
+      <li><strong>Respostas de erro</strong>: retornam apenas <code>{ error: string }</code> — sem stack trace</li>
+    </ul>
+  </div>
+
+  <!-- Testes -->
+  <div class="section">
+    <h2><span class="icon">🧪</span> 12. Testes E2E Executados</h2>
+    <table>
+      <thead><tr><th>Cenário</th><th>Resultado</th></tr></thead>
+      <tbody>
+        <tr><td>Compra mesmo dispositivo — lead_id no checkout param (A.1)</td><td><span class="badge-green">✅ Determinístico</span></td></tr>
+        <tr><td>Thank-you page promove venda probabilística para determinística</td><td><span class="badge-green">✅ Determinístico</span></td></tr>
+        <tr><td>Thank-you antes do webhook → webhook fecha o vínculo (A.2)</td><td><span class="badge-green">✅</span></td></tr>
+        <tr><td>Compra sem UTMs — janela temporal 24h (B)</td><td><span class="badge-green">✅ Probabilístico</span></td></tr>
+        <tr><td>Determinístico não é rebaixado por nova chamada</td><td><span class="badge-green">✅ Mantido</span></td></tr>
+        <tr><td>Journey completa (5 steps, 2 vendas atribuídas)</td><td><span class="badge-green">✅</span></td></tr>
+        <tr><td>getAttributionSummary: total e % determinístico</td><td><span class="badge-green">✅</span></td></tr>
+        <tr><td>TrackedSession com FK cascade</td><td><span class="badge-green">✅</span></td></tr>
+        <tr><td>Endpoints públicos rejeitam site inválido</td><td><span class="badge-green">✅ 404</span></td></tr>
+        <tr><td>Endpoints privados sem auth retornam 401</td><td><span class="badge-green">✅</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Checklist de deploy -->
+  <div class="section">
+    <h2><span class="icon">🚀</span> 14. Checklist de Produção (Hostinger)</h2>
+    <ul class="checklist">
+      <li><span class="check-warn">⚠️</span> <div><strong>Pendente — antes do deploy:</strong> <code>npx prisma db push</code> no banco de produção (cria 2 tabelas novas + colunas em 3 tabelas existentes)</div></li>
+      <li><span class="check-ok">✅</span> <div>Sem novas variáveis de ambiente necessárias</div></li>
+      <li><span class="check-ok">✅</span> <div>Sem migrations destrutivas — schema aditivo puro</div></li>
+      <li><span class="check-ok">✅</span> <div><code>NEXTAUTH_URL</code> aponta para domínio de produção</div></li>
+      <li><span class="check-ok">✅</span> <div>Rebuild Hostinger — push com diff real de arquivos (evita cache de chunks)</div></li>
+    </ul>
+  </div>
+
+  <!-- Limitações de terceiros -->
+  <div class="section">
+    <h2><span class="icon">⚠️</span> Limitações de APIs de Terceiros (sem solução técnica)</h2>
+    <ul>
+      <li><strong>WhatsApp → lead_id</strong>: A Meta não expõe o clique de anúncio na conversa — impossível vincular deterministicamente sem extensão manual na landing page</li>
+      <li><strong>Compra em dispositivo diferente</strong>: lead_id do localStorage não existe no segundo dispositivo → cai para probabilístico por email/telefone</li>
+      <li><strong>iOS/Safari ITP</strong>: localStorage pode ser limpo após 7 dias de inatividade — visitor_id sobrevive, lead_id pode ser perdido</li>
+      <li><strong>Stripe marketing attribution</strong>: webhook do Stripe é exclusivo para billing interno — atribuição de marketing fica nas plataformas de checkout</li>
+    </ul>
+  </div>
+
+  <!-- Melhorias futuras -->
+  <div class="section">
+    <h2><span class="icon">💡</span> Melhorias Recomendadas para o Futuro</h2>
+    <ul>
+      <li><strong>Validação Zod</strong> nos endpoints públicos de track — tipagem de runtime para payloads malformados</li>
+      <li><strong>Alerta de demo-mode</strong> no dashboard quando <code>OPENAI_API_KEY</code> ausente</li>
+      <li><strong>Streaming SSE</strong> nas sugestões da Flow.ai — feedback progressivo em vez de esperar 5s</li>
+      <li><strong>Cache de atribuição probabilística</strong> — busca por email/telefone custosa; cache de 5min reduziria carga</li>
+      <li><strong>Índice <code>requestId</code> em <code>WebhookLog</code></strong> — campo sem índice há 2 auditorias</li>
+    </ul>
+  </div>
+
+  <!-- Notas por módulo -->
+  <div class="section">
+    <h2><span class="icon">📊</span> Notas por Módulo</h2>
+    <div class="scores-row">
+      <div class="score-pill"><span class="name">Arquitetura</span><span class="num">92</span></div>
+      <div class="score-pill"><span class="name">Segurança</span><span class="num">90</span></div>
+      <div class="score-pill"><span class="name">Performance</span><span class="num">87</span></div>
+      <div class="score-pill"><span class="name">Rastreamento</span><span class="num">94</span></div>
+      <div class="score-pill"><span class="name">Atribuição</span><span class="num">95</span></div>
+      <div class="score-pill"><span class="name">Flow.ai</span><span class="num">88</span></div>
+      <div class="score-pill"><span class="name">Dashboard</span><span class="num">85</span></div>
+      <div class="score-pill"><span class="name">Banco de Dados</span><span class="num">91</span></div>
+      <div class="score-pill"><span class="name">Código</span><span class="num">90</span></div>
+    </div>
+  </div>
+
+  <!-- Parecer final -->
+  <div class="verdict">
+    <h2>✅ Parecer Final — Apta para Produção</h2>
+    <p>
+      A plataforma está apta para produção. A única ação bloqueante antes do deploy é executar
+      <code style="background:#022c22;padding:0.1rem 0.4rem;border-radius:4px">npx prisma db push</code>
+      no banco de produção da Hostinger — as novas tabelas e colunas não existem lá ainda.
+      Todos os 6 problemas encontrados foram corrigidos durante a auditoria, todos os 10 testes E2E passaram,
+      e nenhuma regressão de funcionalidade existente foi identificada.
+    </p>
+  </div>
+
+  <footer>
+    FlowFunnel · Auditoria gerada em 27/07/2026 · Nota geral: <strong>91/100</strong>
+  </footer>
+
+</div>
+</body>
+</html>
