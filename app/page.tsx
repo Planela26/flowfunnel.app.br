@@ -500,7 +500,7 @@ export default function Home() {
                 role: 'Infoprodutor · Kiwify',
                 avatar: 'LM',
                 accent: 'from-blue-700 to-blue-500',
-                text: 'A Flow.ai me apontou que 70% dos meus leads chegavam mas não recebiam follow-up. Corrigi isso e meu faturamento subiu 60% no mês seguinte.',
+                text: 'A Sara.ai me apontou que 70% dos meus leads chegavam mas não recebiam follow-up. Corrigi isso e meu faturamento subiu 60% no mês seguinte.',
                 metric: '+60% faturamento',
               },
               {
@@ -575,8 +575,8 @@ export default function Home() {
                 a: 'Sim, todas elas. Também integra com Facebook Ads (Meta) e WhatsApp Business API. Novos conectores são adicionados regularmente sem custo adicional.',
               },
               {
-                q: 'O que é a Flow.ai?',
-                a: 'A Flow.ai é a assistente inteligente oficial da FlowSara. A cada atualização do painel, ela analisa seus dados reais (conversas, cliques, vendas) e gera recomendações específicas para melhorar seu funil — onde estão os gargalos e o que fazer para escalar.',
+                q: 'O que é a Sara.ai?',
+                a: 'A Sara.ai é a assistente inteligente oficial da FlowSara. A cada atualização do painel, ela analisa seus dados reais (conversas, cliques, vendas) e gera recomendações específicas para melhorar seu funil — onde estão os gargalos e o que fazer para escalar.',
               },
               {
                 q: 'Posso cancelar quando quiser?',

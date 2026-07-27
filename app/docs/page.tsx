@@ -249,7 +249,7 @@ export default function DocsPage() {
         <div className="kpi-grid">
           {[
             { icon: '🔗', title: 'Funil Completo', desc: 'Do clique no anúncio até a confirmação de pagamento — sem gaps de dados' },
-            { icon: '🤖', title: 'Flow.ai Integrada', desc: 'Lead scoring automático e sugestões de otimização via Flow.ai' },
+            { icon: '🤖', title: 'Sara.ai Integrada', desc: 'Lead scoring automático e sugestões de otimização via Sara.ai' },
             { icon: '📱', title: 'WhatsApp Native', desc: 'Rastreamento real de conversas via WhatsApp Business API oficial' },
             { icon: '🇧🇷', title: '100% Brasileiro', desc: 'Suporte a Mercado Pago PIX, todas as plataformas BR nativas' },
             { icon: '⚡', title: 'Real Time', desc: 'Métricas atualizadas em tempo real, alertas imediatos de anomalias' },
@@ -297,7 +297,7 @@ export default function DocsPage() {
           },
           {
             icon: '🤖', name: 'Inteligência de IA', route: '/conversion-intelligence',
-            desc: 'Flow.ai — assistente inteligente da FlowSara — analisa os dados do funil e gera sugestões acionáveis: quais campanhas pausar, onde investir mais, quais leads priorizar.',
+            desc: 'Sara.ai — assistente inteligente da FlowSara — analisa os dados do funil e gera sugestões acionáveis: quais campanhas pausar, onde investir mais, quais leads priorizar.',
             features: ['Lead scoring 0–100 (quente/morno/frio)', 'Sugestões automáticas de otimização', 'Diagnóstico de tráfego desperdiçado', 'Alertas inteligentes de anomalias'],
           },
           {
@@ -362,7 +362,7 @@ export default function DocsPage() {
             <tr><td>Autenticação</td><td><strong>NextAuth.js</strong></td><td>4.24.5</td><td>Credentials + Google OAuth, JWT sessions</td></tr>
             <tr><td>Gráficos</td><td><strong>Recharts</strong></td><td>2.15.4</td><td>LineChart, BarChart, PieChart, AreaChart</td></tr>
             <tr><td>Diagrama de Funil</td><td><strong>React Flow (@xyflow)</strong></td><td>12.10.2</td><td>Visualização interativa do funil</td></tr>
-            <tr><td>IA</td><td><strong>Flow.ai (OpenAI API)</strong></td><td>6.16.0</td><td>Flow.ai, lead scoring, sugestões</td></tr>
+            <tr><td>IA</td><td><strong>Sara.ai (OpenAI API)</strong></td><td>6.16.0</td><td>Sara.ai, lead scoring, sugestões</td></tr>
             <tr><td>Pagamentos</td><td><strong>Stripe</strong></td><td>21.0.1</td><td>Assinaturas, checkout embedded, portal</td></tr>
             <tr><td>Pagamentos BR</td><td><strong>Mercado Pago</strong></td><td>SDK v2</td><td>PIX, boleto, cartão — Payment Brick</td></tr>
             <tr><td>Email</td><td><strong>Resend</strong></td><td>6.9.4</td><td>Transacional: boas-vindas, reset, alertas</td></tr>
@@ -388,7 +388,7 @@ export default function DocsPage() {
           <div>                │  /api/whatsapp/*    │ ← WhatsApp Business Cloud API</div>
           <div>                │  /api/stripe/*      │ ← Stripe Billing & Payments</div>
           <div>                │  /api/mercadopago/* │ ← Mercado Pago (PIX/Boleto/Cartão)</div>
-          <div>                │  /api/ai/*          │ ← Flow.ai</div>
+          <div>                │  /api/ai/*          │ ← Sara.ai</div>
           <div>                │  /api/analytics/*   │ ← Timeseries, comparativo</div>
           <div>                └──────────┬──────────┘</div>
           <div style={{ color: '#FBBF24', fontWeight: 700, marginTop: 8, marginBottom: 4 }}>CAMADA DE DADOS — Prisma ORM + PostgreSQL</div>
@@ -455,7 +455,7 @@ export default function DocsPage() {
           <div>│   │   ├── google/             # Metrics (demo + real)</div>
           <div>│   │   ├── tiktok/             # Metrics (demo + real)</div>
           <div>│   │   ├── whatsapp/           # Messages, metrics, QR stream</div>
-          <div>│   │   ├── ai/                 # Flow.ai sugestões, card-insight</div>
+          <div>│   │   ├── ai/                 # Sara.ai sugestões, card-insight</div>
           <div>│   │   ├── cron/               # snapshot (diário), alerts (diário)</div>
           <div>│   │   ├── reports/            # Relatório, export-csv, export-pdf</div>
           <div>│   │   ├── leads/              # CRUD leads, scored (PRO+)</div>
@@ -565,7 +565,7 @@ export default function DocsPage() {
           },
           {
             mod: '🤖 Motor de IA', files: ['lib/leadScoring.ts', 'app/api/ai/suggestions/route.ts', 'app/api/ai/card-insight/route.ts', 'app/api/analytics/trends/route.ts'],
-            desc: 'Lead scoring 0–100 baseado em: número de interações, tempo de resposta, estágio no funil, frequência de mensagens. Sugestões Flow.ai contextualizadas com dados reais do funil. Diagnóstico de tendências e alertas de anomalia. Feature exclusiva PRO/SCALE.',
+            desc: 'Lead scoring 0–100 baseado em: número de interações, tempo de resposta, estágio no funil, frequência de mensagens. Sugestões Sara.ai contextualizadas com dados reais do funil. Diagnóstico de tendências e alertas de anomalia. Feature exclusiva PRO/SCALE.',
             importance: 'ALTO',
           },
           {
@@ -724,7 +724,7 @@ export default function DocsPage() {
 
         <h3>APIs e Integrações Externas</h3>
         <div style={{ display: 'flex', flexWrap: 'wrap', marginBottom: 16 }}>
-          {['Meta Ads Insights API', 'WhatsApp Business Cloud API', 'Google Ads API', 'TikTok Ads API', 'Stripe Billing API', 'Mercado Pago Payments API', 'Flow.ai API', 'Resend Email API', 'Hotmart Webhook', 'Kiwify Webhook', 'Eduzz Webhook', 'Monetizze Webhook', 'Perfect Pay Webhook', 'NextAuth Providers'].map(i => (
+          {['Meta Ads Insights API', 'WhatsApp Business Cloud API', 'Google Ads API', 'TikTok Ads API', 'Stripe Billing API', 'Mercado Pago Payments API', 'Sara.ai API', 'Resend Email API', 'Hotmart Webhook', 'Kiwify Webhook', 'Eduzz Webhook', 'Monetizze Webhook', 'Perfect Pay Webhook', 'NextAuth Providers'].map(i => (
             <span key={i} className="integration-pill">{i}</span>
           ))}
         </div>
@@ -757,7 +757,7 @@ export default function DocsPage() {
               ['@prisma/client', '^5.8.1', 'Database', 'ORM type-safe'],
               ['next-auth', '^4.24.5', 'Auth', 'Authentication'],
               ['stripe', '^21.0.1', 'Payments', 'Billing e assinaturas'],
-              ['openai', '^6.16.0', 'IA', 'Flow.ai (infraestrutura)'],
+              ['openai', '^6.16.0', 'IA', 'Sara.ai (infraestrutura)'],
               ['recharts', '^2.15.4', 'Charts', 'Visualização de dados'],
               ['@xyflow/react', '^12.10.2', 'Viz', 'Diagrama do funil'],
               ['resend', '^6.9.4', 'Email', 'Emails transacionais'],
@@ -1220,7 +1220,7 @@ export default function DocsPage() {
         <h3>Recursos Implementados (Versão 1.0)</h3>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 20 }}>
           {[
-            'Dashboard com FunnelFlow visual', 'Meta Ads + Google Ads + TikTok Ads', 'WhatsApp Business API', 'Hotmart + Kiwify + Eduzz + Monetizze', 'Lead Scoring com IA', 'Flow.ai', 'Analytics Timeseries', 'Relatórios PDF + CSV', 'CRM Kanban', 'Metas e Progresso', 'Stripe + Mercado Pago', 'Trial 7 dias sem cartão', 'Programa de Afiliados', 'Convite de Equipe (Viewer)', 'Pixel de Rastreamento UTM', 'Alertas Automáticos (SCALE)', 'LGPD + Termos + Privacidade', 'Reset de Senha + Verificação Email', 'Admin Panel', 'Export PDF + CSV', 'CSP + Rate Limiting', 'Webhook Dedup', 'MetricSnapshots Diários',
+            'Dashboard com FunnelFlow visual', 'Meta Ads + Google Ads + TikTok Ads', 'WhatsApp Business API', 'Hotmart + Kiwify + Eduzz + Monetizze', 'Lead Scoring com IA', 'Sara.ai', 'Analytics Timeseries', 'Relatórios PDF + CSV', 'CRM Kanban', 'Metas e Progresso', 'Stripe + Mercado Pago', 'Trial 7 dias sem cartão', 'Programa de Afiliados', 'Convite de Equipe (Viewer)', 'Pixel de Rastreamento UTM', 'Alertas Automáticos (SCALE)', 'LGPD + Termos + Privacidade', 'Reset de Senha + Verificação Email', 'Admin Panel', 'Export PDF + CSV', 'CSP + Rate Limiting', 'Webhook Dedup', 'MetricSnapshots Diários',
           ].map(f => <span key={f} className="badge badge-green">{f}</span>)}
         </div>
 
@@ -1377,7 +1377,7 @@ export default function DocsPage() {
               ['FunnelFlow.tsx', 'Visualizador React Flow do funil (552 linhas)', 'CRÍTICO'],
               ['DashboardSidebar.tsx', 'Navegação lateral desktop', 'ALTO'],
               ['WorkspaceTabs.tsx', 'Seletor de funil/workspace (464 linhas)', 'ALTO'],
-              ['AISuggestions.tsx', 'Flow.ai — sugestões contextualizadas (289 linhas)', 'ALTO'],
+              ['AISuggestions.tsx', 'Sara.ai — sugestões contextualizadas (289 linhas)', 'ALTO'],
               ['NotificationCenter.tsx', 'Central de notificações in-app', 'MÉDIO'],
               ['LeadKanban.tsx', 'CRM Kanban drag-and-drop', 'ALTO'],
               ['LeadIntelligence.tsx', 'Lead scoring PRO com preview bloqueado', 'MÉDIO'],

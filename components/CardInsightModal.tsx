@@ -129,7 +129,7 @@ export default function CardInsightModal({ cardType, cardData, onClose }: CardIn
               <Sparkles className="w-4.5 h-4.5 text-purple-600 dark:text-purple-400 w-5 h-5" />
             </div>
             <div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 leading-none mb-0.5">Análise por Flow.ai</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 leading-none mb-0.5">Análise por Sara.ai</p>
               <h2 className={`text-sm font-bold ${meta.color}`}>{meta.name}</h2>
             </div>
           </div>
@@ -150,7 +150,7 @@ export default function CardInsightModal({ cardType, cardData, onClose }: CardIn
                 Sem dados para analisar
               </p>
               <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">
-                Conecte essa integração no Dashboard para que a Flow.ai analise os dados disponíveis.
+                Conecte essa integração no Dashboard para que a Sara.ai analise os dados disponíveis.
                 Se existir qualquer card com dados, reais ou de demonstração, a análise aparece.
               </p>
             </div>
@@ -159,7 +159,7 @@ export default function CardInsightModal({ cardType, cardData, onClose }: CardIn
           {dataReady && loading && (
             <div className="flex flex-col items-center justify-center py-10 gap-3">
               <Loader2 className="w-8 h-8 text-gray-500 animate-spin" />
-              <p className="text-sm text-gray-500 dark:text-gray-400">Flow.ai analisando seus dados...</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Sara.ai analisando seus dados...</p>
             </div>
           )}
 
@@ -233,7 +233,7 @@ export default function CardInsightModal({ cardType, cardData, onClose }: CardIn
 
         {/* Footer */}
         <div className="px-6 py-3 border-t border-gray-200 dark:border-gray-800 flex justify-between items-center">
-          <p className="text-[10px] text-gray-400">Flow.ai · Resultados podem variar</p>
+          <p className="text-[10px] text-gray-400">Sara.ai · Resultados podem variar</p>
           <button
             onClick={() => {
               if (cooldownRemaining > 0 || !dataReady) return

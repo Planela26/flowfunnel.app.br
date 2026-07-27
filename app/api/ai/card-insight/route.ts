@@ -271,14 +271,14 @@ export async function POST(request: Request) {
 
     if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === 'demo-mode') {
       return NextResponse.json({
-        resumo: 'A Flow.ai não está ativa. Configure a integração de IA para ver análises detalhadas.',
-        atencao: 'Flow.ai não configurada.',
+        resumo: 'A Sara.ai não está ativa. Configure a integração de IA para ver análises detalhadas.',
+        atencao: 'Sara.ai não configurada.',
         dicas: [
-          'Ative a Flow.ai nas configurações da plataforma',
+          'Ative a Sara.ai nas configurações da plataforma',
           'Após ativar, análises detalhadas estarão disponíveis em tempo real',
-          'A Flow.ai analisa CPM, CPC, CTR, conversões e ticket médio',
+          'A Sara.ai analisa CPM, CPC, CTR, conversões e ticket médio',
         ],
-        estimativa: 'Análises em tempo real disponíveis após ativação da Flow.ai.',
+        estimativa: 'Análises em tempo real disponíveis após ativação da Sara.ai.',
       })
     }
 
@@ -289,7 +289,7 @@ export async function POST(request: Request) {
       messages: [
         {
           role: 'system',
-          content: 'Você é a Flow.ai, assistente inteligente oficial da FlowSara. Especialista em marketing digital, funis de vendas, métricas e automações. Sempre responda em português do Brasil de forma clara e acionável. Nunca se identifique como GPT, ChatGPT ou qualquer produto da OpenAI.',
+          content: 'Você é a Sara.ai, assistente inteligente oficial da FlowSara. Especialista em marketing digital, funis de vendas, métricas e automações. Sempre responda em português do Brasil de forma clara e acionável. Nunca se identifique como GPT, ChatGPT ou qualquer produto da OpenAI.',
         },
         { role: 'user', content: prompt },
       ],

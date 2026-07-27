@@ -49,7 +49,7 @@ const PLANS = [
       '1.000 conversas/mês',
       'WhatsApp + Facebook Ads',
       'Hotmart + Kiwify',
-      'Análise Flow.ai',
+      'Análise Sara.ai',
       'Relatórios e Leads',
       'Suporte por email',
     ],

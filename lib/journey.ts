@@ -1,7 +1,7 @@
 import { prismaAdmin as prisma } from './prisma'
 
 /**
- * Consulta de jornada do cliente — usada pelas APIs internas e pela Flow.ai.
+ * Consulta de jornada do cliente — usada pelas APIs internas e pela Sara.ai.
  * Monta a timeline completa de um lead: eventos do tracker, sessões,
  * conversas WhatsApp, conversões e atribuições de venda.
  */
@@ -186,7 +186,7 @@ export async function getSaleOrigin(userId: string, transactionId: string) {
   return { attribution, journey }
 }
 
-/** Resumo de atribuição do tenant (para dashboards e Flow.ai). */
+/** Resumo de atribuição do tenant (para dashboards e Sara.ai). */
 export async function getAttributionSummary(userId: string, sinceDays = 30) {
   const since = new Date(Date.now() - sinceDays * 24 * 60 * 60 * 1000)
   const rows = await prisma.saleAttribution.findMany({

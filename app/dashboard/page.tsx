@@ -742,7 +742,7 @@ export default function Dashboard() {
           )
         })()}
 
-        {/* Sugestões da Flow.ai */}
+        {/* Sugestões da Sara.ai */}
         <div className="mt-8">
           <AISuggestions
             metrics={{

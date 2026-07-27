@@ -4,7 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { getLeadJourney } from '@/lib/journey'
 
 // GET /api/journey/:leadId — timeline completa de um lead rastreado.
-// Usada pelo dashboard (visualização de jornada) e pela Flow.ai.
+// Usada pelo dashboard (visualização de jornada) e pela Sara.ai.
 export async function GET(_request: Request, { params }: { params: Promise<{ leadId: string }> }) {
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) {
