@@ -49,8 +49,17 @@ export async function POST(req: Request) {
       (process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : 'http://localhost:5000')
     const resetUrl = `${appUrl}/reset-password?token=${token}`
 
-    await sendPasswordResetEmail(user.email, user.name || '', resetUrl)
+    // Envia o email em bloco isolado — falhas do Resend (domínio não verificado,
+    // timeout de rede) não devem retornar 500 para o usuário. O token já foi
+    // persistido; o usuário pode tentar novamente.
+    try {
+      await sendPasswordResetEmail(user.email, user.name || '', resetUrl)
+    } catch (emailErr) {
+      // Loga para diagnóstico mas não expõe ao cliente.
+      console.error('[forgot-password] falha ao enviar email:', emailErr)
+    }
 
+    // logAudit é best-effort (tem try/catch interno), nunca lança.
     await logAudit({
       action: 'auth.password_reset_request',
       result: 'success',
@@ -63,7 +72,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Forgot password error:', error)
-    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
+    console.error('[forgot-password] erro interno:', error)
+    return NextResponse.json({ error: 'Erro interno. Tente novamente em alguns instantes.' }, { status: 500 })
   }
 }

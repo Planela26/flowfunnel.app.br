@@ -56,6 +56,10 @@ export async function POST(req: Request) {
           // Se ainda não verificou o email, marca agora — o link de reset
           // já prova que o usuário tem acesso à caixa de entrada.
           emailVerified: resetToken.user.emailVerified ?? new Date(),
+          // SEGURANÇA: invalida TODOS os JWTs/sessões em outros devices.
+          // Sem isto, um atacante com sessão roubada mantém acesso mesmo
+          // após a vítima redefinir a senha.
+          sessionVersion: { increment: 1 },
         },
       }),
       prisma.passwordResetToken.update({
