@@ -228,10 +228,10 @@ export default function CampaignsPage() {
               <ArrowLeft className="w-5 h-5" />
             </Link>
             <div className="w-9 h-9 rounded-full overflow-hidden shadow-sm flex-shrink-0">
-              <img src="/flowfunnel-logo.jpg" alt="FlowFunnel" className="w-full h-full object-cover" />
+              <img src="/flowsara-logo.jpg" alt="FlowSara" className="w-full h-full object-cover" />
             </div>
             <div>
-              <span className="text-lg font-extrabold text-gray-900 dark:text-white tracking-tight leading-none">FlowFunnel</span>
+              <span className="text-lg font-extrabold text-gray-900 dark:text-white tracking-tight leading-none">FlowSara</span>
               <p className="text-xs text-gray-500 dark:text-gray-400">Campanhas</p>
             </div>
           </div>
@@ -294,7 +294,7 @@ export default function CampaignsPage() {
             ) : (
               <>
                 <p className="text-gray-500 dark:text-gray-400 max-w-md mb-6">
-                  Conecte sua conta do {currentSource.label} para sincronizar campanhas e visualizar métricas diretamente no FlowFunnel.
+                  Conecte sua conta do {currentSource.label} para sincronizar campanhas e visualizar métricas diretamente no FlowSara.
                 </p>
                 <Link
                   href="/settings"

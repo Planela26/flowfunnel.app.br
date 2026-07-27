@@ -163,7 +163,7 @@ function InvitePageInner() {
               </h1>
               <p className="text-gray-600 text-base leading-relaxed mb-4">
                 <strong className="text-gray-900">{owner.name || owner.email}</strong> convidou voce para
-                acessar o painel do FlowFunnel como <strong>Visualizador</strong>.
+                acessar o painel do FlowSara como <strong>Visualizador</strong>.
               </p>
               <div className="flex items-center justify-center gap-2 text-blue-700 bg-blue-100 rounded-xl px-4 py-3 text-sm font-medium">
                 <ShieldCheck className="w-4 h-4" />
@@ -200,7 +200,7 @@ function InvitePageInner() {
             </h1>
             <p className="text-gray-600 text-base leading-relaxed mb-4">
               <strong className="text-gray-900">{owner.name || owner.email}</strong> convidou voce para
-              o time do FlowFunnel com permissao de <strong>{member.role === 'EDITOR' ? 'Editor' : 'Admin'}</strong>.
+              o time do FlowSara com permissao de <strong>{member.role === 'EDITOR' ? 'Editor' : 'Admin'}</strong>.
             </p>
             <div className="flex items-center justify-center gap-2 text-amber-700 bg-amber-50 rounded-xl px-4 py-3 text-sm font-medium">
               <Lock className="w-4 h-4" />
@@ -232,9 +232,9 @@ function InvitePageInner() {
         <div className="max-w-7xl mx-auto px-6 py-3.5 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-11 h-11 rounded-full overflow-hidden flex-shrink-0">
-              <img src="/flowfunnel-logo.jpg" alt="FlowFunnel" className="w-full h-full object-cover" />
+              <img src="/flowsara-logo.jpg" alt="FlowSara" className="w-full h-full object-cover" />
             </div>
-            <span className="text-xl font-extrabold text-white tracking-tight leading-none">FlowFunnel</span>
+            <span className="text-xl font-extrabold text-white tracking-tight leading-none">FlowSara</span>
           </div>
           <div className="flex items-center gap-3">
             <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-500/20 text-blue-200 text-xs font-bold rounded-full border border-blue-500/30">

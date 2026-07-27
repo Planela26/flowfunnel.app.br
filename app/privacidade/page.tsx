@@ -2,9 +2,9 @@ import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 
 export const metadata = {
-  title: 'Política de Privacidade — FlowFunnel',
+  title: 'Política de Privacidade — FlowSara',
   description:
-    'Política de Privacidade e proteção de dados (LGPD) da plataforma FlowFunnel.',
+    'Política de Privacidade e proteção de dados (LGPD) da plataforma FlowSara.',
 }
 
 export default function PrivacidadePage() {
@@ -32,7 +32,7 @@ export default function PrivacidadePage() {
             <section className="space-y-3">
               <h2 className="text-lg font-bold text-gray-900 dark:text-white">1. Quem somos</h2>
               <p>
-                O FlowFunnel (&ldquo;nós&rdquo;) é uma plataforma SaaS de gestão de funis de vendas e integrações com WhatsApp Business, plataformas de anúncios e checkouts. Esta política descreve como coletamos, usamos, armazenamos e protegemos seus dados pessoais.
+                O FlowSara (&ldquo;nós&rdquo;) é uma plataforma SaaS de gestão de funis de vendas e integrações com WhatsApp Business, plataformas de anúncios e checkouts. Esta política descreve como coletamos, usamos, armazenamos e protegemos seus dados pessoais.
               </p>
             </section>
 

@@ -1,6 +1,6 @@
-# FlowFunnel — Disaster Recovery (DR) Runbook
+# FlowSara — Disaster Recovery (DR) Runbook
 
-How to recover the FlowFunnel database and application after data loss,
+How to recover the FlowSara database and application after data loss,
 corruption, a bad migration, or accidental deletion.
 
 ## Recovery objectives

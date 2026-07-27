@@ -77,7 +77,7 @@ export async function GET(request: NextRequest) {
           auth: state,
           printQRInTerminal: false,
           logger: pino({ level: 'silent' }),
-          browser: ['FlowFunnel', 'Chrome', '120.0'],
+          browser: ['FlowSara', 'Chrome', '120.0'],
           connectTimeoutMs: 60_000,
           qrTimeout: 60_000,
         })

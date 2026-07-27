@@ -27,9 +27,9 @@ export default function Home() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 sm:w-11 sm:h-11 rounded-full overflow-hidden flex-shrink-0">
-              <img src="/flowfunnel-logo.jpg" alt="FlowFunnel" className="w-full h-full object-cover" />
+              <img src="/flowsara-logo.jpg" alt="FlowSara" className="w-full h-full object-cover" />
             </div>
-            <span className="text-base sm:text-xl font-extrabold text-white tracking-tight leading-none">FlowFunnel</span>
+            <span className="text-base sm:text-xl font-extrabold text-white tracking-tight leading-none">FlowSara</span>
           </div>
           {/* Desktop nav */}
           <nav className="hidden sm:flex items-center gap-2">
@@ -381,7 +381,7 @@ export default function Home() {
       <section className="py-20 px-6 bg-white">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-14">
-            <span className="inline-block bg-blue-700 text-white text-xs font-black px-4 py-2 rounded-full uppercase tracking-widest shadow-lg shadow-blue-700/30">🧠 Como o FlowFunnel resolve isso</span>
+            <span className="inline-block bg-blue-700 text-white text-xs font-black px-4 py-2 rounded-full uppercase tracking-widest shadow-lg shadow-blue-700/30">🧠 Como o FlowSara resolve isso</span>
             <h2 className="text-4xl sm:text-5xl md:text-6xl font-black text-gray-900 mt-5 mb-5 tracking-tight leading-[1.1]">
               Tudo conectado,{' '}
               <span className="bg-gradient-to-r from-blue-700 via-blue-600 to-blue-500 bg-clip-text text-transparent">tudo visível,</span>
@@ -576,7 +576,7 @@ export default function Home() {
               },
               {
                 q: 'O que é a Flow.ai?',
-                a: 'A Flow.ai é a assistente inteligente oficial da FlowFunnel. A cada atualização do painel, ela analisa seus dados reais (conversas, cliques, vendas) e gera recomendações específicas para melhorar seu funil — onde estão os gargalos e o que fazer para escalar.',
+                a: 'A Flow.ai é a assistente inteligente oficial da FlowSara. A cada atualização do painel, ela analisa seus dados reais (conversas, cliques, vendas) e gera recomendações específicas para melhorar seu funil — onde estão os gargalos e o que fazer para escalar.',
               },
               {
                 q: 'Posso cancelar quando quiser?',
@@ -638,16 +638,16 @@ export default function Home() {
         <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-5">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-full overflow-hidden flex-shrink-0 ring-1 ring-white/10">
-              <img src="/flowfunnel-logo.jpg" alt="FlowFunnel" className="w-full h-full object-cover" />
+              <img src="/flowsara-logo.jpg" alt="FlowSara" className="w-full h-full object-cover" />
             </div>
-            <span className="text-lg font-bold text-gray-200">FlowFunnel</span>
+            <span className="text-lg font-bold text-gray-200">FlowSara</span>
           </div>
           <div className="flex gap-6 text-sm">
             <Link href="/termos" className="text-gray-500 hover:text-white transition">Termos de Uso</Link>
             <Link href="/privacidade" className="text-gray-500 hover:text-white transition">Privacidade</Link>
             <Link href="/lgpd" className="text-gray-500 hover:text-white transition">LGPD</Link>
           </div>
-          <p className="text-gray-600 text-sm">© 2026 FlowFunnel</p>
+          <p className="text-gray-600 text-sm">© 2026 FlowSara</p>
         </div>
       </footer>
 

@@ -8,7 +8,7 @@ export default function DocsPage() {
   const [printMode, setPrintMode] = useState(false)
 
   useEffect(() => {
-    document.title = 'FlowFunnel — Documentação Técnica Completa'
+    document.title = 'FlowSara — Documentação Técnica Completa'
   }, [])
 
   return (
@@ -93,7 +93,7 @@ export default function DocsPage() {
             <div className="cover-logo">FF</div>
           </div>
           <h1 style={{ fontSize: '3.4rem', fontWeight: 900, color: DARK, lineHeight: 1.1, marginBottom: 12 }}>
-            FlowFunnel
+            FlowSara
           </h1>
           <p style={{ fontSize: '1.4rem', color: '#2563EB', fontWeight: 700, marginBottom: 8 }}>
             Documentação Técnica e Comercial Completa
@@ -175,7 +175,7 @@ export default function DocsPage() {
         <hr className="section-divider" style={{ marginTop: 32 }} />
         <h2>Sobre este Documento</h2>
         <p>
-          Este documento foi gerado automaticamente mediante varredura completa do código-fonte da plataforma FlowFunnel 
+          Este documento foi gerado automaticamente mediante varredura completa do código-fonte da plataforma FlowSara 
           em junho de 2026. Contém dados reais do projeto: métricas de código, arquitetura, integrações, modelo de 
           negócio e projeções financeiras.
         </p>
@@ -186,7 +186,7 @@ export default function DocsPage() {
         </p>
         <div className="highlight-box">
           <strong>Confidencialidade:</strong> Este documento contém informações estratégicas, técnicas e financeiras 
-          da FlowFunnel. Sua reprodução ou distribuição sem autorização expressa é proibida.
+          da FlowSara. Sua reprodução ou distribuição sem autorização expressa é proibida.
         </div>
       </div>
 
@@ -196,15 +196,15 @@ export default function DocsPage() {
       <div className="page">
         <h2 style={{ marginTop: 0 }}>Seção 1 — Visão Geral da Empresa</h2>
 
-        <h3>O que é a FlowFunnel?</h3>
+        <h3>O que é a FlowSara?</h3>
         <p>
-          FlowFunnel é uma plataforma SaaS brasileira especializada no <strong>rastreamento e qualificação de funis de 
+          FlowSara é uma plataforma SaaS brasileira especializada no <strong>rastreamento e qualificação de funis de 
           vendas via WhatsApp</strong>. A plataforma conecta dados de tráfego pago (Meta Ads, Google Ads, TikTok Ads) 
           com dados de conversação no WhatsApp e dados de venda nas principais plataformas de infoprodutos do Brasil 
           (Hotmart, Kiwify, Eduzz, Monetizze, Perfect Pay).
         </p>
         <p>
-          Ao contrário de ferramentas de automação, a FlowFunnel <strong>não envia mensagens</strong> — ela 
+          Ao contrário de ferramentas de automação, a FlowSara <strong>não envia mensagens</strong> — ela 
           <em>rastreia, qualifica e quantifica</em> cada etapa do funil de vendas, gerando métricas de ROI, CPL, 
           taxa de conversão e inteligência de IA para decisões de investimento em tráfego.
         </p>
@@ -212,7 +212,7 @@ export default function DocsPage() {
         <h3>Problema que Resolve</h3>
         <div className="two-col">
           <div className="arch-box">
-            <h4>🔴 Cenário Atual (Sem FlowFunnel)</h4>
+            <h4>🔴 Cenário Atual (Sem FlowSara)</h4>
             <ul>
               <li>Empreendedor investe em tráfego pago sem saber o ROI real</li>
               <li>Não sabe quantas conversas WhatsApp vieram de cada anúncio</li>
@@ -222,7 +222,7 @@ export default function DocsPage() {
             </ul>
           </div>
           <div className="arch-box" style={{ borderColor: '#A7F3D0', background: '#ECFDF5' }}>
-            <h4>🟢 Com FlowFunnel</h4>
+            <h4>🟢 Com FlowSara</h4>
             <ul>
               <li>Dashboard unificado: do clique no anúncio até a venda</li>
               <li>ROI calculado por fonte, campanha e período</li>
@@ -297,7 +297,7 @@ export default function DocsPage() {
           },
           {
             icon: '🤖', name: 'Inteligência de IA', route: '/conversion-intelligence',
-            desc: 'Flow.ai — assistente inteligente da FlowFunnel — analisa os dados do funil e gera sugestões acionáveis: quais campanhas pausar, onde investir mais, quais leads priorizar.',
+            desc: 'Flow.ai — assistente inteligente da FlowSara — analisa os dados do funil e gera sugestões acionáveis: quais campanhas pausar, onde investir mais, quais leads priorizar.',
             features: ['Lead scoring 0–100 (quente/morno/frio)', 'Sugestões automáticas de otimização', 'Diagnóstico de tráfego desperdiçado', 'Alertas inteligentes de anomalias'],
           },
           {
@@ -511,7 +511,7 @@ export default function DocsPage() {
           <div>│   └── migrations/             # Migrations versionadas</div>
           <div style={{ color: '#A78BFA', marginTop: 6 }}>├── public/                     # Assets estáticos</div>
           <div>│   ├── tracker.js              # Pixel público de rastreamento</div>
-          <div>│   └── flowfunnel-logo.jpg</div>
+          <div>│   └── flowsara-logo.jpg</div>
           <div style={{ color: '#A78BFA', marginTop: 6 }}>├── scripts/                    # Scripts de administração</div>
           <div>│   ├── seed-demo-account.ts    # População de conta demo</div>
           <div>│   └── db-backup.sh            # Backup lógico do banco</div>
@@ -615,7 +615,7 @@ export default function DocsPage() {
 
         <div className="warning-box">
           <strong>Aviso Legal:</strong> Os algoritmos e lógicas descritos nesta seção constituem a principal propriedade 
-          intelectual da FlowFunnel. Recomenda-se registro junto ao INPI (Instituto Nacional da Propriedade Industrial) 
+          intelectual da FlowSara. Recomenda-se registro junto ao INPI (Instituto Nacional da Propriedade Industrial) 
           e proteção por direitos autorais de software nos termos da Lei 9.609/98.
         </div>
 
@@ -645,7 +645,7 @@ export default function DocsPage() {
             title: '🗺️ Mapeamento Universal de Status para Estágios de Funil',
             file: 'lib/webhook-stages.ts',
             value: 'MÉDIO-ALTO',
-            desc: 'Biblioteca original que normaliza os diferentes status de pagamento e compra de Hotmart, Kiwify, Eduzz, Monetizze e Perfect Pay para estágios granulares universais do funil FlowFunnel (Recusado, Reembolsado, Chargeback, Abandonado, etc.). Permite que qualquer plataforma de infoproduto seja tratada de forma uniforme.',
+            desc: 'Biblioteca original que normaliza os diferentes status de pagamento e compra de Hotmart, Kiwify, Eduzz, Monetizze e Perfect Pay para estágios granulares universais do funil FlowSara (Recusado, Reembolsado, Chargeback, Abandonado, etc.). Permite que qualquer plataforma de infoproduto seja tratada de forma uniforme.',
             protect: ['Direitos Autorais', 'Parte do registro do programa completo'],
           },
           {
@@ -1087,7 +1087,7 @@ export default function DocsPage() {
           <thead>
             <tr>
               <th>Recurso</th>
-              <th>FlowFunnel</th>
+              <th>FlowSara</th>
               <th>RD Station</th>
               <th>HubSpot</th>
               <th>Kommo (amoCRM)</th>
@@ -1286,7 +1286,7 @@ export default function DocsPage() {
 
         <h3>Para Investidores</h3>
         <div className="highlight-box">
-          <p>A FlowFunnel endereça um mercado de <strong>R$ 1,7 bilhão/ano</strong> em crescimento de 34% ao ano no Brasil, 
+          <p>A FlowSara endereça um mercado de <strong>R$ 1,7 bilhão/ano</strong> em crescimento de 34% ao ano no Brasil, 
           com uma solução única que combina rastreamento WhatsApp + tráfego pago + IA em uma plataforma integrada.</p>
           <p>Com ARPU de R$174, payback de 1–2 meses e LTV/CAC de 10–13x, a unidade econômica é sólida. 
           O produto está funcionando em produção com dados reais, arquitetura escalável e múltiplos métodos de pagamento.</p>
@@ -1296,7 +1296,7 @@ export default function DocsPage() {
 
         <h3>Para Parceiros Estratégicos</h3>
         <div className="highlight-box">
-          <p>A FlowFunnel tem APIs abertas para integração com qualquer plataforma de infoprodutos, CRM ou gestão de tráfego. 
+          <p>A FlowSara tem APIs abertas para integração com qualquer plataforma de infoprodutos, CRM ou gestão de tráfego. 
           O sistema de webhooks multi-tenant e o pixel de rastreamento UTM permitem integrações profundas.</p>
           <p>Oportunidades de parceria: co-marketing com Hotmart/Kiwify, integração com agências de tráfego, 
           white-label para ferramentas complementares.</p>
@@ -1304,7 +1304,7 @@ export default function DocsPage() {
 
         <h3>Para Possíveis Compradores</h3>
         <div className="highlight-box">
-          <p>O ativo tecnológico da FlowFunnel representa <strong>R$2,5–4,7 milhões</strong> em código, integrações e 
+          <p>O ativo tecnológico da FlowSara representa <strong>R$2,5–4,7 milhões</strong> em código, integrações e 
           propriedade intelectual. O sistema está em produção, documentado, com arquitetura escalável e 
           zero débito técnico crítico.</p>
           <p>Valor estratégico para CRMs, plataformas de tráfego ou infoprodutos que queiram adicionar 
@@ -1326,7 +1326,7 @@ export default function DocsPage() {
         </div>
 
         <div style={{ marginTop: 32, padding: '20px', background: 'linear-gradient(135deg, #2563EB, #7C3AED)', borderRadius: 12, color: 'white', textAlign: 'center' }}>
-          <div style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: 8 }}>FlowFunnel — Do Clique à Venda, Tudo Rastreado.</div>
+          <div style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: 8 }}>FlowSara — Do Clique à Venda, Tudo Rastreado.</div>
           <div style={{ fontSize: '0.9rem', opacity: 0.9 }}>flowsara.com.br · Versão 1.0 · Junho 2026</div>
         </div>
       </div>
@@ -1417,7 +1417,7 @@ export default function DocsPage() {
         <h2 style={{ marginTop: 0 }}>Apêndice B — Algoritmos de Alto Valor para Registro de PI</h2>
 
         <div className="warning-box">
-          <strong>Recomendação Legal:</strong> Registrar o programa de computador FlowFunnel no INPI (Instituto Nacional 
+          <strong>Recomendação Legal:</strong> Registrar o programa de computador FlowSara no INPI (Instituto Nacional 
           da Propriedade Industrial) conforme Art. 2° da Lei 9.609/98. O registro não exige depósito do código completo — 
           apenas as primeiras e últimas 50 páginas do código-fonte e uma descrição dos algoritmos protegidos.
         </div>
@@ -1430,7 +1430,7 @@ export default function DocsPage() {
             file: 'lib/leadScoring.ts',
             desc: 'Algoritmo que combina velocidade de resposta, profundidade de engajamento, frequência de interações, progressão no funil e sinais de intenção de compra para gerar score 0–100 e classificação automática quente/morno/frio.',
             novelty: 'Específico para comportamento de WhatsApp no contexto de infoprodutos brasileiros. Sem precedente público conhecido.',
-            proof: 'lib/leadScoring.ts — criado originalmente para FlowFunnel, não derivado de biblioteca pública.',
+            proof: 'lib/leadScoring.ts — criado originalmente para FlowSara, não derivado de biblioteca pública.',
           },
           {
             id: 'ALG-002',
@@ -1452,7 +1452,7 @@ export default function DocsPage() {
             id: 'ALG-004',
             title: 'Mapeamento Universal de Status de Plataformas',
             file: 'lib/webhook-stages.ts',
-            desc: 'Tabela de mapeamento que normaliza +40 status diferentes de Hotmart, Kiwify, Eduzz, Monetizze e Perfect Pay para 7 estágios universais do funil FlowFunnel.',
+            desc: 'Tabela de mapeamento que normaliza +40 status diferentes de Hotmart, Kiwify, Eduzz, Monetizze e Perfect Pay para 7 estágios universais do funil FlowSara.',
             novelty: 'Trabalho de engenharia reversa e padronização original. Não existe documentação pública consolidada destes mapeamentos.',
             proof: 'lib/webhook-stages.ts — compilado via integração direta com as plataformas.',
           },
@@ -1470,7 +1470,7 @@ export default function DocsPage() {
             file: 'public/tracker.js',
             desc: 'Script JavaScript público que captura UTMs, persiste lead_id, e injeta parâmetros automaticamente em links de checkout (Hotmart, Kiwify, Stripe) e WhatsApp, garantindo rastreabilidade end-to-end sem modificação manual dos links.',
             novelty: 'Solução original específica para o ecossistema de infoprodutos brasileiros com injeção dinâmica de UTM em múltiplos formatos de URL.',
-            proof: 'public/tracker.js — criado originalmente para FlowFunnel.',
+            proof: 'public/tracker.js — criado originalmente para FlowSara.',
           },
         ].map(alg => (
           <div key={alg.id} style={{ marginBottom: 18, border: '2px solid #BFDBFE', borderRadius: 10, padding: 14, background: '#F8FAFC' }}>
@@ -1504,7 +1504,7 @@ export default function DocsPage() {
 
         <hr className="section-divider" />
         <div style={{ textAlign: 'center', marginTop: 20 }}>
-          <div style={{ fontSize: '1rem', fontWeight: 800, color: DARK }}>FlowFunnel — Documentação Técnica e Comercial Completa</div>
+          <div style={{ fontSize: '1rem', fontWeight: 800, color: DARK }}>FlowSara — Documentação Técnica e Comercial Completa</div>
           <div style={{ fontSize: '0.82rem', color: '#64748B', marginTop: 4 }}>Versão 1.0 · Junho 2026 · flowsara.com.br</div>
           <div style={{ fontSize: '0.78rem', color: '#94A3B8', marginTop: 4 }}>Documento gerado automaticamente via varredura do código-fonte. Confidencial.</div>
         </div>

@@ -9,7 +9,7 @@ import { META_PIXEL_IDS, META_GRAPH_VERSION } from './meta-pixels'
 // logical event so Meta deduplicates Pixel ↔ CAPI automatically.
 
 import { getBaseUrl } from '@/lib/base-url'
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || (() => { try { return getBaseUrl() } catch { return 'https://flowfunnel.com.br' } })()
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || (() => { try { return getBaseUrl() } catch { return 'https://flowsara.com.br' } })()
 
 let warnedMissingToken = false
 

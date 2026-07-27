@@ -1,4 +1,4 @@
-# Relatório de Proteção de Webhooks — FlowFunnel
+# Relatório de Proteção de Webhooks — FlowSara
 
 **Gerado em:** 2026-06-07
 

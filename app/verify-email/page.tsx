@@ -128,9 +128,9 @@ function VerifyEmailInner() {
         <div className="max-w-6xl mx-auto px-6 py-3.5 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-11 h-11 rounded-full overflow-hidden flex-shrink-0">
-              <img src="/flowfunnel-logo.jpg" alt="FlowFunnel" className="w-full h-full object-cover" />
+              <img src="/flowsara-logo.jpg" alt="FlowSara" className="w-full h-full object-cover" />
             </div>
-            <span className="text-xl font-extrabold text-white tracking-tight leading-none">FlowFunnel</span>
+            <span className="text-xl font-extrabold text-white tracking-tight leading-none">FlowSara</span>
           </div>
           <nav className="flex items-center gap-2">
             <Link href="/login"
@@ -290,16 +290,16 @@ function VerifyEmailInner() {
         <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-5">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-full overflow-hidden flex-shrink-0 ring-1 ring-white/10">
-              <img src="/flowfunnel-logo.jpg" alt="FlowFunnel" className="w-full h-full object-cover" />
+              <img src="/flowsara-logo.jpg" alt="FlowSara" className="w-full h-full object-cover" />
             </div>
-            <span className="text-lg font-bold text-gray-200">FlowFunnel</span>
+            <span className="text-lg font-bold text-gray-200">FlowSara</span>
           </div>
           <div className="flex gap-6 text-sm">
             <Link href="/termos" className="text-gray-500 hover:text-white transition">Termos de Uso</Link>
             <Link href="/privacidade" className="text-gray-500 hover:text-white transition">Privacidade</Link>
             <Link href="/lgpd" className="text-gray-500 hover:text-white transition">LGPD</Link>
           </div>
-          <p className="text-gray-600 text-sm">© 2026 FlowFunnel</p>
+          <p className="text-gray-600 text-sm">© 2026 FlowSara</p>
         </div>
       </footer>
     </div>

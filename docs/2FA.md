@@ -1,6 +1,6 @@
 # Verificação em Duas Etapas (2FA / TOTP)
 
-O FlowFunnel suporta autenticação em duas etapas (2FA) usando códigos TOTP
+O FlowSara suporta autenticação em duas etapas (2FA) usando códigos TOTP
 (Time-based One-Time Password, RFC 6238) — o mesmo padrão usado por bancos e
 grandes serviços. É compatível com:
 

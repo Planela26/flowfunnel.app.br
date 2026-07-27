@@ -5,16 +5,16 @@ const path = require('path')
 // Ensure output dir
 const outDir = path.join(__dirname, '..', 'public')
 if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true })
-const outFile = path.join(outDir, 'flowfunnel-documentacao.pdf')
+const outFile = path.join(outDir, 'flowsara-documentacao.pdf')
 
 const doc = new PDFDocument({
   size: 'A4',
   margins: { top: 50, bottom: 50, left: 55, right: 55 },
   info: {
-    Title: 'FlowFunnel — Documentação Técnica e Comercial Completa',
-    Author: 'FlowFunnel Platform',
+    Title: 'FlowSara — Documentação Técnica e Comercial Completa',
+    Author: 'FlowSara Platform',
     Subject: 'Documentação SaaS — Versão 1.0 — Junho 2026',
-    Keywords: 'FlowFunnel, SaaS, WhatsApp, CRM, Analytics, Propriedade Intelectual',
+    Keywords: 'FlowSara, SaaS, WhatsApp, CRM, Analytics, Propriedade Intelectual',
   },
 })
 
@@ -147,7 +147,7 @@ doc.fillColor('white').font('Helvetica-Bold').fontSize(32).text('FF', 55, 118, {
 
 // Title
 doc.fillColor(DARK).font('Helvetica-Bold').fontSize(36)
-  .text('FlowFunnel', 55, 185)
+  .text('FlowSara', 55, 185)
 
 doc.fillColor(BLUE).font('Helvetica-Bold').fontSize(16)
   .text('Documentação Técnica e Comercial Completa', 55, 230)
@@ -236,7 +236,7 @@ doc.rect(L, doc.y, W, 40).fill('#EFF6FF')
 doc.fillColor(BLUE).font('Helvetica-Bold').fontSize(9)
   .text('NOTA DE CONFIDENCIALIDADE', L + 10, doc.y - 32)
 doc.fillColor('#374151').font('Helvetica').fontSize(8.5)
-  .text('Este documento contém informações estratégicas, técnicas e financeiras da FlowFunnel. Sua reprodução ou distribuição sem autorização expressa é proibida. Destinado exclusivamente para fins de investimento, registro de propriedade intelectual, parceria e apresentação comercial.', L + 10, doc.y + 2, { width: W - 20, lineGap: 1.5 })
+  .text('Este documento contém informações estratégicas, técnicas e financeiras da FlowSara. Sua reprodução ou distribuição sem autorização expressa é proibida. Destinado exclusivamente para fins de investimento, registro de propriedade intelectual, parceria e apresentação comercial.', L + 10, doc.y + 2, { width: W - 20, lineGap: 1.5 })
 
 // ═══════════════════════════════════════════════════════════════════════
 // PÁG 3–4 — VISÃO GERAL
@@ -244,19 +244,19 @@ doc.fillColor('#374151').font('Helvetica').fontSize(8.5)
 newPage()
 sectionTitle('SEÇÃO 1 — VISÃO GERAL DA EMPRESA', true)
 
-h3('O que é a FlowFunnel?')
-body('FlowFunnel é uma plataforma SaaS brasileira especializada no rastreamento e qualificação de funis de vendas via WhatsApp. A plataforma conecta dados de tráfego pago (Meta Ads, Google Ads, TikTok Ads) com dados de conversação no WhatsApp e dados de venda nas principais plataformas de infoprodutos do Brasil (Hotmart, Kiwify, Eduzz, Monetizze, Perfect Pay).')
-body('Ao contrário de ferramentas de automação, a FlowFunnel NÃO envia mensagens — ela rastreia, qualifica e quantifica cada etapa do funil de vendas, gerando métricas de ROI, CPL, taxa de conversão e inteligência de IA para decisões de investimento em tráfego.')
+h3('O que é a FlowSara?')
+body('FlowSara é uma plataforma SaaS brasileira especializada no rastreamento e qualificação de funis de vendas via WhatsApp. A plataforma conecta dados de tráfego pago (Meta Ads, Google Ads, TikTok Ads) com dados de conversação no WhatsApp e dados de venda nas principais plataformas de infoprodutos do Brasil (Hotmart, Kiwify, Eduzz, Monetizze, Perfect Pay).')
+body('Ao contrário de ferramentas de automação, a FlowSara NÃO envia mensagens — ela rastreia, qualifica e quantifica cada etapa do funil de vendas, gerando métricas de ROI, CPL, taxa de conversão e inteligência de IA para decisões de investimento em tráfego.')
 
 h3('Problema que Resolve')
-h4('Cenário sem FlowFunnel:')
+h4('Cenário sem FlowSara:')
 bullet('Empreendedor investe em tráfego pago sem saber o ROI real por campanha')
 bullet('Não sabe quantas conversas WhatsApp vieram de cada anúncio ou fonte')
 bullet('Não consegue medir taxa de conversão por fonte de tráfego')
 bullet('Decisões manuais baseadas em feeling, não em dados objetivos')
 bullet('Descobre "onde queimou dinheiro" apenas no final do mês, tarde demais')
 
-h4('Com FlowFunnel:')
+h4('Com FlowSara:')
 bullet('Dashboard unificado: do clique no anúncio até a confirmação de pagamento')
 bullet('ROI calculado automaticamente por fonte, campanha e período')
 bullet('Lead scoring automático com IA (quente/morno/frio em tempo real)')
@@ -641,7 +641,7 @@ doc.rect(L, doc.y, W, 28).fill('#FEF9C3')
 doc.fillColor('#92400E').font('Helvetica-Bold').fontSize(9)
   .text('⚠  AVISO LEGAL', L + 10, doc.y - 20)
 doc.fillColor('#78350F').font('Helvetica').fontSize(8.5)
-  .text('Os algoritmos descritos constituem a principal propriedade intelectual da FlowFunnel. Recomenda-se registro no INPI (Instituto Nacional da Propriedade Industrial) conforme Lei 9.609/98 (Proteção de Programa de Computador).', L + 10, doc.y + 2, { width: W - 20, lineGap: 1.5 })
+  .text('Os algoritmos descritos constituem a principal propriedade intelectual da FlowSara. Recomenda-se registro no INPI (Instituto Nacional da Propriedade Industrial) conforme Lei 9.609/98 (Proteção de Programa de Computador).', L + 10, doc.y + 2, { width: W - 20, lineGap: 1.5 })
 doc.moveDown(1)
 
 const ipAlgos = [
@@ -673,7 +673,7 @@ const ipAlgos = [
     id: 'ALG-004', value: 'ALTO',
     title: 'Mapeamento Universal de Status para Estágios de Funil',
     file: 'lib/webhook-stages.ts',
-    desc: 'Tabela de mapeamento original que normaliza 40+ status diferentes de Hotmart, Kiwify, Eduzz, Monetizze e Perfect Pay para 7 estágios universais do funil FlowFunnel (Recusado, Reembolsado, Chargeback, Abandonado, Pendente, Aprovado, Cancelado).',
+    desc: 'Tabela de mapeamento original que normaliza 40+ status diferentes de Hotmart, Kiwify, Eduzz, Monetizze e Perfect Pay para 7 estágios universais do funil FlowSara (Recusado, Reembolsado, Chargeback, Abandonado, Pendente, Aprovado, Cancelado).',
     novelty: 'Trabalho de engenharia reversa e padronização original. Não existe documentação pública consolidada destes mapeamentos entre todas as plataformas.',
     protect: 'Direitos Autorais + parte integrante do registro do programa completo',
   },
@@ -1079,7 +1079,7 @@ newPage()
 sectionTitle('SEÇÃO 12 — ANÁLISE COMPETITIVA', true)
 
 h3('Comparativo de Recursos')
-tableHeader(['Recurso', 'FlowFunnel', 'RD Station', 'HubSpot', 'Kommo', 'Zapier'], [145, 75, 65, 65, 55, 80])
+tableHeader(['Recurso', 'FlowSara', 'RD Station', 'HubSpot', 'Kommo', 'Zapier'], [145, 75, 65, 65, 55, 80])
 ;[
   ['Rastreamento WhatsApp nativo', '✓ Nativo', '✗', '✗', '~ Limitado', '✗'],
   ['Funil visual Meta→WA→Venda', '✓ Completo', '✗', '✗', '~ Parcial', '✗'],
@@ -1098,7 +1098,7 @@ tableHeader(['Recurso', 'FlowFunnel', 'RD Station', 'HubSpot', 'Kommo', 'Zapier'
 
 checkNearBottom(80)
 h3('Posicionamento Estratégico')
-body('A FlowFunnel atua em um OCEANO AZUL: nenhuma plataforma do mercado brasileiro oferece a combinação específica de rastreamento WhatsApp Business API + atribuição multi-fonte de tráfego pago + integração nativa com infoprodutos BR (Hotmart, Kiwify, Eduzz) + IA de lead scoring, tudo em um único produto por R$97–297/mês.')
+body('A FlowSara atua em um OCEANO AZUL: nenhuma plataforma do mercado brasileiro oferece a combinação específica de rastreamento WhatsApp Business API + atribuição multi-fonte de tráfego pago + integração nativa com infoprodutos BR (Hotmart, Kiwify, Eduzz) + IA de lead scoring, tudo em um único produto por R$97–297/mês.')
 body('Vantagem Competitiva Sustentável: a combinação de dados proprietários de comportamento WhatsApp + UTM pixel + compras gera um dataset único que alimenta modelos de IA cada vez mais precisos. Efeito de rede: quanto mais usuários, melhor o scoring de IA, criando uma barreira de entrada crescente.')
 
 h3('Análise SWOT')
@@ -1258,7 +1258,7 @@ doc.rect(L, doc.y, W, 65).fill('#EFF6FF')
 const invY = doc.y - 57
 doc.fillColor(DARK).font('Helvetica-Bold').fontSize(9.5).text('Oportunidade de Investimento', L + 10, invY)
 doc.fillColor('#374151').font('Helvetica').fontSize(8.5)
-  .text('A FlowFunnel endereça um mercado de R$1,7 bilhão/ano em crescimento de 34% ao ano no Brasil, com uma solução única que combina rastreamento WhatsApp + tráfego pago + IA em uma plataforma integrada por R$97–297/mês.', L + 10, invY + 14, { width: W - 20, lineGap: 1.5 })
+  .text('A FlowSara endereça um mercado de R$1,7 bilhão/ano em crescimento de 34% ao ano no Brasil, com uma solução única que combina rastreamento WhatsApp + tráfego pago + IA em uma plataforma integrada por R$97–297/mês.', L + 10, invY + 14, { width: W - 20, lineGap: 1.5 })
   .text('Com ARPU de R$174, payback de 1–2 meses e LTV/CAC de 10–13x, a unidade econômica é sólida. O produto está em produção com dados reais, arquitetura escalável e múltiplos métodos de pagamento.', L + 10, doc.y + 4, { width: W - 20, lineGap: 1.5 })
   .text('Investimento seed de R$300–800k permitiria atingir 500 clientes em 12 meses (MRR R$87k, ARR R$1,04M, EBITDA R$67k/mês).', L + 10, doc.y + 4, { width: W - 20, lineGap: 1.5 })
 doc.y = invY + 65
@@ -1269,13 +1269,13 @@ doc.rect(L, doc.y, W, 42).fill('#FFF7ED')
 const buyY = doc.y - 34
 doc.fillColor(DARK).font('Helvetica-Bold').fontSize(9.5).text('Ativo Tecnológico', L + 10, buyY)
 doc.fillColor('#374151').font('Helvetica').fontSize(8.5)
-  .text('O ativo tecnológico da FlowFunnel representa R$2,5–4,7 milhões em código, integrações e propriedade intelectual. Sistema em produção, documentado, arquitetura escalável, zero débito técnico crítico, 6 algoritmos proprietários passíveis de registro INPI.', L + 10, buyY + 14, { width: W - 20, lineGap: 1.5 })
+  .text('O ativo tecnológico da FlowSara representa R$2,5–4,7 milhões em código, integrações e propriedade intelectual. Sistema em produção, documentado, arquitetura escalável, zero débito técnico crítico, 6 algoritmos proprietários passíveis de registro INPI.', L + 10, buyY + 14, { width: W - 20, lineGap: 1.5 })
   .text('Valor estratégico para CRMs, plataformas de tráfego ou infoprodutos que queiram adicionar capacidade de rastreamento WhatsApp + IA ao seu produto existente.', L + 10, doc.y + 4, { width: W - 20, lineGap: 1.5 })
 doc.y = buyY + 42
 doc.moveDown(0.5)
 
 h3('Para Parceiros')
-body('A FlowFunnel tem APIs para integração com qualquer plataforma de infoprodutos, CRM ou gestão de tráfego. O sistema de webhooks multi-tenant e o pixel UTM permitem integrações profundas. Oportunidades: co-marketing com Hotmart/Kiwify, integração com agências de tráfego, white-label para ferramentas complementares.')
+body('A FlowSara tem APIs para integração com qualquer plataforma de infoprodutos, CRM ou gestão de tráfego. O sistema de webhooks multi-tenant e o pixel UTM permitem integrações profundas. Oportunidades: co-marketing com Hotmart/Kiwify, integração com agências de tráfego, white-label para ferramentas complementares.')
 
 h3('Resumo de KPIs Estratégicos')
 tableHeader(['KPI', 'Valor', 'KPI', 'Valor'], [130, 100, 130, 125])
@@ -1294,7 +1294,7 @@ checkNearBottom(50)
 doc.rect(L, doc.y, W, 44).fill(BLUE)
 const bannerY = doc.y - 36
 doc.fillColor('white').font('Helvetica-Bold').fontSize(16)
-  .text('FlowFunnel — Do Clique à Venda, Tudo Rastreado.', L + 10, bannerY, { width: W - 20, align: 'center' })
+  .text('FlowSara — Do Clique à Venda, Tudo Rastreado.', L + 10, bannerY, { width: W - 20, align: 'center' })
 doc.fillColor('white').font('Helvetica').fontSize(9)
   .text('flowsara.com.br  ·  Versão 1.0  ·  Junho 2026', L + 10, bannerY + 22, { width: W - 20, align: 'center' })
 doc.y = bannerY + 44
@@ -1419,7 +1419,7 @@ const apbAlgos = [
     title: 'Lead Scoring Comportamental Multi-Variável para WhatsApp + Infoprodutos',
     description: 'Algoritmo original que combina múltiplas variáveis comportamentais coletadas no contexto específico de WhatsApp Business + infoprodutos brasileiros para gerar score numérico 0–100 e classificação automática em três categorias (lead quente / morno / frio). Variáveis consideradas: (1) velocidade de resposta do lead após primeiro contato, (2) profundidade de engajamento nas conversas (número de trocas), (3) frequência e padrão de interações com o funil de vendas, (4) progressão entre estágios do funil (NOVO → QUALIFICADO → INTERESSADO → CHECKOUT → CLIENTE), (5) sinais de intenção de compra detectados por padrão comportamental. O algoritmo é executado em tempo real a cada novo evento do funil.',
     novelty: 'Sem precedente público documentado com esta combinação de variáveis no contexto específico de WhatsApp + infoprodutos brasileiros. Não derivado de biblioteca pública ou trabalho acadêmico conhecido.',
-    created: 'Criado originalmente em 2025–2026 para FlowFunnel. Autoria: equipe FlowFunnel.',
+    created: 'Criado originalmente em 2025–2026 para FlowSara. Autoria: equipe FlowSara.',
     protect: ['Registro de Programa de Computador no INPI (Lei 9.609/98)', 'Direitos Autorais automáticos desde a criação', 'Segredo Industrial — não publicar em open-source'],
   },
   {
@@ -1427,7 +1427,7 @@ const apbAlgos = [
     title: 'Atribuição Multi-Touch Proporcional com Garantia de Integridade Matemática',
     description: 'Algoritmo que distribui leads e receita entre múltiplas fontes de tráfego pago (Meta Ads, Google Ads, TikTok Ads) proporcionalmente aos cliques de cada fonte, com garantia matemática de soma exata via last-item adjustment: o último item absorve o resto da divisão inteira para evitar perda de frações. Resolve o problema clássico de atribuição multi-touch no contexto específico de WhatsApp + infoprodutos, onde não há cookies de atribuição padrão.',
     novelty: 'Aplicação original do modelo de atribuição linear ao contexto WhatsApp + infoprodutos com implementação verificada de integridade de soma.',
-    created: 'Criado originalmente para FlowFunnel. Pode ser avaliado para patente de método.',
+    created: 'Criado originalmente para FlowSara. Pode ser avaliado para patente de método.',
     protect: ['Registro de Programa de Computador no INPI', 'Avaliação de viabilidade de Patente de Método'],
   },
   {
@@ -1435,13 +1435,13 @@ const apbAlgos = [
     title: 'Deduplicação At-Least-Once com Padrão Claim/Release em Ambiente Serverless',
     description: 'Padrão original de claim/release no banco de dados PostgreSQL via Prisma para garantir processamento at-least-once de webhooks de pagamento em ambiente serverless (Next.js App Router). O "claim" bloqueia processamento concorrente entre múltiplas instâncias; o "release" em caso de falha de processamento retorna a claim para permitir retry sem deadlock. Sobrevive a restarts de servidor. O mesmo padrão é implementado de forma espelhada para Stripe (StripeProcessedEvent) e Mercado Pago (MercadoPagoProcessedEvent).',
     novelty: 'Adaptação original do padrão distribuído de claim/release para o contexto específico de Next.js + Prisma + PostgreSQL em ambiente serverless com múltiplas instâncias.',
-    created: 'Criado originalmente para FlowFunnel em 2025–2026.',
+    created: 'Criado originalmente para FlowSara em 2025–2026.',
     protect: ['Direitos Autorais (Lei 9.609/98)', 'Parte integrante do registro do programa completo'],
   },
   {
     id: 'ALG-004', value: 'ALTO', file: 'lib/webhook-stages.ts',
     title: 'Mapeamento Universal de Status de Plataformas para Estágios de Funil',
-    description: 'Tabela de mapeamento que normaliza 40+ status diferentes de Hotmart, Kiwify, Eduzz, Monetizze e Perfect Pay (ex.: "APPROVED", "billet_printed", "order_cancelled", "payment_refused", etc.) para 7 estágios universais do funil FlowFunnel: Aprovado, Pendente, Recusado, Reembolsado, Chargeback, Abandonado, Cancelado. Permite que qualquer plataforma de infoproduto seja tratada de forma uniforme pelo pipeline de análise.',
+    description: 'Tabela de mapeamento que normaliza 40+ status diferentes de Hotmart, Kiwify, Eduzz, Monetizze e Perfect Pay (ex.: "APPROVED", "billet_printed", "order_cancelled", "payment_refused", etc.) para 7 estágios universais do funil FlowSara: Aprovado, Pendente, Recusado, Reembolsado, Chargeback, Abandonado, Cancelado. Permite que qualquer plataforma de infoproduto seja tratada de forma uniforme pelo pipeline de análise.',
     novelty: 'Trabalho de engenharia reversa e padronização original. Não existe documentação pública consolidada destes mapeamentos entre todas as 5 plataformas.',
     created: 'Compilado via integração direta com as plataformas em 2025–2026.',
     protect: ['Direitos Autorais', 'Parte integrante do registro do programa completo no INPI'],
@@ -1451,7 +1451,7 @@ const apbAlgos = [
     title: 'Pipeline de Avaliação de Alertas em Lote sem N+1 para SaaS Multi-Tenant',
     description: 'Pipeline que avalia 4 regras de alerta de negócio (queda de vendas nos últimos 7 dias comparada com os 7 anteriores; taxa de conversão abaixo da meta configurada; campanha sem leads em 24h; gasto em tráfego sem retorno em 48h) para todos os usuários da plataforma em O(1) queries ao banco de dados. Usa groupBy + aggregate para buscar dados de todos os usuários em poucas queries, avaliando as regras em memória — eliminando o problema de N+1 queries que degradaria a performance com muitos usuários.',
     novelty: 'Arquitetura original de pipeline de alertas sem N+1 para SaaS multi-tenant em ambiente serverless Next.js.',
-    created: 'Criado originalmente para FlowFunnel em 2026.',
+    created: 'Criado originalmente para FlowSara em 2026.',
     protect: ['Direitos Autorais (Lei 9.609/98)', 'Know-how técnico como segredo industrial'],
   },
   {
@@ -1459,7 +1459,7 @@ const apbAlgos = [
     title: 'Pixel UTM com Injeção Automática de Parâmetros em Links de Checkout e WhatsApp',
     description: 'Script JavaScript público instalável por snippet que: (1) captura automaticamente UTM source/campaign/medium/content/term da URL, (2) gera e persiste lead_id único em localStorage para rastreamento cross-session, (3) dispara page_view automaticamente, (4) detecta links de checkout (Hotmart, Kiwify, Eduzz, Monetizze, Stripe) e injeta lead_id + UTMs nas URLs antes do clique, (5) rastreia cliques em links de WhatsApp (wa.me, api.whatsapp.com), (6) expõe API pública window.trackEvent() e window.zfTrackConversion(), (7) usa navigator.sendBeacon() para garantia de entrega antes do navigate.',
     novelty: 'Solução original específica para o ecossistema de infoprodutos brasileiros com injeção dinâmica simultânea em múltiplos formatos de URL (Hotmart, Kiwify, Stripe, WhatsApp) sem necessidade de modificação manual pelo usuário.',
-    created: 'Criado originalmente para FlowFunnel em 2025–2026.',
+    created: 'Criado originalmente para FlowSara em 2025–2026.',
     protect: ['Direitos Autorais (Lei 9.609/98)', 'Parte do registro do programa completo no INPI'],
   },
 ]
@@ -1528,7 +1528,7 @@ doc.moveDown(1)
 checkNearBottom(40)
 hline()
 doc.moveDown(0.5)
-doc.fillColor(BLUE).font('Helvetica-Bold').fontSize(12).text('FlowFunnel — Documentação Técnica e Comercial Completa', L, doc.y, { align: 'center', width: W })
+doc.fillColor(BLUE).font('Helvetica-Bold').fontSize(12).text('FlowSara — Documentação Técnica e Comercial Completa', L, doc.y, { align: 'center', width: W })
 doc.fillColor(GRAY).font('Helvetica').fontSize(9).text('Versão 1.0  ·  Junho 2026  ·  flowsara.com.br', L, doc.y + 14, { align: 'center', width: W })
 doc.fillColor('#94A3B8').font('Helvetica').fontSize(8)
   .text('Documento confidencial. Reprodução ou distribuição sem autorização expressa é proibida.', L, doc.y + 28, { align: 'center', width: W })
@@ -1540,7 +1540,7 @@ stream.on('finish', () => {
   console.log(`✅ PDF gerado com sucesso!`)
   console.log(`📄 Arquivo: ${outFile}`)
   console.log(`📦 Tamanho: ${(stat.size / 1024 / 1024).toFixed(2)} MB`)
-  console.log(`🌐 Download: https://${process.env.REPLIT_DEV_DOMAIN || 'localhost:5000'}/flowfunnel-documentacao.pdf`)
+  console.log(`🌐 Download: https://${process.env.REPLIT_DEV_DOMAIN || 'localhost:5000'}/flowsara-documentacao.pdf`)
 })
 stream.on('error', (err) => {
   console.error('❌ Erro ao gerar PDF:', err)

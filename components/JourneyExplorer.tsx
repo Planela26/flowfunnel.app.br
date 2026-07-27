@@ -158,7 +158,7 @@ export default function JourneyExplorer() {
               Nenhum lead rastreado ainda.
             </p>
             <p className="text-xs text-gray-400 mt-1">
-              Instale o pixel da FlowFunnel na sua landing page para começar.
+              Instale o pixel da FlowSara na sua landing page para começar.
             </p>
           </div>
         ) : (

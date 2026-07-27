@@ -22,7 +22,7 @@ export function Editorial() {
             <div className="w-8 h-8 rounded-full bg-stone-900 flex items-center justify-center">
               <span className="text-white font-bold text-xs">FF</span>
             </div>
-            <span className="text-base font-bold text-stone-900 tracking-tight">FlowFunnel</span>
+            <span className="text-base font-bold text-stone-900 tracking-tight">FlowSara</span>
           </div>
           <div className="flex items-center gap-6">
             <button className="text-sm font-medium text-stone-500 hover:text-stone-900 transition">Entrar</button>
@@ -83,7 +83,7 @@ export function Editorial() {
           <div className="relative rounded-2xl overflow-hidden shadow-2xl shadow-stone-300/50 border border-stone-200">
             <img 
               src="/__mockup/images/dashboard-preview.png" 
-              alt="FlowFunnel Dashboard"
+              alt="FlowSara Dashboard"
               className="w-full h-auto"
             />
             <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-stone-900/60 to-transparent" />
@@ -105,7 +105,7 @@ export function Editorial() {
         <div className={`max-w-4xl mx-auto text-center transition-all duration-1000 delay-500 ease-out ${fadeIn('quote')}`}>
           <Quote className="w-10 h-10 text-stone-300 mx-auto mb-6" />
           <blockquote className="text-2xl sm:text-3xl font-medium text-stone-800 leading-relaxed mb-8">
-            "Descobrimos que 40% dos nossos leads abandonavam no WhatsApp. Com o FlowFunnel, recuperamos R$ 12 mil em vendas no primeiro mês."
+            "Descobrimos que 40% dos nossos leads abandonavam no WhatsApp. Com o FlowSara, recuperamos R$ 12 mil em vendas no primeiro mês."
           </blockquote>
           <div className="flex items-center justify-center gap-3">
             <div className="w-10 h-10 rounded-full bg-stone-300 flex items-center justify-center text-sm font-bold text-stone-600">G</div>
@@ -122,7 +122,7 @@ export function Editorial() {
         <div className={`max-w-6xl mx-auto transition-all duration-1000 delay-700 ease-out ${fadeIn('features')}`}>
           <div className="text-center mb-16">
             <span className="text-xs font-bold text-stone-400 uppercase tracking-[0.3em]">Funcionalidades</span>
-            <h2 className="text-3xl sm:text-4xl font-black text-stone-900 mt-4">Como o FlowFunnel funciona</h2>
+            <h2 className="text-3xl sm:text-4xl font-black text-stone-900 mt-4">Como o FlowSara funciona</h2>
           </div>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -247,14 +247,14 @@ export function Editorial() {
             <div className="w-8 h-8 rounded-full bg-stone-900 flex items-center justify-center">
               <span className="text-white font-bold text-xs">FF</span>
             </div>
-            <span className="text-stone-900 font-bold text-sm">FlowFunnel</span>
+            <span className="text-stone-900 font-bold text-sm">FlowSara</span>
           </div>
           <div className="flex gap-8 text-sm text-stone-400">
             <span className="hover:text-stone-600 cursor-pointer transition">Termos</span>
             <span className="hover:text-stone-600 cursor-pointer transition">Privacidade</span>
             <span className="hover:text-stone-600 cursor-pointer transition">Contato</span>
           </div>
-          <p className="text-stone-300 text-xs">© 2025 FlowFunnel</p>
+          <p className="text-stone-300 text-xs">© 2025 FlowSara</p>
         </div>
       </footer>
     </div>

@@ -92,7 +92,7 @@ export async function POST(req: Request) {
       )
     }
 
-    // Email válido (domínio com MX) mas sem conta no FlowFunnel
+    // Email válido (domínio com MX) mas sem conta no FlowSara
     return NextResponse.json({ success: true, result: 'no_account' })
   } catch (error) {
     console.error('[forgot-password] erro interno:', error)

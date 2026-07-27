@@ -1,4 +1,4 @@
-# Auditoria de Segurança — FlowFunnel SaaS
+# Auditoria de Segurança — FlowSara SaaS
 
 > Última revisão: 07/06/2026. Escopo: aplicação Next.js 16 (App Router), Prisma/PostgreSQL,
 > NextAuth v4, Stripe + Mercado Pago. Idioma: pt-BR.

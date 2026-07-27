@@ -110,7 +110,7 @@ export default function LoginPage() {
             <div className="absolute inset-0 rounded-full bg-[conic-gradient(from_0deg,#3b82f6,#8b5cf6,#06b6d4,#3b82f6)] animate-spin [animation-duration:1.6s] blur-[3px] opacity-90" />
             <div className="absolute inset-[4px] rounded-full bg-blue-950" />
             <div className="absolute inset-[8px] rounded-full overflow-hidden shadow-inner ring-1 ring-blue-300/40">
-              <img src="/flowfunnel-logo.jpg" alt="" className="w-full h-full object-cover" />
+              <img src="/flowsara-logo.jpg" alt="" className="w-full h-full object-cover" />
             </div>
             <div className="absolute -inset-2 rounded-full border border-blue-300/40 animate-ping [animation-duration:1.8s]" />
           </div>
@@ -124,9 +124,9 @@ export default function LoginPage() {
         <div className="text-center mb-6 sm:mb-8">
           <Link href="/" className="inline-flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
             <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-full overflow-hidden shadow-2xl ring-2 ring-white/20">
-              <img src="/flowfunnel-logo.jpg" alt="FlowFunnel" className="w-full h-full object-cover" />
+              <img src="/flowsara-logo.jpg" alt="FlowSara" className="w-full h-full object-cover" />
             </div>
-            <span className="text-xl sm:text-3xl font-bold text-white">FlowFunnel</span>
+            <span className="text-xl sm:text-3xl font-bold text-white">FlowSara</span>
           </Link>
           <p className="text-blue-200 text-sm sm:text-base">Entre na sua conta</p>
         </div>

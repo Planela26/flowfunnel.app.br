@@ -97,7 +97,7 @@ export default function PerfectPayConnect() {
               Conecte o Perfect Pay para rastrear vendas, checkouts e dados de compradores automaticamente no seu funil.
             </p>
             <InfoBox>
-              Você vai configurar um webhook no painel da Perfect Pay que enviará eventos em tempo real para o FlowFunnel Funnel.
+              Você vai configurar um webhook no painel da Perfect Pay que enviará eventos em tempo real para o FlowSara Funnel.
             </InfoBox>
             <TutorialNav onNext={() => setStep(2)} />
           </div>

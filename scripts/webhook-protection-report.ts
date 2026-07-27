@@ -108,7 +108,7 @@ function main() {
   // Markdown
   const now = new Date().toISOString().slice(0, 10)
   const md = [
-    '# Relatório de Proteção de Webhooks — FlowFunnel',
+    '# Relatório de Proteção de Webhooks — FlowSara',
     '',
     `**Gerado em:** ${now}`,
     '',

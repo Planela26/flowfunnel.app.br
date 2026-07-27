@@ -112,7 +112,7 @@ function SubscriptionContent() {
           <div className="px-6 py-6 space-y-6">
             <p className="text-sm text-gray-300 leading-relaxed">
               Sua assinatura está inativa. Regularize o pagamento para continuar
-              utilizando o FlowFunnel e não perder acesso aos seus dados, integrações
+              utilizando o FlowSara e não perder acesso aos seus dados, integrações
               e relatórios.
             </p>
 

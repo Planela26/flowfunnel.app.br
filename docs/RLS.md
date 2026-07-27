@@ -1,6 +1,6 @@
 # Row-Level Security (RLS) — Isolamento Multi-Tenant
 
-Este documento descreve a arquitetura de **Row-Level Security (RLS)** do FlowFunnel:
+Este documento descreve a arquitetura de **Row-Level Security (RLS)** do FlowSara:
 isolamento absoluto por tenant no nível do PostgreSQL, com política **fail-closed**
 (sem contexto de tenant → nenhuma linha visível e nenhuma escrita permitida).
 

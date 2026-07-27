@@ -1,4 +1,4 @@
-# FlowFunnel - SaaS de Rastreamento de Funil de Vendas
+# FlowSara - SaaS de Rastreamento de Funil de Vendas
 
 Plataforma completa para rastrear e otimizar funis de vendas no WhatsApp, do anúncio até o pagamento.
 

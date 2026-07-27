@@ -1,4 +1,4 @@
-# Auditoria de Eventos Meta Pixel — FlowFunnel
+# Auditoria de Eventos Meta Pixel — FlowSara
 **Data:** 2026-06-07  
 **Pixels auditados:** `2203835897111572` · `1499523888575243`
 

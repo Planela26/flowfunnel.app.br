@@ -2,8 +2,8 @@ import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 
 export const metadata = {
-  title: 'Termos de Uso — FlowFunnel',
-  description: 'Termos de Uso da plataforma FlowFunnel.',
+  title: 'Termos de Uso — FlowSara',
+  description: 'Termos de Uso da plataforma FlowSara.',
 }
 
 export default function TermosPage() {
@@ -23,14 +23,14 @@ export default function TermosPage() {
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Termos de Uso</h1>
               <p className="text-xs text-gray-500 dark:text-gray-400">Última atualização: 03 de maio de 2026</p>
               <p>
-                <strong>FlowFunnel é operado por Gabriel de Souza Areal</strong>, pessoa física residente e domiciliada no Brasil, inscrito no CPF sob nº 173.8**.***-**.
+                <strong>FlowSara é operado por Gabriel de Souza Areal</strong>, pessoa física residente e domiciliada no Brasil, inscrito no CPF sob nº 173.8**.***-**.
               </p>
             </header>
 
             <section className="space-y-3">
               <h2 className="text-lg font-bold text-gray-900 dark:text-white">1. Aceitação dos termos</h2>
               <p>
-                Ao criar uma conta ou utilizar a plataforma FlowFunnel (&ldquo;Plataforma&rdquo;), você (&ldquo;Usuário&rdquo;) declara ter lido, compreendido e aceito integralmente estes Termos de Uso e a{' '}
+                Ao criar uma conta ou utilizar a plataforma FlowSara (&ldquo;Plataforma&rdquo;), você (&ldquo;Usuário&rdquo;) declara ter lido, compreendido e aceito integralmente estes Termos de Uso e a{' '}
                 <Link href="/privacidade" className="text-blue-600 hover:underline">Política de Privacidade</Link>.
                 {' '}Caso não concorde com qualquer disposição, não utilize o serviço.
               </p>
@@ -39,7 +39,7 @@ export default function TermosPage() {
             <section className="space-y-3">
               <h2 className="text-lg font-bold text-gray-900 dark:text-white">2. Sobre o serviço</h2>
               <p>
-                O FlowFunnel é uma ferramenta SaaS que organiza funis de vendas, métricas, integrações com WhatsApp Business, plataformas de anúncios (Meta, Google, TikTok) e plataformas de checkout (Hotmart, Kiwify, Eduzz, Monetizze, Perfect Pay), oferecendo dashboards, relatórios e análises automatizadas.
+                O FlowSara é uma ferramenta SaaS que organiza funis de vendas, métricas, integrações com WhatsApp Business, plataformas de anúncios (Meta, Google, TikTok) e plataformas de checkout (Hotmart, Kiwify, Eduzz, Monetizze, Perfect Pay), oferecendo dashboards, relatórios e análises automatizadas.
               </p>
             </section>
 
@@ -65,7 +65,7 @@ export default function TermosPage() {
                 O Usuário poderá exercer seus direitos previstos na LGPD, incluindo acesso, correção, atualização e exclusão dos dados, nos termos da legislação aplicável e das limitações técnicas e regulatórias cabíveis.
               </p>
               <p>
-                A Política de Privacidade da FlowFunnel é documento separado e complementar a estes Termos.
+                A Política de Privacidade da FlowSara é documento separado e complementar a estes Termos.
               </p>
             </section>
 
@@ -90,7 +90,7 @@ export default function TermosPage() {
                 Quando o plano contratado exigir conexão oficial com a API da Meta (WhatsApp Cloud API), <strong>é obrigatório possuir conta verificada do WhatsApp Business</strong>. Sem essa verificação, recursos como envio de mensagens, webhooks oficiais e métricas avançadas podem não ser liberados.
               </p>
               <p>
-                O FlowFunnel não se responsabiliza por bloqueios, suspensões ou penalidades aplicadas pela Meta, Google, TikTok ou qualquer plataforma de terceiros à conta do Usuário em razão de violação dos termos dessas plataformas.
+                O FlowSara não se responsabiliza por bloqueios, suspensões ou penalidades aplicadas pela Meta, Google, TikTok ou qualquer plataforma de terceiros à conta do Usuário em razão de violação dos termos dessas plataformas.
               </p>
             </section>
 
@@ -101,24 +101,24 @@ export default function TermosPage() {
                 <li>É proibido revender, sublicenciar ou usar engenharia reversa no software.</li>
                 <li>É proibido tentar acessar dados de outros usuários ou explorar vulnerabilidades.</li>
                 <li>É proibido utilizar a Plataforma em desconformidade com os termos de terceiros, incluindo Meta, Google, TikTok, Hotmart, Kiwify, Eduzz, Monetizze e Perfect Pay.</li>
-                <li>O FlowFunnel pode suspender ou encerrar contas que violem estas regras.</li>
+                <li>O FlowSara pode suspender ou encerrar contas que violem estas regras.</li>
               </ul>
             </section>
 
             <section className="space-y-3">
               <h2 className="text-lg font-bold text-gray-900 dark:text-white">8. Propriedade intelectual</h2>
               <p>
-                Todo o software, marca, layout e conteúdo do FlowFunnel são de propriedade exclusiva da empresa. Os dados inseridos pelo Usuário (funis, leads, métricas) permanecem de sua propriedade; o FlowFunnel apenas processa esses dados para operar o serviço.
+                Todo o software, marca, layout e conteúdo do FlowSara são de propriedade exclusiva da empresa. Os dados inseridos pelo Usuário (funis, leads, métricas) permanecem de sua propriedade; o FlowSara apenas processa esses dados para operar o serviço.
               </p>
             </section>
 
             <section className="space-y-3">
               <h2 className="text-lg font-bold text-gray-900 dark:text-white">9. Limitação de responsabilidade</h2>
               <p>
-                O serviço é fornecido &ldquo;como está&rdquo;. O FlowFunnel não garante operação ininterrupta, livre de erros ou que atenda a objetivos comerciais específicos. Não garantimos resultados financeiros, performance comercial ou conversão de vendas.
+                O serviço é fornecido &ldquo;como está&rdquo;. O FlowSara não garante operação ininterrupta, livre de erros ou que atenda a objetivos comerciais específicos. Não garantimos resultados financeiros, performance comercial ou conversão de vendas.
               </p>
               <p>
-                Não nos responsabilizamos por perdas indiretas, lucros cessantes, decisões comerciais tomadas com base nas métricas exibidas ou quaisquer efeitos decorrentes do uso da Plataforma. A responsabilidade total do FlowFunnel fica limitada ao valor efetivamente pago pelo Usuário nos últimos 12 meses.
+                Não nos responsabilizamos por perdas indiretas, lucros cessantes, decisões comerciais tomadas com base nas métricas exibidas ou quaisquer efeitos decorrentes do uso da Plataforma. A responsabilidade total do FlowSara fica limitada ao valor efetivamente pago pelo Usuário nos últimos 12 meses.
               </p>
             </section>
 
@@ -127,7 +127,7 @@ export default function TermosPage() {
               <p>
                 O Usuário pode excluir sua conta a qualquer momento em{' '}
                 <Link href="/account" className="text-blue-600 hover:underline">/account</Link>.
-                {' '}O FlowFunnel pode suspender ou excluir contas que violem estes termos, mediante aviso prévio quando possível.
+                {' '}O FlowSara pode suspender ou excluir contas que violem estes termos, mediante aviso prévio quando possível.
               </p>
             </section>
 
@@ -148,7 +148,7 @@ export default function TermosPage() {
             <section className="space-y-3">
               <h2 className="text-lg font-bold text-gray-900 dark:text-white">13. Uso de Inteligência Artificial (Flow.ai)</h2>
               <p>
-                A FlowFunnel disponibiliza a <strong>Flow.ai</strong>, assistente inteligente integrada à plataforma.
+                A FlowSara disponibiliza a <strong>Flow.ai</strong>, assistente inteligente integrada à plataforma.
               </p>
               <p>
                 A Flow.ai utiliza modelos de inteligência artificial fornecidos pela <strong>OpenAI</strong> para interpretar solicitações,
@@ -160,7 +160,7 @@ export default function TermosPage() {
               </p>
               <p>
                 Os dados enviados à Flow.ai poderão ser processados para gerar respostas e funcionalidades da plataforma, conforme
-                descrito em nossa Política de Privacidade e respeitando os mecanismos de segurança adotados pela FlowFunnel e
+                descrito em nossa Política de Privacidade e respeitando os mecanismos de segurança adotados pela FlowSara e
                 pelos provedores utilizados.
               </p>
               <p>

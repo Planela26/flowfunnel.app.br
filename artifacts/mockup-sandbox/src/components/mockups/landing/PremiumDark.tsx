@@ -10,7 +10,7 @@ export function PremiumDark() {
             <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center">
               <Sparkles className="w-4 h-4 text-white" />
             </div>
-            <span className="text-lg font-bold text-white">FlowFunnel</span>
+            <span className="text-lg font-bold text-white">FlowSara</span>
           </div>
           <div className="flex items-center gap-3">
             <button className="text-sm font-medium text-white/60 hover:text-white px-4 py-2 rounded-lg hover:bg-white/5 transition">Entrar</button>
@@ -241,14 +241,14 @@ export function PremiumDark() {
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center">
               <Sparkles className="w-4 h-4 text-white" />
             </div>
-            <span className="text-white font-bold text-sm">FlowFunnel</span>
+            <span className="text-white font-bold text-sm">FlowSara</span>
           </div>
           <div className="flex gap-6 text-sm text-white/30">
             <span className="hover:text-white/60 cursor-pointer transition">Termos</span>
             <span className="hover:text-white/60 cursor-pointer transition">Privacidade</span>
             <span className="hover:text-white/60 cursor-pointer transition">Contato</span>
           </div>
-          <p className="text-white/20 text-xs">© 2025 FlowFunnel</p>
+          <p className="text-white/20 text-xs">© 2025 FlowSara</p>
         </div>
       </footer>
     </div>

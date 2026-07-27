@@ -126,7 +126,7 @@ export function buildOtpauthUri(params: {
   step?: number
   algorithm?: 'sha1' | 'sha256' | 'sha512'
 }): string {
-  const issuer = params.issuer ?? 'FlowFunnel'
+  const issuer = params.issuer ?? 'FlowSara'
   const digits = params.digits ?? DEFAULTS.digits
   const step = params.step ?? DEFAULTS.step
   const algorithm = (params.algorithm ?? DEFAULTS.algorithm).toUpperCase()

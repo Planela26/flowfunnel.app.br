@@ -75,7 +75,7 @@ export default function PlanActivatedBanner() {
             <>⏳ Pagamento do plano <strong>{plan}</strong> em processamento. Seu acesso será liberado em breve.</>
           )}
           {state === 'active' && (
-            <>🎉 Plano <strong>{plan}</strong> ativado com sucesso! Bem-vindo ao FlowFunnel.</>
+            <>🎉 Plano <strong>{plan}</strong> ativado com sucesso! Bem-vindo ao FlowSara.</>
           )}
         </span>
       </div>

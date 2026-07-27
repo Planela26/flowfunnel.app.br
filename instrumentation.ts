@@ -5,7 +5,7 @@ async function warmupRoutes() {
     '/campaigns', '/leads', '/webhooks', '/billing', '/affiliate', '/settings',
   ]
   const base = `http://localhost:${process.env.PORT || 5000}`
-  console.log('🔥 FlowFunnel: pré-compilando páginas...')
+  console.log('🔥 FlowSara: pré-compilando páginas...')
   for (const route of routes) {
     try {
       await fetch(`${base}${route}`, {
@@ -15,7 +15,7 @@ async function warmupRoutes() {
     } catch { /* ignore errors — page still gets compiled */ }
     await new Promise(r => setTimeout(r, 250))
   }
-  console.log('✅ FlowFunnel: todas as páginas pré-compiladas')
+  console.log('✅ FlowSara: todas as páginas pré-compiladas')
 }
 
 export async function register() {

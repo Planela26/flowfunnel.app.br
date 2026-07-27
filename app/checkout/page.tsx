@@ -839,9 +839,9 @@ function CheckoutPageContent() {
         <header className="px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between border-b border-white/10">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full overflow-hidden">
-              <img src="/flowfunnel-logo.jpg" alt="FlowFunnel" className="w-full h-full object-cover" />
+              <img src="/flowsara-logo.jpg" alt="FlowSara" className="w-full h-full object-cover" />
             </div>
-            <span className="text-base sm:text-lg font-extrabold text-white tracking-tight">FlowFunnel</span>
+            <span className="text-base sm:text-lg font-extrabold text-white tracking-tight">FlowSara</span>
           </div>
           <Link href="/pricing" className="flex items-center gap-1.5 text-blue-200 hover:text-white text-sm transition">
             <ArrowLeft className="w-4 h-4" /> <span className="hidden sm:inline">Voltar aos planos</span>

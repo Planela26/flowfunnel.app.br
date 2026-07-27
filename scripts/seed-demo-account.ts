@@ -571,7 +571,7 @@ async function main() {
       {
         userId: user.id,
         type: 'info',
-        title: 'Bem-vindo ao FlowFunnel',
+        title: 'Bem-vindo ao FlowSara',
         message: '[DEMO] Sua conta está populada com dados de demonstração.',
       },
       {

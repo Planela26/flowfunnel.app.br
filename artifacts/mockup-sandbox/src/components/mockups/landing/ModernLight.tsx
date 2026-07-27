@@ -10,7 +10,7 @@ export function ModernLight() {
             <div className="w-9 h-9 rounded-lg bg-slate-900 flex items-center justify-center">
               <span className="text-white font-bold text-sm">FF</span>
             </div>
-            <span className="text-lg font-bold text-slate-900">FlowFunnel</span>
+            <span className="text-lg font-bold text-slate-900">FlowSara</span>
           </div>
           <div className="flex items-center gap-3">
             <button className="text-sm font-medium text-slate-600 hover:text-slate-900 px-4 py-2 rounded-lg hover:bg-slate-50 transition">Entrar</button>
@@ -235,14 +235,14 @@ export function ModernLight() {
             <div className="w-8 h-8 rounded-lg bg-slate-900 flex items-center justify-center">
               <span className="text-white font-bold text-xs">FF</span>
             </div>
-            <span className="text-slate-900 font-bold text-sm">FlowFunnel</span>
+            <span className="text-slate-900 font-bold text-sm">FlowSara</span>
           </div>
           <div className="flex gap-6 text-sm text-slate-400">
             <span className="hover:text-slate-600 cursor-pointer">Termos</span>
             <span className="hover:text-slate-600 cursor-pointer">Privacidade</span>
             <span className="hover:text-slate-600 cursor-pointer">Contato</span>
           </div>
-          <p className="text-slate-300 text-xs">© 2025 FlowFunnel</p>
+          <p className="text-slate-300 text-xs">© 2025 FlowSara</p>
         </div>
       </footer>
     </div>

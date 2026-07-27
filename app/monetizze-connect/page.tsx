@@ -87,7 +87,7 @@ export default function MonetizzeConnect() {
               </div>
             </div>
             <p className="text-gray-600 dark:text-gray-300 mb-4">Conecte a Monetizze para receber notificações de vendas em tempo real no seu funil.</p>
-            <InfoBox>Configure um webhook no painel da Monetizze apontando para o FlowFunnel Funnel.</InfoBox>
+            <InfoBox>Configure um webhook no painel da Monetizze apontando para o FlowSara Funnel.</InfoBox>
             <TutorialNav onNext={() => setStep(2)} />
           </div>
         )}

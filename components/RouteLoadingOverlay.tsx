@@ -29,7 +29,7 @@ export default function RouteLoadingOverlay() {
           <div className="absolute inset-[3px] rounded-full bg-white dark:bg-gray-950" />
           <div className="absolute inset-[6px] rounded-full overflow-hidden shadow-inner ring-1 ring-blue-100 dark:ring-blue-900">
             <img
-              src="/flowfunnel-logo.jpg"
+              src="/flowsara-logo.jpg"
               alt=""
               className="w-full h-full object-cover"
             />

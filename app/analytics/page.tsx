@@ -152,10 +152,10 @@ export default function AnalyticsPage() {
           <div className="flex items-center justify-between h-14">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-full overflow-hidden shadow-sm flex-shrink-0">
-                <img src="/flowfunnel-logo.jpg" alt="FlowFunnel" className="w-full h-full object-cover" />
+                <img src="/flowsara-logo.jpg" alt="FlowSara" className="w-full h-full object-cover" />
               </div>
               <div>
-                <span className="text-lg font-extrabold text-blue-900 dark:text-white tracking-tight leading-none">FlowFunnel</span>
+                <span className="text-lg font-extrabold text-blue-900 dark:text-white tracking-tight leading-none">FlowSara</span>
                 <p className="text-xs text-gray-500 dark:text-gray-400 leading-none mt-0.5">Analytics</p>
               </div>
             </div>

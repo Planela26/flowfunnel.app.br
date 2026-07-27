@@ -133,9 +133,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               </button>
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-full overflow-hidden ring-1 ring-blue-200 dark:ring-blue-700">
-                  <img src="/flowfunnel-logo.jpg" alt="FlowFunnel" className="w-full h-full object-cover" />
+                  <img src="/flowsara-logo.jpg" alt="FlowSara" className="w-full h-full object-cover" />
                 </div>
-                <span className="text-sm font-extrabold text-blue-900 dark:text-white tracking-tight">FlowFunnel</span>
+                <span className="text-sm font-extrabold text-blue-900 dark:text-white tracking-tight">FlowSara</span>
               </div>
               <div className="flex items-center gap-1">
                 <NotificationCenter />

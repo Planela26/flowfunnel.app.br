@@ -25,7 +25,7 @@ export function AppStyle() {
           <div className="absolute -inset-2 bg-indigo-500/20 rounded-2xl blur-xl animate-pulse" />
         </div>
         <div className="text-center">
-          <p className="text-white/60 text-sm font-medium">Inicializando FlowFunnel</p>
+          <p className="text-white/60 text-sm font-medium">Inicializando FlowSara</p>
           <p className="text-white/30 text-xs mt-1">{'Carregando'.padEnd(11 + dots, '.')}</p>
         </div>
         <div className="w-48 h-1 bg-white/10 rounded-full overflow-hidden">
@@ -72,7 +72,7 @@ export function AppStyle() {
             <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center">
               <Sparkles className="w-4 h-4 text-white" />
             </div>
-            <span className="text-base font-bold text-slate-900">FlowFunnel</span>
+            <span className="text-base font-bold text-slate-900">FlowSara</span>
           </div>
           
           {/* Desktop */}
@@ -349,7 +349,7 @@ export function AppStyle() {
               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center">
                 <Sparkles className="w-4 h-4 text-white" />
               </div>
-              <span className="text-slate-900 font-bold text-sm">FlowFunnel</span>
+              <span className="text-slate-900 font-bold text-sm">FlowSara</span>
             </div>
             <div className="flex gap-8 text-sm text-slate-400">
               <span className="hover:text-slate-600 cursor-pointer">Termos</span>

@@ -47,9 +47,9 @@ export default function ForgotPasswordPage() {
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="inline-flex w-16 h-16 rounded-full mb-4 shadow-2xl overflow-hidden ring-2 ring-white/20">
-            <img src="/flowfunnel-logo.jpg" alt="FlowFunnel" className="w-full h-full object-cover" />
+            <img src="/flowsara-logo.jpg" alt="FlowSara" className="w-full h-full object-cover" />
           </div>
-          <h1 className="text-2xl font-bold text-white">FlowFunnel</h1>
+          <h1 className="text-2xl font-bold text-white">FlowSara</h1>
         </div>
 
         <div className="bg-white rounded-2xl shadow-2xl p-8">
@@ -86,7 +86,7 @@ export default function ForgotPasswordPage() {
               </div>
               <h2 className="text-xl font-bold text-gray-900 mb-2">Nenhuma conta encontrada</h2>
               <p className="text-gray-600 mb-1">
-                Não existe uma conta no FlowFunnel com o email:
+                Não existe uma conta no FlowSara com o email:
               </p>
               <p className="font-semibold text-gray-800 mb-5 break-all">{email}</p>
 

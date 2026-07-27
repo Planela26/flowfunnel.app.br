@@ -58,10 +58,10 @@ const tests: Array<[string, () => void]> = [
 
   // ── otpauth URI ──
   ['otpauth URI contém secret e issuer', () => {
-    const uri = buildOtpauthUri({ secretBase32: 'ABC234', accountName: 'a@b.com', issuer: 'FlowFunnel' })
+    const uri = buildOtpauthUri({ secretBase32: 'ABC234', accountName: 'a@b.com', issuer: 'FlowSara' })
     expectEq(uri.startsWith('otpauth://totp/'), true, 'prefixo otpauth')
     expectEq(uri.includes('secret=ABC234'), true, 'contém secret')
-    expectEq(uri.includes('issuer=FlowFunnel'), true, 'contém issuer')
+    expectEq(uri.includes('issuer=FlowSara'), true, 'contém issuer')
   }],
 
   // ── Recovery codes ──

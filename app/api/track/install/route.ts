@@ -13,13 +13,13 @@ export async function GET(request: Request) {
   const base = getBaseUrl()
   const siteId = session.user.id
   const snippet = `<script async src="${base}/tracker.js" data-site="${siteId}"></script>`
-  const conversionSnippet = `<script async src="${base}/flowfunnel-conversion.js" data-site="${siteId}"></script>`
+  const conversionSnippet = `<script async src="${base}/flowsara-conversion.js" data-site="${siteId}"></script>`
 
   return NextResponse.json({
     siteId,
     scriptUrl: `${base}/tracker.js`,
     snippet,
-    conversionScriptUrl: `${base}/flowfunnel-conversion.js`,
+    conversionScriptUrl: `${base}/flowsara-conversion.js`,
     conversionSnippet,
     instructions: {
       headTag: 'Cole no <head> da sua landing page (qualquer plataforma: WordPress, ClickFunnels, HTML estático, etc).',

@@ -306,7 +306,7 @@ function BusinessConnect({ plan }: { plan: 'PRO' | 'SCALE' }) {
                 { n: 1, title: 'Acesse o Meta Developer Console', desc: 'Vá em developers.facebook.com e faça login.', link: { href: 'https://developers.facebook.com/apps/', label: 'Abrir Developer Console' } },
                 { n: 2, title: 'Clique em "Criar App"', desc: 'No canto superior direito, clique em "Criar App".' },
                 { n: 3, title: 'Selecione o tipo "Business"', desc: 'Escolha "Business" para ter acesso à WhatsApp Cloud API.' },
-                { n: 4, title: 'Preencha o nome do App', desc: 'Use um nome como "FlowFunnel WhatsApp" e insira seu e-mail.' },
+                { n: 4, title: 'Preencha o nome do App', desc: 'Use um nome como "FlowSara WhatsApp" e insira seu e-mail.' },
                 { n: 5, title: 'Associe ao Business Manager', desc: 'Vincule ao seu portfólio de negócios no Meta Business Manager.' },
               ].map((item) => (
                 <li key={item.n} className="flex gap-4">
@@ -463,7 +463,7 @@ function BusinessConnect({ plan }: { plan: 'PRO' | 'SCALE' }) {
             </div>
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">WhatsApp Business conectado!</h2>
             <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">
-              Sua conta verificada já está integrada ao FlowFunnel. Leads e conversas aparecerão no dashboard em tempo real.
+              Sua conta verificada já está integrada ao FlowSara. Leads e conversas aparecerão no dashboard em tempo real.
             </p>
             <div className="space-y-3">
               <button onClick={() => router.push('/dashboard')} className="w-full py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-xl transition text-sm">

@@ -16,17 +16,17 @@ const inter = Inter({ subsets: ['latin'] })
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ||
-  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://flowfunnel.com.br')
+  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://flowsara.com.br')
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: 'FlowFunnel — Rastreie seu Funil de Vendas no WhatsApp',
-    template: '%s | FlowFunnel',
+    default: 'FlowSara — Rastreie seu Funil de Vendas no WhatsApp',
+    template: '%s | FlowSara',
   },
   description:
-    'FlowFunnel é a plataforma brasileira que rastreia cada etapa do seu funil de vendas no WhatsApp e mostra onde você está perdendo dinheiro. Integre Meta Ads, Google Ads, TikTok, Hotmart, Eduzz e Kiwify em minutos.',
-  applicationName: 'FlowFunnel',
+    'FlowSara é a plataforma brasileira que rastreia cada etapa do seu funil de vendas no WhatsApp e mostra onde você está perdendo dinheiro. Integre Meta Ads, Google Ads, TikTok, Hotmart, Eduzz e Kiwify em minutos.',
+  applicationName: 'FlowSara',
   keywords: [
     'funil de vendas',
     'rastreamento WhatsApp',
@@ -40,9 +40,9 @@ export const metadata: Metadata = {
     'CRM WhatsApp',
     'SaaS Brasil',
   ],
-  authors: [{ name: 'FlowFunnel' }],
-  creator: 'FlowFunnel',
-  publisher: 'FlowFunnel',
+  authors: [{ name: 'FlowSara' }],
+  creator: 'FlowSara',
+  publisher: 'FlowSara',
   icons: {
     icon: [
       { url: '/favicon.ico', sizes: '32x32' },
@@ -57,25 +57,25 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'pt_BR',
     url: SITE_URL,
-    siteName: 'FlowFunnel',
-    title: 'FlowFunnel — Rastreie seu Funil de Vendas no WhatsApp',
+    siteName: 'FlowSara',
+    title: 'FlowSara — Rastreie seu Funil de Vendas no WhatsApp',
     description:
       'Descubra onde seu lançamento no WhatsApp está perdendo vendas. Rastreamento ponta-a-ponta de Meta Ads, Google, TikTok e checkout.',
     images: [
       {
-        url: '/flowfunnel-logo.jpg',
+        url: '/flowsara-logo.jpg',
         width: 1200,
         height: 1200,
-        alt: 'FlowFunnel',
+        alt: 'FlowSara',
       },
     ],
   },
   twitter: {
     card: 'summary',
-    title: 'FlowFunnel — Rastreie seu Funil de Vendas no WhatsApp',
+    title: 'FlowSara — Rastreie seu Funil de Vendas no WhatsApp',
     description:
       'Descubra onde seu lançamento no WhatsApp está perdendo vendas.',
-    images: ['/flowfunnel-logo.jpg'],
+    images: ['/flowsara-logo.jpg'],
   },
   robots: {
     index: true,
@@ -92,10 +92,10 @@ export const metadata: Metadata = {
 const organizationJsonLd = {
   '@context': 'https://schema.org',
   '@type': 'Organization',
-  name: 'FlowFunnel',
-  alternateName: 'FlowFunnel SaaS',
+  name: 'FlowSara',
+  alternateName: 'FlowSara SaaS',
   url: SITE_URL,
-  logo: `${SITE_URL}/flowfunnel-logo.jpg`,
+  logo: `${SITE_URL}/flowsara-logo.jpg`,
   description:
     'Plataforma brasileira de rastreamento de funil de vendas no WhatsApp com integração a Meta Ads, Google Ads, TikTok, Hotmart, Eduzz e Kiwify.',
   sameAs: [] as string[],
@@ -104,15 +104,15 @@ const organizationJsonLd = {
 const websiteJsonLd = {
   '@context': 'https://schema.org',
   '@type': 'WebSite',
-  name: 'FlowFunnel',
+  name: 'FlowSara',
   url: SITE_URL,
   inLanguage: 'pt-BR',
   publisher: {
     '@type': 'Organization',
-    name: 'FlowFunnel',
+    name: 'FlowSara',
     logo: {
       '@type': 'ImageObject',
-      url: `${SITE_URL}/flowfunnel-logo.jpg`,
+      url: `${SITE_URL}/flowsara-logo.jpg`,
     },
   },
 }

@@ -1,4 +1,4 @@
-# FlowFunnel SaaS
+# FlowSara SaaS
 
 A Next.js SaaS application for tracking WhatsApp marketing funnels. The platform tracks, qualifies leads and counts interactions — it does NOT send messages to clients. Integrates with Meta/Facebook Ads, Hotmart, Kiwify, Eduzz, and Monetizze via webhooks.
 

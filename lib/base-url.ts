@@ -23,7 +23,7 @@ export function getBaseUrl(): string {
 
   // Produção sem NEXTAUTH_URL → erro explícito (não silencia)
   throw new Error(
-    '[FlowFunnel] NEXTAUTH_URL não está configurado. ' +
+    '[FlowSara] NEXTAUTH_URL não está configurado. ' +
     'Defina a variável de ambiente na Hostinger (hPanel → Node.js → Variáveis de Ambiente) como https://flowsara.com.br.'
   )
 }

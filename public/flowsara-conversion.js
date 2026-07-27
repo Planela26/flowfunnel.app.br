@@ -1,6 +1,6 @@
-/* FlowFunnel — script oficial de conversão para PÁGINA DE OBRIGADO
+/* FlowSara — script oficial de conversão para PÁGINA DE OBRIGADO
  * Uso:
- *   <script src="https://SEU-SAAS.com/flowfunnel-conversion.js"
+ *   <script src="https://SEU-SAAS.com/flowsara-conversion.js"
  *           data-site="SEU_SITE_ID"
  *           data-platform="hotmart"          (opcional)
  *           data-value="197.00"              (opcional — pode vir da URL)
@@ -9,7 +9,7 @@
  *
  * O script lê o lead_id do localStorage (persistido pelo tracker.js na landing
  * page) e o order_id/valor da URL da thank-you page (parâmetros comuns das
- * plataformas), enviando a conversão para a FlowFunnel. Isso cria o vínculo
+ * plataformas), enviando a conversão para a FlowSara. Isso cria o vínculo
  * DETERMINÍSTICO entre a venda e o clique original.
  */
 (function () {

@@ -19,7 +19,7 @@ interface Step {
 const steps: Step[] = [
   {
     icon: <Zap className="w-10 h-10 text-blue-600" />,
-    title: 'Bem-vindo ao FlowFunnel Funnel!',
+    title: 'Bem-vindo ao FlowSara Funnel!',
     description: 'Rastreie seu funil completo — do anúncio até a venda — em tempo real. Vamos configurar tudo em 4 passos rápidos.',
     checklist: [
       'Conectar suas plataformas de venda',

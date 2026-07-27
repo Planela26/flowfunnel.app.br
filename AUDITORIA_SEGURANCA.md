@@ -1,4 +1,4 @@
-# Auditoria de Segurança, Escalabilidade e Confiabilidade — FlowFunnel SaaS
+# Auditoria de Segurança, Escalabilidade e Confiabilidade — FlowSara SaaS
 
 > **Escopo:** auditoria somente-leitura. Nenhuma funcionalidade foi alterada.
 > **Stack auditada:** Next.js 16 (App Router) · Prisma/PostgreSQL · NextAuth v4 (JWT) · Stripe (LIVE) · Resend · Baileys (WhatsApp).
@@ -244,6 +244,6 @@ A aplicação tem fundamentos **muito bons** (isolamento multi-tenant consistent
 
 ## 5. Conclusão
 
-O FlowFunnel demonstra **arquitetura de segurança madura** nos pontos que mais importam para um SaaS multi-tenant: **isolamento de tenant sem IDOR**, **secrets criptografados**, **hashing forte de senhas** e **idempotência de pagamentos**. Os riscos concentram-se em **higiene de dependências** (atualização do Next.js e da cadeia jsPDF/Baileys é urgente), **autenticação de webhooks** (raw body + anti-replay) e **observabilidade/compliance** (rate limit distribuído + trilha de auditoria).
+O FlowSara demonstra **arquitetura de segurança madura** nos pontos que mais importam para um SaaS multi-tenant: **isolamento de tenant sem IDOR**, **secrets criptografados**, **hashing forte de senhas** e **idempotência de pagamentos**. Os riscos concentram-se em **higiene de dependências** (atualização do Next.js e da cadeia jsPDF/Baileys é urgente), **autenticação de webhooks** (raw body + anti-replay) e **observabilidade/compliance** (rate limit distribuído + trilha de auditoria).
 
 Executando o plano de 24h e 7 dias, o score geral projetado sobe de **68** para a faixa de **85–90/100**.

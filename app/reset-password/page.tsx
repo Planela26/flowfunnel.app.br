@@ -152,9 +152,9 @@ export default function ResetPasswordPage() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="inline-flex w-16 h-16 rounded-full mb-4 shadow-2xl overflow-hidden ring-2 ring-white/20">
-            <img src="/flowfunnel-logo.jpg" alt="FlowFunnel" className="w-full h-full object-cover" />
+            <img src="/flowsara-logo.jpg" alt="FlowSara" className="w-full h-full object-cover" />
           </div>
-          <h1 className="text-2xl font-bold text-white">FlowFunnel</h1>
+          <h1 className="text-2xl font-bold text-white">FlowSara</h1>
         </div>
         <div className="bg-white rounded-2xl shadow-2xl p-8">
           <Suspense fallback={<div className="text-center text-gray-500">Carregando...</div>}>

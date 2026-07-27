@@ -161,9 +161,9 @@ function RegisterPageContent() {
         <div className="text-center mb-6 sm:mb-8">
           <Link href="/" className="inline-flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
             <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-full overflow-hidden shadow-2xl ring-2 ring-white/20">
-              <img src="/flowfunnel-logo.jpg" alt="FlowFunnel" className="w-full h-full object-cover" />
+              <img src="/flowsara-logo.jpg" alt="FlowSara" className="w-full h-full object-cover" />
             </div>
-            <span className="text-xl sm:text-3xl font-bold text-white">FlowFunnel</span>
+            <span className="text-xl sm:text-3xl font-bold text-white">FlowSara</span>
           </Link>
           {planParam && ['START', 'PRO', 'SCALE'].includes(planParam.toUpperCase()) ? (
             <div className="inline-flex items-center gap-2 bg-green-500/20 border border-green-400/40 text-green-200 text-sm font-semibold px-4 py-2 rounded-full">
@@ -333,9 +333,9 @@ function RegisterPageContent() {
                   }}
                   className="max-h-56 overflow-y-auto rounded-xl bg-white dark:bg-gray-900 border border-amber-200 dark:border-amber-700 p-4 text-sm text-gray-700 dark:text-gray-300 space-y-4"
                 >
-                  <p className="font-bold text-gray-900 dark:text-white">1. Serviço FlowFunnel</p>
+                  <p className="font-bold text-gray-900 dark:text-white">1. Serviço FlowSara</p>
                   <p>
-                    O FlowFunnel organiza funis, métricas, integrações e automações para captação, acompanhamento e análise de leads e vendas.
+                    O FlowSara organiza funis, métricas, integrações e automações para captação, acompanhamento e análise de leads e vendas.
                   </p>
                   <p className="font-bold text-gray-900 dark:text-white">2. WhatsApp Business e conta verificada</p>
                   <p>
@@ -351,7 +351,7 @@ function RegisterPageContent() {
                   </p>
                   <p className="font-bold text-gray-900 dark:text-white">5. Segurança e criptografia</p>
                   <p>
-                    Os dados são protegidos com padrões de segurança em trânsito e em repouso. <strong>Seus dados são tratados com alto nível de proteção</strong> e, na prática operacional da plataforma, <strong>nem a FlowFunnel acessa o conteúdo sensível da sua conta</strong> sem necessidade técnica e permissão adequada.
+                    Os dados são protegidos com padrões de segurança em trânsito e em repouso. <strong>Seus dados são tratados com alto nível de proteção</strong> e, na prática operacional da plataforma, <strong>nem a FlowSara acessa o conteúdo sensível da sua conta</strong> sem necessidade técnica e permissão adequada.
                   </p>
                   <p className="font-bold text-gray-900 dark:text-white">6. Responsabilidade do usuário</p>
                   <p>

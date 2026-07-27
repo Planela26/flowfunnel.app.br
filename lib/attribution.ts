@@ -1,13 +1,13 @@
 import { prismaAdmin as prisma } from './prisma'
 
 /**
- * Motor de atribuição de vendas da FlowFunnel.
+ * Motor de atribuição de vendas da FlowSara.
  *
  * Estratégia A — DETERMINÍSTICA (prioridade máxima, confidence = 1.0):
  *   1. lead_id devolvido pelo parâmetro nativo do checkout no webhook
  *      (Hotmart sck, Kiwify s1, Eduzz utm_content, Monetizze/Perfect Pay src,
  *      Stripe client_reference_id) → matchedBy: 'checkout_param'
- *   2. lead_id devolvido pela thank-you page (flowfunnel-conversion.js),
+ *   2. lead_id devolvido pela thank-you page (flowsara-conversion.js),
  *      casado por order_id/transactionId → matchedBy: 'thank_you_page'
  *
  * Estratégia B — PROBABILÍSTICA (fallback, nunca sobrescreve determinística):
@@ -200,7 +200,7 @@ export async function attributeSale(userId: string, sale: SaleInfo) {
 }
 
 /**
- * Reconciliação via thank-you page (flowfunnel-conversion.js).
+ * Reconciliação via thank-you page (flowsara-conversion.js).
  *
  * SEGURANÇA: /api/track/conversion é público (como todo pixel). Por isso a
  * thank-you page NUNCA cria registros de receita/atribuição sozinha — ela só

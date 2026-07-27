@@ -10,7 +10,7 @@ export function VibrantColor() {
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-orange-500 to-rose-500 flex items-center justify-center">
               <Flame className="w-4 h-4 text-white" />
             </div>
-            <span className="text-lg font-black text-gray-900">FlowFunnel</span>
+            <span className="text-lg font-black text-gray-900">FlowSara</span>
           </div>
           <div className="flex items-center gap-3">
             <button className="text-sm font-medium text-gray-600 hover:text-gray-900 px-4 py-2 rounded-lg hover:bg-gray-50 transition">Entrar</button>
@@ -236,14 +236,14 @@ export function VibrantColor() {
             <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-orange-500 to-rose-500 flex items-center justify-center">
               <Flame className="w-4 h-4 text-white" />
             </div>
-            <span className="text-gray-900 font-bold text-sm">FlowFunnel</span>
+            <span className="text-gray-900 font-bold text-sm">FlowSara</span>
           </div>
           <div className="flex gap-6 text-sm text-gray-400">
             <span className="hover:text-gray-600 cursor-pointer transition">Termos</span>
             <span className="hover:text-gray-600 cursor-pointer transition">Privacidade</span>
             <span className="hover:text-gray-600 cursor-pointer transition">Contato</span>
           </div>
-          <p className="text-gray-300 text-xs">© 2025 FlowFunnel</p>
+          <p className="text-gray-300 text-xs">© 2025 FlowSara</p>
         </div>
       </footer>
     </div>

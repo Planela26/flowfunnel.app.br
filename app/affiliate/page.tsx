@@ -178,7 +178,7 @@ export default function AffiliatePage() {
             Programa de Afiliados
           </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-            Ganhe comissões indicando o FlowFunnel para outros infoprodutores
+            Ganhe comissões indicando o FlowSara para outros infoprodutores
           </p>
         </div>
 
@@ -216,7 +216,7 @@ export default function AffiliatePage() {
                   rows={4}
                   value={message}
                   onChange={e => setMessage(e.target.value)}
-                  placeholder="Conte um pouco sobre você e como pretende divulgar o FlowFunnel..."
+                  placeholder="Conte um pouco sobre você e como pretende divulgar o FlowSara..."
                   className="w-full px-3 py-2 text-sm text-gray-900 bg-white dark:bg-gray-800 dark:text-white border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-purple-500 focus:outline-none placeholder-gray-400 resize-none mb-4"
                 />
                 <button

@@ -158,7 +158,7 @@ export default function SecurityPage() {
   const downloadCodes = () => {
     if (!recoveryCodes) return
     const blob = new Blob(
-      [`Códigos de recuperação — FlowFunnel\n\n${recoveryCodes.join('\n')}\n\nGuarde em local seguro. Cada código só pode ser usado uma vez.`],
+      [`Códigos de recuperação — FlowSara\n\n${recoveryCodes.join('\n')}\n\nGuarde em local seguro. Cada código só pode ser usado uma vez.`],
       { type: 'text/plain' },
     )
     const url = URL.createObjectURL(blob)

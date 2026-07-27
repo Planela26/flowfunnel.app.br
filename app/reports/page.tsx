@@ -129,7 +129,7 @@ export default function ReportsPage() {
       rows.forEach(row => lines.push(row))
     }
 
-    pushSection('RELATÓRIO FLOWFUNNEL')
+    pushSection('RELATÓRIO FLOWSARA')
     lines.push(['Período', `Últimos ${days} dias`])
     lines.push(['Gerado em', new Date().toLocaleString('pt-BR')])
     pushBlank()

@@ -194,7 +194,7 @@ export async function POST(request: Request) {
     { userId: user.id, title: '80 vendas Kiwify', description: '[DEMO] Vendas confirmadas via Kiwify', targetValue: 80, currentValue: Math.min(80, totalSales), metric: 'sales', platform: 'ALL', endDate: monthEnd },
   ]})
   await prisma.notification.createMany({ data: [
-    { userId: user.id, type: 'info', title: 'Bem-vindo ao FlowFunnel', message: '[DEMO] Sua conta está populada com dados de demonstração.' },
+    { userId: user.id, type: 'info', title: 'Bem-vindo ao FlowSara', message: '[DEMO] Sua conta está populada com dados de demonstração.' },
     { userId: user.id, type: 'goal_completed', title: 'Meta diária batida', message: `[DEMO] Você bateu sua meta diária de leads hoje (${dedupLeads.length} leads no período).`, link: '/goals' },
     { userId: user.id, type: 'warning', title: 'Conversa parada há mais de 24h', message: '[DEMO] Você tem leads quentes sem resposta há mais de 24 horas.', link: '/leads' },
     { userId: user.id, type: 'info', title: 'Nova venda Kiwify', message: `[DEMO] R$ ${totalRevenue.toFixed(2)} faturados nos últimos 30 dias.`, link: '/reports' },

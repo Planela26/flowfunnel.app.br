@@ -8,7 +8,7 @@ function getResend() {
   return resend
 }
 
-const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'FlowFunnel <noreply@flowsara.com.br>'
+const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'FlowSara <noreply@flowsara.com.br>'
 const APP_URL = process.env.NEXTAUTH_URL || 'https://flowsara.com.br'
 
 async function sendEmail(to: string, subject: string, html: string) {
@@ -70,10 +70,10 @@ function base({
             <tr><td align="center" style="padding-bottom:20px;">
               <table cellpadding="0" cellspacing="0"><tr>
                 <td style="width:40px;height:40px;border-radius:50%;overflow:hidden;background:#ffffff;vertical-align:middle;">
-                  <img src="${APP_URL}/flowfunnel-logo.jpg" alt="FlowFunnel" width="40" height="40" style="display:block;border-radius:50%;object-fit:cover;" />
+                  <img src="${APP_URL}/flowsara-logo.jpg" alt="FlowSara" width="40" height="40" style="display:block;border-radius:50%;object-fit:cover;" />
                 </td>
                 <td style="padding-left:10px;vertical-align:middle;">
-                  <span style="color:#ffffff;font-size:22px;font-weight:800;letter-spacing:-0.5px;">FlowFunnel</span>
+                  <span style="color:#ffffff;font-size:22px;font-weight:800;letter-spacing:-0.5px;">FlowSara</span>
                 </td>
               </tr></table>
             </td></tr>
@@ -94,7 +94,7 @@ function base({
         <tr><td style="background:#f8fafc;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 16px 16px;padding:24px 32px;text-align:center;">
           ${footerExtra ? `<p style="color:#64748b;font-size:13px;margin:0 0 12px;">${footerExtra}</p>` : ''}
           <p style="color:#94a3b8;font-size:12px;margin:0;">
-            <strong style="color:#64748b;">FlowFunnel</strong> · Onde cada venda do seu funil é rastreada
+            <strong style="color:#64748b;">FlowSara</strong> · Onde cada venda do seu funil é rastreada
           </p>
           <p style="color:#cbd5e1;font-size:11px;margin:6px 0 0;">
             <a href="${APP_URL}" style="color:#94a3b8;text-decoration:none;">flowsara.com.br</a>
@@ -145,7 +145,7 @@ const PLAN_PRICES: Record<string, string> = { START: 'R$ 97', PRO: 'R$ 147', SCA
 export async function sendVerificationEmail(to: string, name: string, verifyUrl: string) {
   return sendEmail(
     to,
-    'Confirme seu email para acessar o FlowFunnel',
+    'Confirme seu email para acessar o FlowSara',
     base({
       headerEmoji: '✉️',
       headerTitle: 'Confirme seu email',
@@ -153,7 +153,7 @@ export async function sendVerificationEmail(to: string, name: string, verifyUrl:
       body: `
         <h2 style="color:#111827;font-size:20px;font-weight:700;margin:0 0 16px;">Olá, ${name || 'usuário'}!</h2>
         <p style="color:#4b5563;font-size:16px;line-height:1.7;margin:0 0 20px;">
-          Obrigado por se cadastrar no <strong>FlowFunnel</strong>. Para ativar sua conta e
+          Obrigado por se cadastrar no <strong>FlowSara</strong>. Para ativar sua conta e
           começar a rastrear cada etapa do seu funil de vendas, clique no botão abaixo para
           confirmar seu endereço de email.
         </p>
@@ -166,7 +166,7 @@ export async function sendVerificationEmail(to: string, name: string, verifyUrl:
           <strong>🔒 Segurança:</strong><br/>
           Este link é válido por <strong>24 horas</strong>. Após esse prazo, você pode
           solicitar um novo link de verificação diretamente na plataforma.<br/><br/>
-          Se você não criou uma conta no FlowFunnel, pode ignorar este email com segurança —
+          Se você não criou uma conta no FlowSara, pode ignorar este email com segurança —
           nenhuma ação será tomada.
         `, '#f8fafc', '#e2e8f0', '#374151')}
 
@@ -188,7 +188,7 @@ export async function sendVerificationEmail(to: string, name: string, verifyUrl:
 export async function sendWelcomeEmail(to: string, name: string) {
   return sendEmail(
     to,
-    `Bem-vindo(a) ao FlowFunnel, ${name || 'usuário'}! 🎉`,
+    `Bem-vindo(a) ao FlowSara, ${name || 'usuário'}! 🎉`,
     base({
       headerBg: 'linear-gradient(135deg, #1e3a8a 0%, #1e40af 40%, #7c3aed 100%)',
       headerEmoji: '🎉',
@@ -196,7 +196,7 @@ export async function sendWelcomeEmail(to: string, name: string) {
       headerSubtitle: 'Sua conta está pronta. Vamos começar!',
       body: `
         <p style="color:#4b5563;font-size:16px;line-height:1.7;margin:0 0 24px;">
-          É um prazer ter você no <strong>FlowFunnel</strong>! Agora você tem uma visão completa
+          É um prazer ter você no <strong>FlowSara</strong>! Agora você tem uma visão completa
           do seu funil de vendas — desde o primeiro clique no anúncio até o pagamento confirmado.
         </p>
 
@@ -238,10 +238,10 @@ export async function sendWelcomeEmail(to: string, name: string) {
 
         <p style="color:#6b7280;font-size:14px;line-height:1.7;margin:0;text-align:center;">
           Ficou com dúvida? Responda este email ou acesse nossa central de ajuda.<br/>
-          Estamos aqui para garantir que você aproveite ao máximo o FlowFunnel.
+          Estamos aqui para garantir que você aproveite ao máximo o FlowSara.
         </p>
       `,
-      footerExtra: 'Boas vendas! A equipe FlowFunnel torce pelo seu sucesso.',
+      footerExtra: 'Boas vendas! A equipe FlowSara torce pelo seu sucesso.',
     })
   )
 }
@@ -252,7 +252,7 @@ export async function sendWelcomeEmail(to: string, name: string) {
 export async function sendPasswordResetEmail(to: string, name: string, resetUrl: string) {
   return sendEmail(
     to,
-    'Redefinição de senha — FlowFunnel',
+    'Redefinição de senha — FlowSara',
     base({
       headerBg: 'linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%)',
       headerEmoji: '🔐',
@@ -262,7 +262,7 @@ export async function sendPasswordResetEmail(to: string, name: string, resetUrl:
         <h2 style="color:#111827;font-size:20px;font-weight:700;margin:0 0 16px;">Olá, ${name || 'usuário'}!</h2>
         <p style="color:#4b5563;font-size:16px;line-height:1.7;margin:0 0 20px;">
           Você (ou alguém em seu nome) solicitou a redefinição da senha da sua conta no
-          <strong>FlowFunnel</strong>. Clique no botão abaixo para criar uma nova senha com segurança.
+          <strong>FlowSara</strong>. Clique no botão abaixo para criar uma nova senha com segurança.
         </p>
 
         <div style="text-align:center;margin:32px 0;">
@@ -279,7 +279,7 @@ export async function sendPasswordResetEmail(to: string, name: string, resetUrl:
         ${divider}
 
         <p style="color:#9ca3af;font-size:13px;line-height:1.6;margin:0;text-align:center;">
-          Caso o botão não funcione, acesse a página de recuperação de senha no FlowFunnel
+          Caso o botão não funcione, acesse a página de recuperação de senha no FlowSara
           e solicite um novo link de redefinição.
         </p>
       `,
@@ -293,7 +293,7 @@ export async function sendPasswordResetEmail(to: string, name: string, resetUrl:
 export async function sendEmailChangeCode(to: string, name: string, code: string, pendingEmail: string) {
   return sendEmail(
     to,
-    'Código de verificação para troca de email — FlowFunnel',
+    'Código de verificação para troca de email — FlowSara',
     base({
       headerBg: 'linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%)',
       headerEmoji: '🛡️',
@@ -302,7 +302,7 @@ export async function sendEmailChangeCode(to: string, name: string, code: string
       body: `
         <h2 style="color:#111827;font-size:20px;font-weight:700;margin:0 0 16px;">Olá, ${name || 'usuário'}!</h2>
         <p style="color:#4b5563;font-size:16px;line-height:1.7;margin:0 0 20px;">
-          Foi solicitada a troca do email da sua conta no <strong>FlowFunnel</strong>.
+          Foi solicitada a troca do email da sua conta no <strong>FlowSara</strong>.
           Para confirmar que você é o titular da conta, insira o código abaixo na tela onde
           a alteração foi solicitada.
         </p>
@@ -344,7 +344,7 @@ export async function sendTeamInviteEmail(to: string, inviterName: string, token
   const inviteUrl = `${APP_URL}/invite?token=${token}`
   return sendEmail(
     to,
-    `${inviterName} te convidou para o FlowFunnel`,
+    `${inviterName} te convidou para o FlowSara`,
     base({
       headerBg: 'linear-gradient(135deg, #1e3a8a 0%, #7c3aed 100%)',
       headerEmoji: '🤝',
@@ -352,7 +352,7 @@ export async function sendTeamInviteEmail(to: string, inviterName: string, token
       headerSubtitle: `${inviterName} quer que você faça parte do time`,
       body: `
         <p style="color:#4b5563;font-size:16px;line-height:1.7;margin:0 0 24px;">
-          <strong>${inviterName}</strong> convidou você para acessar o painel do <strong>FlowFunnel</strong>
+          <strong>${inviterName}</strong> convidou você para acessar o painel do <strong>FlowSara</strong>
           — a plataforma que conecta WhatsApp, plataformas de venda e anúncios em um só lugar.
         </p>
 
@@ -387,7 +387,7 @@ export async function sendSaleNotificationEmail(to: string, name: string, plan: 
   const amountStr = amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })
   return sendEmail(
     to,
-    `💰 Venda confirmada — R$ ${amountStr} | FlowFunnel`,
+    `💰 Venda confirmada — R$ ${amountStr} | FlowSara`,
     base({
       headerBg: 'linear-gradient(135deg, #065f46 0%, #059669 100%)',
       headerEmoji: '💰',
@@ -398,7 +398,7 @@ export async function sendSaleNotificationEmail(to: string, name: string, plan: 
           Parabéns, ${name || 'usuário'}! 🎉
         </h2>
         <p style="color:#4b5563;font-size:16px;line-height:1.7;margin:0 0 24px;">
-          Uma nova venda foi registrada e confirmada no seu funil do FlowFunnel.
+          Uma nova venda foi registrada e confirmada no seu funil do FlowSara.
         </p>
 
         <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 28px;">
@@ -444,7 +444,7 @@ export async function sendUsageLimitWarningEmail(to: string, name: string, used:
   const isCritical = percent >= 90
   return sendEmail(
     to,
-    `${isCritical ? '🚨' : '⚠️'} Você usou ${percent}% do limite de conversas — FlowFunnel`,
+    `${isCritical ? '🚨' : '⚠️'} Você usou ${percent}% do limite de conversas — FlowSara`,
     base({
       headerBg: isCritical
         ? 'linear-gradient(135deg, #7f1d1d 0%, #dc2626 100%)'
@@ -519,7 +519,7 @@ export async function sendTrialCardReminderEmail(to: string, name: string, plan:
   const activateUrl = `${APP_URL}/activate-trial?plan=${plan}`
   return sendEmail(
     to,
-    `⏳ Só falta um passo — ative seu teste grátis de 7 dias no FlowFunnel`,
+    `⏳ Só falta um passo — ative seu teste grátis de 7 dias no FlowSara`,
     base({
       headerBg: 'linear-gradient(135deg, #1e40af 0%, #7c3aed 100%)',
       headerEmoji: '🎯',
@@ -572,7 +572,7 @@ export async function sendTrialActivatedEmail(to: string, name: string, plan: st
   const endsStr = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' }).format(trialEndsAt)
   return sendEmail(
     to,
-    `🚀 Teste grátis ativado! Plano ${planLabel} liberado por 7 dias — FlowFunnel`,
+    `🚀 Teste grátis ativado! Plano ${planLabel} liberado por 7 dias — FlowSara`,
     base({
       headerBg: 'linear-gradient(135deg, #065f46 0%, #1e40af 100%)',
       headerEmoji: '🚀',
@@ -592,7 +592,7 @@ export async function sendTrialActivatedEmail(to: string, name: string, plan: st
           📆 <strong>Início:</strong> hoje<br/>
           📆 <strong>Término:</strong> ${endsStr}<br/>
           💳 <strong>Primeira cobrança:</strong> somente após ${endsStr}, se não cancelar<br/>
-          💰 <strong>Valor:</strong> ${PLAN_PRICES[plan] ?? ''}/mês no FlowFunnel
+          💰 <strong>Valor:</strong> ${PLAN_PRICES[plan] ?? ''}/mês no FlowSara
         `, '#ecfdf5', '#6ee7b7', '#065f46')}
 
         ${infoBox(`
@@ -629,7 +629,7 @@ export async function sendTrialWillEndEmail(to: string, name: string, plan: stri
   const urgencyLabel = isCritical ? 'Último dia do seu teste!' : `${daysLeft} dias para o fim do teste`
   return sendEmail(
     to,
-    `${isCritical ? '🚨' : '⏰'} ${urgencyLabel} — FlowFunnel Plano ${planLabel}`,
+    `${isCritical ? '🚨' : '⏰'} ${urgencyLabel} — FlowSara Plano ${planLabel}`,
     base({
       headerBg: isCritical
         ? 'linear-gradient(135deg, #7f1d1d 0%, #dc2626 100%)'
@@ -650,18 +650,18 @@ export async function sendTrialWillEndEmail(to: string, name: string, plan: stri
 
         ${infoBox(`
           <strong>O que acontece depois do teste:</strong><br/><br/>
-          💳 A assinatura de <strong>${PLAN_PRICES[plan] ?? ''}/mês no FlowFunnel</strong> começa em ${endsStr}<br/>
+          💳 A assinatura de <strong>${PLAN_PRICES[plan] ?? ''}/mês no FlowSara</strong> começa em ${endsStr}<br/>
           ✅ Você mantém acesso a todos os recursos do plano ${planLabel}<br/>
           🔄 A cobrança é recorrente e pode ser cancelada a qualquer momento
         `, isCritical ? '#fef2f2' : '#fffbeb', isCritical ? '#fca5a5' : '#fcd34d', isCritical ? '#7f1d1d' : '#78350f')}
 
         <p style="color:#4b5563;font-size:15px;line-height:1.7;margin:0 0 28px;">
-          Se quiser continuar usando o FlowFunnel, não precisa fazer nada — a assinatura
+          Se quiser continuar usando o FlowSara, não precisa fazer nada — a assinatura
           continua automaticamente. Se preferir cancelar, faça isso antes de ${endsStr}.
         </p>
 
         <div style="text-align:center;margin:28px 0;">
-          ${btn(`${APP_URL}/dashboard`, '✅  Continuar usando o FlowFunnel', isCritical ? '#dc2626' : '#d97706')}
+          ${btn(`${APP_URL}/dashboard`, '✅  Continuar usando o FlowSara', isCritical ? '#dc2626' : '#d97706')}
         </div>
 
         <p style="text-align:center;margin:16px 0 0;">
@@ -688,32 +688,32 @@ export async function sendTrialConvertedEmail(to: string, name: string, plan: st
   const planLabel = PLAN_LABELS[plan] ?? plan
   return sendEmail(
     to,
-    `✅ Assinatura ativa no FlowFunnel — Plano ${planLabel}`,
+    `✅ Assinatura ativa no FlowSara — Plano ${planLabel}`,
     base({
       headerBg: 'linear-gradient(135deg, #1e3a8a 0%, #059669 100%)',
       headerEmoji: '✅',
       headerTitle: `Assinatura ativa — Plano ${planLabel}`,
-      headerSubtitle: 'Obrigado pela confiança no FlowFunnel!',
+      headerSubtitle: 'Obrigado pela confiança no FlowSara!',
       body: `
         <h2 style="color:#111827;font-size:20px;font-weight:700;margin:0 0 16px;">
           Olá, ${name || 'usuário'}!
         </h2>
         <p style="color:#4b5563;font-size:16px;line-height:1.7;margin:0 0 24px;">
           Seu teste gratuito foi convertido e sua assinatura do plano <strong>${planLabel}</strong>
-          está oficialmente ativa no FlowFunnel. A primeira cobrança de <strong>${PLAN_PRICES[plan] ?? ''}/mês</strong>
+          está oficialmente ativa no FlowSara. A primeira cobrança de <strong>${PLAN_PRICES[plan] ?? ''}/mês</strong>
           foi processada com sucesso.
         </p>
 
         ${infoBox(`
           <strong style="display:block;margin-bottom:12px;">📋 Detalhes da sua assinatura:</strong>
           📦 <strong>Plano:</strong> ${planLabel}<br/>
-          💰 <strong>Valor:</strong> ${PLAN_PRICES[plan] ?? ''}/mês — cobrado no FlowFunnel<br/>
+          💰 <strong>Valor:</strong> ${PLAN_PRICES[plan] ?? ''}/mês — cobrado no FlowSara<br/>
           🔄 <strong>Renovação:</strong> automática todo mês na mesma data<br/>
           ❌ <strong>Cancelamento:</strong> a qualquer momento sem multa
         `, '#ecfdf5', '#6ee7b7', '#065f46')}
 
         <p style="color:#4b5563;font-size:15px;line-height:1.7;margin:0 0 28px;">
-          Continue aproveitando o FlowFunnel ao máximo. Quanto mais integrações você
+          Continue aproveitando o FlowSara ao máximo. Quanto mais integrações você
           configurar, mais visibilidade terá sobre o seu funil de vendas.
         </p>
 
@@ -731,7 +731,7 @@ export async function sendTrialConvertedEmail(to: string, name: string, plan: st
         ${divider}
 
         <p style="color:#9ca3af;font-size:13px;text-align:center;margin:0;">
-          Obrigado por escolher o FlowFunnel. A equipe está à disposição
+          Obrigado por escolher o FlowSara. A equipe está à disposição
           para garantir que você extraia o máximo da plataforma.
         </p>
       `,
@@ -757,7 +757,7 @@ export async function sendGoalCompletedEmail(
 
   return sendEmail(
     userEmail,
-    `🏆 Meta atingida: ${goalTitle} — FlowFunnel`,
+    `🏆 Meta atingida: ${goalTitle} — FlowSara`,
     base({
       headerBg: 'linear-gradient(135deg, #4c1d95 0%, #7c3aed 100%)',
       headerEmoji: '🏆',
@@ -768,7 +768,7 @@ export async function sendGoalCompletedEmail(
           Incrível, ${userName}! 🎉
         </h2>
         <p style="color:#4b5563;font-size:16px;line-height:1.7;margin:0 0 24px;">
-          Você atingiu a meta que definiu no FlowFunnel. Continue assim — cada meta
+          Você atingiu a meta que definiu no FlowSara. Continue assim — cada meta
           atingida é um sinal de que seu funil está funcionando!
         </p>
 

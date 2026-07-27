@@ -1,4 +1,4 @@
-# Deploy na Hostinger - FlowFunnel
+# Deploy na Hostinger - FlowSara
 
 > Guia para subir o projeto na Hostinger usando GitHub + VPS/Node.js.
 
@@ -62,7 +62,7 @@ NODE_OPTIONS="--max-old-space-size=1024" npm run build
 
 ```bash
 npm install -g pm2
-pm2 start npm --name "flowfunnel" -- start
+pm2 start npm --name "flowsara" -- start
 pm2 save
 pm2 startup
 ```
@@ -197,17 +197,17 @@ DIRECT_DATABASE_URL="postgresql://...?sslmode=require"
 
 ```bash
 # Ver logs
-pm2 logs flowfunnel
+pm2 logs flowsara
 
 # Reiniciar
-pm2 restart flowfunnel
+pm2 restart flowsara
 
 # Atualizar após push no GitHub
 cd ~/public_html
 git pull origin main
 npm install
 npm run build
-pm2 restart flowfunnel
+pm2 restart flowsara
 ```
 
 ---
@@ -218,7 +218,7 @@ pm2 restart flowfunnel
 2. Teste localmente: `npm run dev`
 3. Faça push: `git push origin main`
 4. Hostinger faz deploy automático (ou rode `git pull` manualmente)
-5. Rode `npm run build` e `pm2 restart flowfunnel` se necessário
+5. Rode `npm run build` e `pm2 restart flowsara` se necessário
 
 ---
 

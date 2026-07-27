@@ -1,4 +1,4 @@
-/* FlowFunnel — tracker público de landing pages
+/* FlowSara — tracker público de landing pages
  * Uso:
  *   <script src="https://SEU-SAAS.com/tracker.js" data-site="SEU_SITE_ID"></script>
  *

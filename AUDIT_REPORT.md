@@ -1,4 +1,4 @@
-# Relatório de Auditoria Funcional — FlowFunnel SaaS
+# Relatório de Auditoria Funcional — FlowSara SaaS
 
 **Data:** 07 de junho de 2026
 **Escopo:** Auditoria pré-lançamento com **testes reais executados** (não apenas
@@ -170,7 +170,7 @@ no `replit.md`. **Risco residual aceito** — reavaliar com fix upstream.
 
 ## 8. Conclusão
 
-O FlowFunnel está **funcionalmente pronto** e bem arquitetado. As 147 verificações
+O FlowSara está **funcionalmente pronto** e bem arquitetado. As 147 verificações
 automáticas passaram, a segurança multi-tenant é robusta (RLS no banco) e os fluxos
 de pagamento dos provedores principais (Stripe/Mercado Pago) estão endurecidos e
 testados. O único pendente de **configuração** é o F2 (segredos de webhook das

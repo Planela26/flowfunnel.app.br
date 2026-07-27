@@ -89,9 +89,9 @@ export default function DashboardSidebar() {
       {/* Logo */}
       <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100 dark:border-gray-800 flex-shrink-0">
         <div className="w-10 h-10 rounded-full overflow-hidden shadow-sm flex-shrink-0 ring-1 ring-blue-200 dark:ring-blue-700">
-          <img src="/flowfunnel-logo.jpg" alt="FlowFunnel" className="w-full h-full object-cover" />
+          <img src="/flowsara-logo.jpg" alt="FlowSara" className="w-full h-full object-cover" />
         </div>
-        <span className="text-base font-extrabold text-blue-900 dark:text-white tracking-tight leading-none">FlowFunnel</span>
+        <span className="text-base font-extrabold text-blue-900 dark:text-white tracking-tight leading-none">FlowSara</span>
       </div>
 
       {/* Nav */}

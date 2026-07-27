@@ -308,7 +308,7 @@ export default function PricingPage() {
               >
                 <p className="font-black text-gray-900 dark:text-white">Termos do plano e privacidade</p>
                 <p>
-                  O FlowFunnel fornece análise de funis, métricas e integrações. Alguns recursos exigem assinatura ativa e conta verificada do WhatsApp Business.
+                  O FlowSara fornece análise de funis, métricas e integrações. Alguns recursos exigem assinatura ativa e conta verificada do WhatsApp Business.
                 </p>
                 <p>
                   <strong>WhatsApp verificado é obrigatório no Pro e no Scale</strong> para usar a conexão oficial da API da Meta e as métricas avançadas. Apenas o Start funciona sem conta verificada.

@@ -37,7 +37,7 @@ export async function POST(request: Request) {
     const otpauthUri = buildOtpauthUri({
       secretBase32: secret,
       accountName: user.email,
-      issuer: 'FlowFunnel',
+      issuer: 'FlowSara',
     })
     const qrDataUrl = await QRCode.toDataURL(otpauthUri)
 

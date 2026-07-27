@@ -377,9 +377,9 @@ export default function Dashboard() {
           {/* Logo */}
           <div className="flex items-center gap-1.5 min-w-0">
             <div className="w-6 h-6 rounded-full overflow-hidden flex-shrink-0">
-              <img src="/flowfunnel-logo.jpg" alt="FlowFunnel" className="w-full h-full object-cover" />
+              <img src="/flowsara-logo.jpg" alt="FlowSara" className="w-full h-full object-cover" />
             </div>
-            <span className="text-sm font-extrabold text-blue-900 dark:text-white tracking-tight leading-none">FlowFunnel</span>
+            <span className="text-sm font-extrabold text-blue-900 dark:text-white tracking-tight leading-none">FlowSara</span>
           </div>
 
           <div className="flex-1" />
