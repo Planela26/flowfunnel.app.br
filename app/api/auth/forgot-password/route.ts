@@ -4,6 +4,20 @@ import { sendPasswordResetEmail } from '@/lib/email'
 import { checkRateLimit, getClientIp } from '@/lib/security-utils'
 import { logAudit } from '@/lib/audit'
 import crypto from 'crypto'
+import dns from 'dns/promises'
+
+/** Verifica se o domínio do email possui registros MX válidos (aceita email). */
+async function emailDomainIsValid(email: string): Promise<boolean> {
+  try {
+    const domain = email.split('@')[1]
+    if (!domain) return false
+    const records = await dns.resolveMx(domain)
+    return records.length > 0
+  } catch {
+    // ENOTFOUND, ENODATA, timeout — domínio sem MX ou inexistente
+    return false
+  }
+}
 
 export async function POST(req: Request) {
   try {
@@ -22,57 +36,72 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Email obrigatório' }, { status: 400 })
     }
 
-    const user = await prisma.user.findUnique({ where: { email: email.toLowerCase().trim() } })
+    const normalizedEmail = email.toLowerCase().trim()
 
-    // Always return success to prevent email enumeration
-    if (!user) {
-      return NextResponse.json({ success: true })
+    // ── 1. Verifica no banco de dados ────────────────────────────────────────
+    const user = await prisma.user.findFirst({
+      where: { email: { equals: normalizedEmail, mode: 'insensitive' } },
+    })
+
+    if (user) {
+      // Email encontrado → fluxo normal de redefinição
+      await prisma.passwordResetToken.updateMany({
+        where: { userId: user.id, used: false, expiresAt: { gt: new Date() } },
+        data: { used: true },
+      })
+
+      const token = crypto.randomBytes(32).toString('hex')
+      const tokenHash = crypto.createHash('sha256').update(token).digest('hex')
+      const expiresAt = new Date(Date.now() + 60 * 60 * 1000) // 1 hora
+
+      await prisma.passwordResetToken.create({
+        data: { userId: user.id, token: tokenHash, expiresAt },
+      })
+
+      const appUrl =
+        process.env.NEXTAUTH_URL ||
+        (process.env.REPLIT_DEV_DOMAIN
+          ? `https://${process.env.REPLIT_DEV_DOMAIN}`
+          : 'http://localhost:5000')
+      const resetUrl = `${appUrl}/reset-password?token=${token}`
+
+      try {
+        await sendPasswordResetEmail(user.email, user.name || '', resetUrl)
+      } catch (emailErr) {
+        console.error('[forgot-password] falha ao enviar email:', emailErr)
+      }
+
+      await logAudit({
+        action: 'auth.password_reset_request',
+        result: 'success',
+        userId: user.id,
+        entityType: 'User',
+        entityId: user.id,
+        request: req,
+        metadata: { email: user.email },
+      })
+
+      return NextResponse.json({ success: true, result: 'sent' })
     }
 
-    // Invalidate any existing unexpired tokens
-    await prisma.passwordResetToken.updateMany({
-      where: { userId: user.id, used: false, expiresAt: { gt: new Date() } },
-      data: { used: true },
-    })
+    // ── 2. Email não está no banco — valida se o domínio é real via DNS ──────
+    const domainValid = await emailDomainIsValid(normalizedEmail)
 
-    const token = crypto.randomBytes(32).toString('hex')
-    // Store only the SHA-256 hash; the raw token lives solely in the email link.
-    // If the DB leaks, the stored hash cannot be used to reset a password.
-    const tokenHash = crypto.createHash('sha256').update(token).digest('hex')
-    const expiresAt = new Date(Date.now() + 60 * 60 * 1000) // 1 hour
-
-    await prisma.passwordResetToken.create({
-      data: { userId: user.id, token: tokenHash, expiresAt },
-    })
-
-    const appUrl = process.env.NEXTAUTH_URL ||
-      (process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : 'http://localhost:5000')
-    const resetUrl = `${appUrl}/reset-password?token=${token}`
-
-    // Envia o email em bloco isolado — falhas do Resend (domínio não verificado,
-    // timeout de rede) não devem retornar 500 para o usuário. O token já foi
-    // persistido; o usuário pode tentar novamente.
-    try {
-      await sendPasswordResetEmail(user.email, user.name || '', resetUrl)
-    } catch (emailErr) {
-      // Loga para diagnóstico mas não expõe ao cliente.
-      console.error('[forgot-password] falha ao enviar email:', emailErr)
+    if (!domainValid) {
+      // Domínio sem registros MX → email inválido/inexistente
+      return NextResponse.json(
+        { error: 'Esse endereço de email não é válido. Verifique o que foi digitado.' },
+        { status: 422 },
+      )
     }
 
-    // logAudit é best-effort (tem try/catch interno), nunca lança.
-    await logAudit({
-      action: 'auth.password_reset_request',
-      result: 'success',
-      userId: user.id,
-      entityType: 'User',
-      entityId: user.id,
-      request: req,
-      metadata: { email: user.email },
-    })
-
-    return NextResponse.json({ success: true })
+    // Email válido (domínio com MX) mas sem conta no FlowFunnel
+    return NextResponse.json({ success: true, result: 'no_account' })
   } catch (error) {
     console.error('[forgot-password] erro interno:', error)
-    return NextResponse.json({ error: 'Erro interno. Tente novamente em alguns instantes.' }, { status: 500 })
+    return NextResponse.json(
+      { error: 'Erro interno. Tente novamente em alguns instantes.' },
+      { status: 500 },
+    )
   }
 }
