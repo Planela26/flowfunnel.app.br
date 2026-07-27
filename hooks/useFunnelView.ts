@@ -55,6 +55,16 @@ export function useFunnelView(userId: string | undefined) {
   const [initialized, setInitialized] = useState(false)
   const lastServerSavedJson = useRef<string | null>(null)
 
+  // Ref que espelha SEMPRE o valor atual de visibleIds (evita stale closure em
+  // handlers async). Atualizado antes de qualquer comparação pós-await.
+  const visibleIdsRef = useRef<string[]>(visibleIds)
+  useEffect(() => { visibleIdsRef.current = visibleIds }, [visibleIds])
+
+  // Contador monotônico que sobe a cada ação INTENCIONAL do usuário
+  // (addCard / removeCard). Permite que o fetch inicial detecte se o
+  // usuário mexeu durante o in-flight sem depender de closures stale.
+  const userActionVersion = useRef(0)
+
   // LOAD: pinta cache local imediatamente, depois busca a verdade no backend.
   useEffect(() => {
     if (!userId) return
@@ -69,8 +79,8 @@ export function useFunnelView(userId: string | undefined) {
           const valid = parsed.filter((id: string) =>
             AVAILABLE_INTEGRATIONS.some(i => i.id === id)
           )
-          // IMPORTANTE: marcar como "salvo pelo servidor" mesmo quando valid=[]
-          // (decisão válida do usuário: ele apagou todos os cards).
+          // Marca como "já visto pelo servidor" para o SAVE effect não
+          // disparar POST desnecessário ao inicializar.
           setVisibleIds(valid)
           lastServerSavedJson.current = JSON.stringify(valid)
         }
@@ -78,38 +88,38 @@ export function useFunnelView(userId: string | undefined) {
     } catch { /* ignore */ }
     setInitialized(true)
 
-    // (2) Fonte de verdade no backend. CAPTURA snapshot de visibleIds no
-    // início do fetch — se o usuário clicar em apagar/adicionar um card
-    // durante o in-flight, NÃO sobrescrevemos com dados stale do servidor.
+    // (2) Fonte de verdade no backend.
+    // PROTEÇÃO CONTRA STALE-CLOSURE + RACE:
+    //   - Capturamos userActionVersion.current ANTES do await.
+    //   - Após o await, comparamos com o valor atual do ref.
+    //   - Se divergir → usuário fez add/remove durante o fetch → mantemos
+    //     o estado do usuário (o SAVE effect já despachou POST imediato).
     ;(async () => {
       try {
-        const snapshot = JSON.stringify(visibleIds)
+        const versionAtStart = userActionVersion.current
         const res = await fetch('/api/funnel-layout', { cache: 'no-store' })
         if (!res.ok || cancelled) return
         const data = await res.json()
         if (cancelled) return
+
+        // Usuário mudou algo durante o in-flight → não sobrescrevemos.
+        if (userActionVersion.current !== versionAtStart) return
+
         if (Array.isArray(data?.visibleIds)) {
           const valid = data.visibleIds.filter((id: string) =>
             AVAILABLE_INTEGRATIONS.some(i => i.id === id)
           )
           const serverJson = JSON.stringify(valid)
+          const currentJson = JSON.stringify(visibleIdsRef.current)
 
-          if (serverJson === snapshot) {
-            // Servidor concorda com o que já temos; marca como "salvo".
-            lastServerSavedJson.current = serverJson
-          } else if (JSON.stringify(visibleIds) === snapshot) {
-            // (a) Servidor tem estado diferente E o usuário não mexeu durante
-            // o fetch → aplica verdade do servidor.
+          if (serverJson !== currentJson) {
+            // Servidor tem estado diferente do local (outra aba adicionou/removeu
+            // um card) → aplica a verdade do servidor.
             setVisibleIds(valid)
-            try { localStorage.setItem(getStorageKey(userId!), JSON.stringify(valid)) } catch {}
-            lastServerSavedJson.current = serverJson
+            try { localStorage.setItem(getStorageKey(userId!), serverJson) } catch {}
           }
-          // (b) serverJson !== snapshot E visibleIds !== snapshot:
-          // usuário mudou durante o fetch. NÃO mexemos em visibleIds nem em
-          // lastServerSavedJson. O SAVE effect (logo abaixo) já detectou a
-          // mudança do usuário e fez POST imediato — servidor será atualizado
-          // quando a requisição do usuário completar. Mantemos a intenção do
-          // usuário como source of truth aqui.
+          // Marca como salvo em ambos os casos (igual ou diferente).
+          lastServerSavedJson.current = serverJson
         }
         // data.visibleIds === null OR sem o campo → mantém o que já temos.
       } catch { /* offline → mantém cache local */ }
@@ -119,8 +129,8 @@ export function useFunnelView(userId: string | undefined) {
   }, [userId])
 
   // SAVE: POST IMEDIATO em toda mudança de visibleIds (sem debounce).
-  // O pagehide handler serve apenas como rede de segurança caso o fetch
-  // imediato não tenha completado antes da aba fechar (keepalive no servidor).
+  // add/remove-card são ações de baixa frequência (≤1/s); safe ir direto.
+  // Posições de drag permanecem debounced em FunnelFlow.tsx.
   useEffect(() => {
     if (!userId || !initialized) return
     const json = JSON.stringify(visibleIds)
@@ -138,11 +148,9 @@ export function useFunnelView(userId: string | undefined) {
       keepalive: true,
     }).catch(() => {})
 
-    // Pagehide safety net: se o fetch for cancelado por unload antes do
-    // round-trip, o segundo POST com keepalive garante a entrega.
+    // Pagehide safety net: se a aba fechar antes do round-trip terminar,
+    // o segundo POST (keepalive=true) garante a entrega pelo browser.
     const flush = () => {
-      if (lastServerSavedJson.current === 'flushed:' + json) return
-      lastServerSavedJson.current = 'flushed:' + json
       void fetch('/api/funnel-layout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -158,10 +166,12 @@ export function useFunnelView(userId: string | undefined) {
   }, [visibleIds, userId, initialized])
 
   const addCard = useCallback((id: string) => {
+    userActionVersion.current += 1
     setVisibleIds(prev => (prev.includes(id) ? prev : [...prev, id]))
   }, [])
 
   const removeCard = useCallback((id: string) => {
+    userActionVersion.current += 1
     setVisibleIds(prev => prev.filter(x => x !== id))
   }, [])
 
