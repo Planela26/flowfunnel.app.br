@@ -211,18 +211,18 @@ export default function SaraAIWidget() {
           ${open ? 'opacity-0 pointer-events-none scale-75' : 'opacity-100 scale-100'}`}
         style={{ padding: '3px', overflow: 'hidden' }}
       >
-        {/* Spinning rainbow — 250% so corners fill when rotating, clipped by parent overflow:hidden */}
+        {/* Spinning rainbow — offset by -75% so center aligns with parent center; rotate doesn't conflict */}
         <div
           aria-hidden
           style={{
             position: 'absolute',
             width: '250%',
             height: '250%',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
+            top: '-75%',
+            left: '-75%',
             background: 'conic-gradient(from 0deg, #ff0055, #ff8800, #ffee00, #00ff88, #00bbff, #aa00ff, #ff0055)',
             animation: 'sara-rainbow-spin 2.4s linear infinite',
+            transformOrigin: 'center center',
           }}
         />
 
