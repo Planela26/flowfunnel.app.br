@@ -19,3 +19,4 @@
 
 - [Sale attribution engine](sale-attribution.md) — deterministic (checkout param/thank-you) > probabilistic; public pixel endpoints must never CREATE revenue rows, only promote webhook-confirmed sales.
 - [Email change requires code on CURRENT email](email-change-verification.md) — password alone ≠ proof of control; send 6-digit code to OLD inbox, bcrypt-hash + 15min TTL, require it back before swapping User.email.
+- [Public domain rebrand — full grep scope](domain-change-grep-scope.md) — `.replit [userenv.shared]` (use verifyAndReplaceDotReplit), Resend FROM verification, hPanel NEXTAUTH_URL, and Registrar.br DNS all lag behind a plain code commit.
