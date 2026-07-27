@@ -171,57 +171,58 @@ export default function CardInsightModal({ cardType, cardData, onClose }: CardIn
 
           {insight && !loading && (
             <>
-              {/* Resumo */}
-              <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
-                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">
-                  📋 Análise Geral
+              {/* Resumo — azul suave */}
+              <div className="bg-blue-50 dark:bg-blue-950/25 border border-blue-100 dark:border-blue-900/40 rounded-xl p-4">
+                <p className="text-xs font-bold text-blue-600 dark:text-blue-400 mb-2 uppercase tracking-widest flex items-center gap-1.5">
+                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                  Análise Geral
                 </p>
-                <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                <p className="text-sm text-blue-900 dark:text-blue-100 leading-relaxed">
                   {insight.resumo}
                 </p>
               </div>
 
-              {/* Ponto de atenção */}
-              <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 flex gap-3">
-                <AlertTriangle className="w-4 h-4 text-gray-500 flex-shrink-0 mt-0.5" />
+              {/* Ponto de atenção — âmbar suave */}
+              <div className="bg-amber-50 dark:bg-amber-950/25 border border-amber-100 dark:border-amber-900/40 rounded-xl p-4 flex gap-3">
+                <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wide">
+                  <p className="text-xs font-bold text-amber-600 dark:text-amber-400 mb-1 uppercase tracking-widest">
                     Ponto de Atenção
                   </p>
-                  <p className="text-sm text-gray-700 dark:text-gray-300">
+                  <p className="text-sm text-amber-900 dark:text-amber-100 leading-relaxed">
                     {insight.atencao}
                   </p>
                 </div>
               </div>
 
-              {/* Dicas */}
-              <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <Lightbulb className="w-4 h-4 text-gray-500" />
-                  <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+              {/* Dicas — violeta suave */}
+              <div className="bg-violet-50 dark:bg-violet-950/25 border border-violet-100 dark:border-violet-900/40 rounded-xl p-4">
+                <div className="flex items-center gap-1.5 mb-3">
+                  <Lightbulb className="w-4 h-4 text-violet-500" />
+                  <p className="text-xs font-bold text-violet-600 dark:text-violet-400 uppercase tracking-widest">
                     Ações Recomendadas
                   </p>
                 </div>
                 <ul className="space-y-2.5">
                   {insight.dicas.map((dica, i) => (
-                    <li key={i} className="flex gap-3 bg-gray-50 dark:bg-gray-800 rounded-xl px-4 py-3 border border-gray-200 dark:border-gray-700">
-                      <span className="flex-shrink-0 w-5 h-5 rounded-full bg-gray-700 text-white text-[10px] font-bold flex items-center justify-center">
+                    <li key={i} className="flex gap-3 bg-white/60 dark:bg-violet-900/20 rounded-lg px-3 py-2.5 border border-violet-100 dark:border-violet-800/40">
+                      <span className="flex-shrink-0 w-5 h-5 rounded-full bg-violet-500 text-white text-[10px] font-bold flex items-center justify-center">
                         {i + 1}
                       </span>
-                      <p className="text-sm text-gray-700 dark:text-gray-300">{dica}</p>
+                      <p className="text-sm text-violet-900 dark:text-violet-100 leading-relaxed">{dica}</p>
                     </li>
                   ))}
                 </ul>
               </div>
 
-              {/* Estimativa */}
-              <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 flex gap-3">
-                <TrendingUp className="w-4 h-4 text-gray-500 flex-shrink-0 mt-0.5" />
+              {/* Estimativa — verde suave */}
+              <div className="bg-emerald-50 dark:bg-emerald-950/25 border border-emerald-100 dark:border-emerald-900/40 rounded-xl p-4 flex gap-3">
+                <TrendingUp className="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wide">
+                  <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 mb-1 uppercase tracking-widest">
                     Estimativa de Impacto
                   </p>
-                  <p className="text-sm text-gray-700 dark:text-gray-300">
+                  <p className="text-sm text-emerald-900 dark:text-emerald-100 leading-relaxed">
                     {insight.estimativa}
                   </p>
                 </div>
