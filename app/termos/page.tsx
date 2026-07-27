@@ -173,7 +173,7 @@ export default function TermosPage() {
               <h2 className="text-lg font-bold text-gray-900 dark:text-white">14. Contato</h2>
               <p>
                 Dúvidas sobre estes Termos podem ser enviadas para{' '}
-                <a href="mailto:contato@flowfunnel.app.br" className="text-blue-600 hover:underline">contato@flowfunnel.app.br</a>.
+                <a href="mailto:contato@flowsara.com.br" className="text-blue-600 hover:underline">contato@flowsara.com.br</a>.
               </p>
             </section>
           </div>

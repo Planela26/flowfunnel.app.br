@@ -134,7 +134,7 @@ export default function DocsPage() {
             <p style={{ fontSize: '0.82rem', color: '#64748B', margin: 0 }}>Data de Geração: <strong>Junho de 2026</strong></p>
           </div>
           <div style={{ textAlign: 'right' }}>
-            <p style={{ fontSize: '0.82rem', color: '#64748B', margin: 0 }}>Domínio: <strong>flowfunnel.app.br</strong></p>
+            <p style={{ fontSize: '0.82rem', color: '#64748B', margin: 0 }}>Domínio: <strong>flowsara.com.br</strong></p>
             <p style={{ fontSize: '0.82rem', color: '#64748B', margin: 0 }}>Framework: <strong>Next.js 16 · PostgreSQL · Prisma</strong></p>
           </div>
         </div>
@@ -1327,7 +1327,7 @@ export default function DocsPage() {
 
         <div style={{ marginTop: 32, padding: '20px', background: 'linear-gradient(135deg, #2563EB, #7C3AED)', borderRadius: 12, color: 'white', textAlign: 'center' }}>
           <div style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: 8 }}>FlowFunnel — Do Clique à Venda, Tudo Rastreado.</div>
-          <div style={{ fontSize: '0.9rem', opacity: 0.9 }}>flowfunnel.app.br · Versão 1.0 · Junho 2026</div>
+          <div style={{ fontSize: '0.9rem', opacity: 0.9 }}>flowsara.com.br · Versão 1.0 · Junho 2026</div>
         </div>
       </div>
 
@@ -1505,7 +1505,7 @@ export default function DocsPage() {
         <hr className="section-divider" />
         <div style={{ textAlign: 'center', marginTop: 20 }}>
           <div style={{ fontSize: '1rem', fontWeight: 800, color: DARK }}>FlowFunnel — Documentação Técnica e Comercial Completa</div>
-          <div style={{ fontSize: '0.82rem', color: '#64748B', marginTop: 4 }}>Versão 1.0 · Junho 2026 · flowfunnel.app.br</div>
+          <div style={{ fontSize: '0.82rem', color: '#64748B', marginTop: 4 }}>Versão 1.0 · Junho 2026 · flowsara.com.br</div>
           <div style={{ fontSize: '0.78rem', color: '#94A3B8', marginTop: 4 }}>Documento gerado automaticamente via varredura do código-fonte. Confidencial.</div>
         </div>
       </div>

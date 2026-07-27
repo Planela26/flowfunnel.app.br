@@ -94,7 +94,7 @@ Se estiver usando VPS, adicione no Nginx:
 ```nginx
 server {
     listen 80;
-    server_name flowfunnel.app.br www.flowfunnel.app.br;
+    server_name flowsara.com.br www.flowsara.com.br;
 
     location / {
         proxy_pass http://localhost:5000;
@@ -124,7 +124,7 @@ sudo systemctl restart nginx
 Use Let's Encrypt via Certbot:
 
 ```bash
-sudo certbot --nginx -d flowfunnel.app.br -d www.flowfunnel.app.br
+sudo certbot --nginx -d flowsara.com.br -d www.flowsara.com.br
 ```
 
 ---

@@ -186,7 +186,7 @@ kpis.forEach((k, i) => {
 doc.y = 720
 hline(720, LGRAY)
 doc.fillColor(GRAY).font('Helvetica').fontSize(8)
-  .text('Versão 1.0 — Produção     |     Junho de 2026     |     flowfunnel.app.br     |     Next.js 16 · PostgreSQL · Prisma', L, 726, { align: 'center', width: W })
+  .text('Versão 1.0 — Produção     |     Junho de 2026     |     flowsara.com.br     |     Next.js 16 · PostgreSQL · Prisma', L, 726, { align: 'center', width: W })
 
 // Page number footer
 doc.fillColor(GRAY).font('Helvetica').fontSize(8).text('1', 0, 826, { align: 'center', width: 595 })
@@ -1296,7 +1296,7 @@ const bannerY = doc.y - 36
 doc.fillColor('white').font('Helvetica-Bold').fontSize(16)
   .text('FlowFunnel — Do Clique à Venda, Tudo Rastreado.', L + 10, bannerY, { width: W - 20, align: 'center' })
 doc.fillColor('white').font('Helvetica').fontSize(9)
-  .text('flowfunnel.app.br  ·  Versão 1.0  ·  Junho 2026', L + 10, bannerY + 22, { width: W - 20, align: 'center' })
+  .text('flowsara.com.br  ·  Versão 1.0  ·  Junho 2026', L + 10, bannerY + 22, { width: W - 20, align: 'center' })
 doc.y = bannerY + 44
 doc.moveDown(0.5)
 
@@ -1529,7 +1529,7 @@ checkNearBottom(40)
 hline()
 doc.moveDown(0.5)
 doc.fillColor(BLUE).font('Helvetica-Bold').fontSize(12).text('FlowFunnel — Documentação Técnica e Comercial Completa', L, doc.y, { align: 'center', width: W })
-doc.fillColor(GRAY).font('Helvetica').fontSize(9).text('Versão 1.0  ·  Junho 2026  ·  flowfunnel.app.br', L, doc.y + 14, { align: 'center', width: W })
+doc.fillColor(GRAY).font('Helvetica').fontSize(9).text('Versão 1.0  ·  Junho 2026  ·  flowsara.com.br', L, doc.y + 14, { align: 'center', width: W })
 doc.fillColor('#94A3B8').font('Helvetica').fontSize(8)
   .text('Documento confidencial. Reprodução ou distribuição sem autorização expressa é proibida.', L, doc.y + 28, { align: 'center', width: W })
 

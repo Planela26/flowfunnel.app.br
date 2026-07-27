@@ -2,8 +2,7 @@
  * Retorna a URL base pública da aplicação.
  *
  * Ordem de prioridade:
- * 1. NEXTAUTH_URL  — URL canônica do domínio público (Hostinger → https://flowfunnel.app.br
- *    OU o subdomínio *.hostingersite.com até o domínio custom estar propagado)
+ * 1. NEXTAUTH_URL  — URL canônica do domínio público (Hostinger → https://flowsara.com.br)
  * 2. NEXT_PUBLIC_APP_URL — alternativa explícita
  * 3. localhost:5000 — só em desenvolvimento local sem Replit
  *
@@ -13,11 +12,6 @@
  * Nenhum código fora deste arquivo deve referenciar REPLIT_DEV_DOMAIN
  * para geração de URLs — isso causaria URLs de desenvolvimento vazando
  * para campanhas/e-mails de produção.
- *
- * PRODUÇÃO ESTÁVEL: até o domínio custom (flowfunnel.app.br) estar
- * apontando para a Hostinger via DNS, use o subdomínio *.hostingersite.com
- * que é o endereço real que a Hostinger serve. Após a propagação DNS,
- * troque apenas o valor da env, sem mudar código.
  */
 export function getBaseUrl(): string {
   const url = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL
@@ -30,8 +24,6 @@ export function getBaseUrl(): string {
   // Produção sem NEXTAUTH_URL → erro explícito (não silencia)
   throw new Error(
     '[FlowFunnel] NEXTAUTH_URL não está configurado. ' +
-    'Defina a variável de ambiente na Hostinger (hPanel → Node.js → Variáveis de Ambiente). ' +
-    'Use https://flowfunnel-app-br-931067.hostingersite.com enquanto o domínio ' +
-    'flowfunnel.app.br não estiver propagado, depois troque para https://flowfunnel.app.br.'
+    'Defina a variável de ambiente na Hostinger (hPanel → Node.js → Variáveis de Ambiente) como https://flowsara.com.br.'
   )
 }

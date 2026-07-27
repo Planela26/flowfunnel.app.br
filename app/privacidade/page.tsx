@@ -124,7 +124,7 @@ export default function PrivacidadePage() {
             <section className="space-y-3">
               <h2 className="text-lg font-bold text-gray-900 dark:text-white">10. Encarregado de Dados (DPO)</h2>
               <p>
-                Para exercer seus direitos ou tirar dúvidas sobre o tratamento dos seus dados, entre em contato com nosso Encarregado em <a href="mailto:dpo@flowfunnel.app.br" className="text-blue-600 hover:underline">dpo@flowfunnel.app.br</a>. Responderemos em até 15 dias úteis.
+                Para exercer seus direitos ou tirar dúvidas sobre o tratamento dos seus dados, entre em contato com nosso Encarregado em <a href="mailto:dpo@flowsara.com.br" className="text-blue-600 hover:underline">dpo@flowsara.com.br</a>. Responderemos em até 15 dias úteis.
               </p>
             </section>
 

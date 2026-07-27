@@ -8,8 +8,8 @@ function getResend() {
   return resend
 }
 
-const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'FlowFunnel <noreply@flowfunnel.app.br>'
-const APP_URL = process.env.NEXTAUTH_URL || 'https://flowfunnel.app.br'
+const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'FlowFunnel <noreply@flowsara.com.br>'
+const APP_URL = process.env.NEXTAUTH_URL || 'https://flowsara.com.br'
 
 async function sendEmail(to: string, subject: string, html: string) {
   const client = getResend()
@@ -23,7 +23,7 @@ async function sendEmail(to: string, subject: string, html: string) {
       const resendError = error as any
       if (resendError?.statusCode === 403 || resendError?.name === 'validation_error') {
         console.warn(
-          '⚠️  Resend: domínio não verificado. Verifique flowfunnel.app.br em resend.com/domains.'
+          '⚠️  Resend: domínio não verificado. Verifique flowsara.com.br em resend.com/domains.'
         )
         return { success: false, error: 'domain_not_verified' }
       }
@@ -97,7 +97,7 @@ function base({
             <strong style="color:#64748b;">FlowFunnel</strong> · Onde cada venda do seu funil é rastreada
           </p>
           <p style="color:#cbd5e1;font-size:11px;margin:6px 0 0;">
-            <a href="${APP_URL}" style="color:#94a3b8;text-decoration:none;">flowfunnel.app.br</a>
+            <a href="${APP_URL}" style="color:#94a3b8;text-decoration:none;">flowsara.com.br</a>
             &nbsp;·&nbsp;
             <a href="${APP_URL}/billing" style="color:#94a3b8;text-decoration:none;">Gerenciar assinatura</a>
           </p>
