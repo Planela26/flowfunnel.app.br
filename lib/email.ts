@@ -278,9 +278,9 @@ export async function sendPasswordResetEmail(to: string, name: string, resetUrl:
 
         ${divider}
 
-        <p style="color:#6b7280;font-size:14px;line-height:1.6;margin:0;text-align:center;">
-          Não consegue clicar no botão? Copie o link abaixo:<br/>
-          <a href="${resetUrl}" style="color:#2563eb;word-break:break-all;font-size:13px;">${resetUrl}</a>
+        <p style="color:#9ca3af;font-size:13px;line-height:1.6;margin:0;text-align:center;">
+          Caso o botão não funcione, acesse a página de recuperação de senha no FlowFunnel
+          e solicite um novo link de redefinição.
         </p>
       `,
     })
