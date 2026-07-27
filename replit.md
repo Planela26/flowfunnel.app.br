@@ -344,3 +344,7 @@ New components:
 - Dev script uses `-p 5000 -H 0.0.0.0` for Replit compatibility
 - `NEXTAUTH_URL` set to Replit dev domain
 - Email sender uses `onboarding@resend.dev` until custom domain is verified on Resend
+
+## User Preferences
+
+- **Nunca fazer `git commit` / `git push` automaticamente.** Sempre parar após implementar, mostrar o resumo do que foi feito e aguardar o usuário revisar e pedir explicitamente para commitar.
