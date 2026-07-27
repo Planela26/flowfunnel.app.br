@@ -217,8 +217,8 @@ export default function SaraAIWidget() {
         className={`
           fixed bottom-0 right-0 z-[9999]
           flex flex-col
-          w-full sm:w-[380px] sm:bottom-5 sm:right-5
-          h-[90dvh] sm:h-[600px]
+          w-full sm:w-[720px] sm:bottom-5 sm:right-5
+          h-[90dvh] sm:h-[780px]
           bg-gray-900 border border-gray-700/60
           sm:rounded-2xl shadow-2xl shadow-black/50
           transition-all duration-300 origin-bottom-right
