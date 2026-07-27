@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
+import { getBaseUrl } from '@/lib/base-url'
 import { prismaAdmin as prisma } from '@/lib/prisma'
 import { checkRateLimit, getClientIp } from '@/lib/security-utils'
 import { createPayment, getPlanPrice, getPlanName } from '@/lib/mercadopago'
@@ -113,7 +114,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'E-mail é obrigatório' }, { status: 400 })
     }
 
-    const webhookBase = process.env.NEXTAUTH_URL || `https://${process.env.REPLIT_DEV_DOMAIN}` || 'http://localhost:5000'
+    const webhookBase = getBaseUrl()
 
     const userRef = userId || payerEmail
     const externalRef = validAffiliateId

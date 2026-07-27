@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
+import { getBaseUrl } from '@/lib/base-url'
 import { getUncachableStripeClient } from '@/lib/stripeClient'
 import { prisma } from '@/lib/prisma'
 import { checkRateLimit } from '@/lib/security-utils'
@@ -29,11 +30,7 @@ export async function POST(request: Request) {
 
     const stripe = await getUncachableStripeClient()
 
-    const domain = process.env.REPLIT_DEV_DOMAIN
-      ? `https://${process.env.REPLIT_DEV_DOMAIN}`
-      : process.env.REPLIT_DOMAINS
-        ? `https://${process.env.REPLIT_DOMAINS.split(',')[0]}`
-        : process.env.NEXTAUTH_URL || 'http://localhost:5000'
+    const domain = getBaseUrl()
 
     const portalSession = await stripe.billingPortal.sessions.create({
       customer: user.stripeCustomerId,

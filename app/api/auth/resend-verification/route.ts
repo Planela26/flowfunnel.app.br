@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
+import { getBaseUrl } from '@/lib/base-url'
 import { prismaAdmin as prisma } from '@/lib/prisma'
 import crypto from 'crypto'
 import { sendVerificationEmail } from '@/lib/email'
@@ -32,7 +33,7 @@ export async function POST(request: Request) {
       data: { userId: user.id, token, expiresAt },
     })
 
-    const baseUrl = process.env.NEXTAUTH_URL || (process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : '')
+    const baseUrl = getBaseUrl()
     const verifyUrl = `${baseUrl}/api/auth/verify-email?token=${token}`
     sendVerificationEmail(user.email, user.name || '', verifyUrl).catch((err) => {
       console.error('❌ Erro ao enviar email de verificação:', err)

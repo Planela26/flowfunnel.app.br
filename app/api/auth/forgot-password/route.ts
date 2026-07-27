@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prismaAdmin as prisma } from '@/lib/prisma'
 import { sendPasswordResetEmail } from '@/lib/email'
+import { getBaseUrl } from '@/lib/base-url'
 import { checkRateLimit, getClientIp } from '@/lib/security-utils'
 import { logAudit } from '@/lib/audit'
 import crypto from 'crypto'
@@ -58,11 +59,7 @@ export async function POST(req: Request) {
         data: { userId: user.id, token: tokenHash, expiresAt },
       })
 
-      const appUrl =
-        process.env.NEXTAUTH_URL ||
-        (process.env.REPLIT_DEV_DOMAIN
-          ? `https://${process.env.REPLIT_DEV_DOMAIN}`
-          : 'http://localhost:5000')
+      const appUrl = getBaseUrl()
       const resetUrl = `${appUrl}/reset-password?token=${token}`
 
       try {

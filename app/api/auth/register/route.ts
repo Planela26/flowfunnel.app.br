@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prismaAdmin as prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
+import { getBaseUrl } from '@/lib/base-url'
 import { sendWelcomeEmail, sendVerificationEmail } from '@/lib/email'
 import { emailHasValidMx } from '@/lib/mxCheck'
 import { checkRateLimit, getClientIp } from '@/lib/security-utils'
@@ -115,8 +116,7 @@ export async function POST(request: Request) {
 
     const token = crypto.randomBytes(32).toString('hex')
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000)
-    const baseUrl = process.env.NEXTAUTH_URL ||
-      (process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : '')
+    const baseUrl = getBaseUrl()
 
     await prisma.emailVerificationToken.create({
       data: { userId: user.id, token, expiresAt },

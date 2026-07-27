@@ -12,13 +12,10 @@ const PLAN_PRICES: Record<string, string> = {
 }
 
 function getSafeOrigin(request: Request) {
+  const base = getBaseUrl()
   const origin = request.headers.get('origin')
-  const allowed = new Set([
-    process.env.NEXTAUTH_URL,
-    process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : null,
-  ].filter(Boolean) as string[])
-  if (origin && allowed.has(origin)) return origin
-  return process.env.NEXTAUTH_URL || (process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : 'http://localhost:5000')
+  if (origin && origin === base) return origin
+  return base
 }
 
 export async function POST(request: Request) {

@@ -2,38 +2,10 @@ import { NextResponse } from 'next/server'
 import { prismaAdmin as prisma } from '@/lib/prisma'
 import { checkRateLimit, getClientIp } from '@/lib/security-utils'
 import { logAudit } from '@/lib/audit'
+import { getBaseUrl } from '@/lib/base-url'
 
-/**
- * Determina a URL base pública do app, mesmo quando atrás de proxy
- * (Google Frontend, Replit, etc.) onde request.url pode vir como
- * http://0.0.0.0:5000/... em vez da URL pública.
- */
-function getBaseUrl(request: Request): string {
-  const forwardedHost = request.headers.get('x-forwarded-host')
-  const forwardedProto = request.headers.get('x-forwarded-proto')
-  const host = request.headers.get('host')
-
-  // Proxy reverso (Google Frontend, Cloudflare, etc.)
-  if (forwardedHost && forwardedProto) {
-    return `${forwardedProto}://${forwardedHost}`
-  }
-
-  // Host header (fallback)
-  if (host && !host.includes('0.0.0.0') && !host.includes('localhost')) {
-    return `https://${host}`
-  }
-
-  // Env vars
-  const envUrl = process.env.NEXTAUTH_URL ||
-    (process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : '')
-  if (envUrl) return envUrl
-
-  // Fallback final
-  return 'https://flowfunnel.app.br'
-}
-
-function getRedirectUrl(request: Request, path: string) {
-  return new URL(path, getBaseUrl(request))
+function getRedirectUrl(_request: Request, path: string) {
+  return new URL(path, getBaseUrl())
 }
 
 export async function GET(request: Request) {
