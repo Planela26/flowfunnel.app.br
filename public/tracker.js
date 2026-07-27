@@ -178,7 +178,7 @@
       function () {
         if (scrollSent) return;
         var h = document.documentElement;
-        var scrolled = (h.scrollTop + window.innerHeight) / h.scrollHeight;
+        var scrolled = (window.pageYOffset + window.innerHeight) / (h.scrollHeight || 1);
         if (scrolled > 0.6) {
           scrollSent = true;
           send('scroll_60');

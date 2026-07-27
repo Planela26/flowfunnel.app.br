@@ -80,20 +80,26 @@ function fmtTime(iso: string): string {
 
 export default function JourneyExplorer() {
   const [leads, setLeads] = useState<LeadRow[]>([])
+  const [unmatchedSales, setUnmatchedSales] = useState<{ platform: string; value: number; currency: string; transactionId: string; createdAt: string }[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [selected, setSelected] = useState<string | null>(null)
   const [journey, setJourney] = useState<Journey | null>(null)
   const [journeyLoading, setJourneyLoading] = useState(false)
+  const [journeyError, setJourneyError] = useState<string | null>(null)
   const [onlySales, setOnlySales] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
+    setLoadError(null)
     try {
       const res = await fetch(`/api/journey?days=30&onlySales=${onlySales}`)
-      if (res.ok) {
-        const data = await res.json()
-        setLeads(data.leads || [])
-      }
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const data = await res.json()
+      setLeads(data.leads || [])
+      setUnmatchedSales(data.unmatchedSales || [])
+    } catch (e: any) {
+      setLoadError(e.message || 'Erro ao carregar dados')
     } finally {
       setLoading(false)
     }
@@ -105,9 +111,13 @@ export default function JourneyExplorer() {
     setSelected(leadId)
     setJourneyLoading(true)
     setJourney(null)
+    setJourneyError(null)
     try {
       const res = await fetch(`/api/journey/${encodeURIComponent(leadId)}`)
-      if (res.ok) setJourney(await res.json())
+      if (!res.ok) throw new Error(res.status === 404 ? 'Jornada não encontrada.' : `Erro HTTP ${res.status}`)
+      setJourney(await res.json())
+    } catch (e: any) {
+      setJourneyError(e.message || 'Erro ao carregar jornada')
     } finally {
       setJourneyLoading(false)
     }
@@ -139,6 +149,8 @@ export default function JourneyExplorer() {
 
         {loading ? (
           <p className="text-sm text-gray-400 py-8 text-center">Carregando…</p>
+        ) : loadError ? (
+          <p className="text-sm text-red-500 py-8 text-center">{loadError}</p>
         ) : leads.length === 0 ? (
           <div className="text-center py-8">
             <HelpCircle className="w-8 h-8 text-gray-300 mx-auto mb-2" />
@@ -190,6 +202,24 @@ export default function JourneyExplorer() {
             ))}
           </div>
         )}
+
+
+        {/* Vendas sem lead vinculado */}
+        {!loading && !loadError && unmatchedSales.length > 0 && (
+          <div className="mt-3 border-t border-gray-100 dark:border-gray-700 pt-3">
+            <p className="text-[11px] uppercase tracking-widest text-gray-400 font-semibold mb-2">
+              Vendas sem vínculo ({unmatchedSales.length})
+            </p>
+            <div className="space-y-1">
+              {unmatchedSales.map(s => (
+                <div key={s.transactionId} className="text-xs flex items-center justify-between text-gray-500 dark:text-gray-400 py-0.5">
+                  <span className="truncate mr-2">{s.platform} · {s.currency} {s.value.toFixed(2)}</span>
+                  <span className="shrink-0 text-[10px] text-gray-400">{fmtTime(s.createdAt)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Timeline da jornada */}
@@ -204,6 +234,8 @@ export default function JourneyExplorer() {
           </p>
         ) : journeyLoading ? (
           <p className="text-sm text-gray-400 py-12 text-center">Carregando jornada…</p>
+        ) : journeyError ? (
+          <p className="text-sm text-red-500 py-12 text-center">{journeyError}</p>
         ) : !journey ? (
           <p className="text-sm text-gray-400 py-12 text-center">Jornada não encontrada.</p>
         ) : (

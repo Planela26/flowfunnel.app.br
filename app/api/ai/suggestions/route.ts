@@ -99,7 +99,9 @@ export async function POST(request: Request) {
 - Receita por campanha:
 ${campaigns}`
       }
-    } catch {}
+    } catch (attrErr) {
+      console.error('[flow-ai] attribution summary unavailable:', attrErr)
+    }
 
     const prompt = `Você é um especialista em marketing digital e vendas online. Analise as seguintes métricas de um funil de vendas e forneça ${suggestionsCount} sugestões práticas e acionáveis. ${depthInstruction}${attributionContext}
 

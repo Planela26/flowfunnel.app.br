@@ -57,6 +57,8 @@ model User {
   trackedLeads         TrackedLead[]
   trackedEvents        TrackedEvent[]
   trackedConversions   TrackedConversion[]
+  trackedSessions      TrackedSession[]
+  saleAttributions     SaleAttribution[]
   twoFactorRecoveryCodes TwoFactorRecoveryCode[]
 }
 
@@ -487,6 +489,8 @@ model TrackedSession {
   startedAt DateTime @default(now())
   lastSeen  DateTime @default(now())
 
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@unique([userId, sessionId])
   @@index([userId, leadId])
   @@index([visitorId])
@@ -520,6 +524,8 @@ model SaleAttribution {
   metadata      String?  // JSON livre
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, platform, transactionId])
   @@index([userId, createdAt])
