@@ -12,6 +12,7 @@ import {
 
 interface User {
   id: string
+  publicId: string | null
   name: string | null
   email: string | null
   plan: string
@@ -149,8 +150,10 @@ export default function AdminUsersPage() {
   }
 
   const filtered = users.filter(u => {
-    const matchSearch = (u.name || '').toLowerCase().includes(search.toLowerCase()) ||
-      (u.email || '').toLowerCase().includes(search.toLowerCase())
+    const q = search.toLowerCase()
+    const matchSearch = (u.name || '').toLowerCase().includes(q) ||
+      (u.email || '').toLowerCase().includes(q) ||
+      (u.publicId || '').toLowerCase().includes(q)
     const matchPlan = planFilter === 'all' || u.plan === planFilter
     const matchTrial = trialFilter === 'all' || (u.trialStatus || 'none') === trialFilter
     return matchSearch && matchPlan && matchTrial
@@ -583,7 +586,7 @@ export default function AdminUsersPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"
-              placeholder="Buscar por nome ou email..."
+              placeholder="Buscar por nome, email ou ID (FLS-...)"
               value={search}
               onChange={e => setSearch(e.target.value)}
               className="w-full pl-9 pr-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -634,6 +637,7 @@ export default function AdminUsersPage() {
                 <thead>
                   <tr className="border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50">
                     <th className="text-left text-xs font-semibold text-gray-500 dark:text-gray-400 px-4 py-3 uppercase tracking-wide">Usuário</th>
+                    <th className="text-left text-xs font-semibold text-gray-500 dark:text-gray-400 px-4 py-3 uppercase tracking-wide">ID Público</th>
                     <th className="text-left text-xs font-semibold text-gray-500 dark:text-gray-400 px-4 py-3 uppercase tracking-wide">Plano</th>
                     <th className="text-left text-xs font-semibold text-gray-500 dark:text-gray-400 px-4 py-3 uppercase tracking-wide">Trial</th>
                     <th className="text-left text-xs font-semibold text-gray-500 dark:text-gray-400 px-4 py-3 uppercase tracking-wide">Email</th>
@@ -659,6 +663,15 @@ export default function AdminUsersPage() {
                             <p className="text-xs text-gray-400">{user.email}</p>
                           </div>
                         </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        {user.publicId ? (
+                          <span className="font-mono text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-2 py-0.5 rounded border border-blue-200 dark:border-blue-800 select-all">
+                            {user.publicId}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-gray-300 dark:text-gray-600">—</span>
+                        )}
                       </td>
                       <td className="px-4 py-3">
                         <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${PLAN_COLORS[user.plan] || PLAN_COLORS.FREE}`}>

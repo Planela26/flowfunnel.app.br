@@ -10,6 +10,7 @@ datasource db {
 
 model User {
   id                     String    @id @default(cuid())
+  publicId               String?   @unique // FLS-XXXXXX — ID da Conta exibido ao usuário
   name                   String?
   email                  String    @unique
   emailVerified          DateTime?
@@ -316,6 +317,7 @@ model WebhookLog {
 
 model Workspace {
   id                    String   @id @default(cuid())
+  publicId              String?  @unique // WKS-XXXXXX
   userId                String
   name                  String
   emoji                 String   @default("🚀")
@@ -411,6 +413,7 @@ model Campaign {
 
 model TeamMember {
   id        String   @id @default(cuid())
+  publicId  String?  @unique // INV-XXXXXX — ID do convite
   ownerId   String
   email     String
   name      String?
@@ -657,6 +660,7 @@ model AILog {
 // status:   'new' | 'analyzing' | 'investigating' | 'in_development' | 'waiting_client' | 'resolved' | 'closed'
 model SupportTicket {
   id               String    @id @default(cuid())
+  publicId         String?   @unique // SUP-XXXXXX — ID público do chamado
   number           Int       @unique @default(autoincrement())
   userId           String
   assigneeId       String?
@@ -680,6 +684,7 @@ model SupportTicket {
   attachments SupportAttachment[]
 
   @@index([userId])
+  @@index([publicId])
   @@index([status])
   @@index([priority])
   @@index([createdAt])

@@ -5,7 +5,7 @@ import { useSession, signOut } from 'next-auth/react'
 import Link from 'next/link'
 import {
   SlidersHorizontal, KeyRound, Mail, Trash2, Loader2,
-  ShieldCheck, ArrowRight, CreditCard, User,
+  ShieldCheck, ArrowRight, CreditCard, User, Hash, Copy, Check,
 } from 'lucide-react'
 import DashboardSidebar from '@/components/DashboardSidebar'
 import SubscriptionCard from '@/components/SubscriptionCard'
@@ -40,6 +40,22 @@ function Msg({ msg }: { msg: { type: 'ok' | 'err'; text: string } | null }) {
 
 export default function ConfiguracoesPage() {
   const { data: session, update } = useSession()
+
+  // ── ID público da conta ───────────────────────────────────────────────────
+  const [publicId, setPublicId]   = useState<string | null>(null)
+  const [copied,   setCopied]     = useState(false)
+
+  useEffect(() => {
+    fetch('/api/account/public-id')
+      .then(r => r.json())
+      .then(d => { if (d.publicId) setPublicId(d.publicId) })
+      .catch(() => {})
+  }, [])
+
+  const handleCopyId = async () => {
+    if (!publicId) return
+    try { await navigator.clipboard.writeText(publicId); setCopied(true); setTimeout(() => setCopied(false), 2000) } catch {}
+  }
 
   // ── Senha ────────────────────────────────────────────────────────────────
   const [pwd, setPwd] = useState({ current: '', next: '', confirm: '' })
@@ -217,6 +233,37 @@ export default function ConfiguracoesPage() {
               </p>
             </div>
             <ThemeToggle />
+          </div>
+
+          {/* ── ID da Conta ── */}
+          <div className="mb-6">
+            <SectionLabel>Identificação da conta</SectionLabel>
+            <Card>
+              <div className="flex items-start gap-3">
+                <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center shrink-0">
+                  <Hash className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white mb-0.5">ID da Conta</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                    Use este ID para identificação junto ao suporte. Não compartilhe com desconhecidos.
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 px-3 py-2 rounded-xl bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-sm font-mono text-blue-600 dark:text-blue-400 select-all tracking-wider">
+                      {publicId ?? '—'}
+                    </code>
+                    <button
+                      onClick={handleCopyId}
+                      disabled={!publicId}
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:border-blue-400 transition disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
+                    >
+                      {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+                      {copied ? 'Copiado!' : 'Copiar'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </Card>
           </div>
 
           {/* ── Assinatura ── */}

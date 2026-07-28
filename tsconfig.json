@@ -39,6 +39,7 @@
   ],
   "exclude": [
     "node_modules",
-    "artifacts/mockup-sandbox"
+    "artifacts/mockup-sandbox",
+    "__tests__"
   ]
 }
