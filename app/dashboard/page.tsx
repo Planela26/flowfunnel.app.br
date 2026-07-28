@@ -34,6 +34,7 @@ const FunnelFlow = dynamic(() => import('@/components/FunnelFlow'), {
 import UpgradeTriggers from '@/components/UpgradeTriggers'
 import { usePlan } from '@/components/usePlan'
 import Link from 'next/link'
+import SaraInsightsPanel from '@/components/SaraInsightsPanel'
 
 const estimateWhatsAppConversations = (clicks: number) => Math.max(0, Math.round(clicks * 0.18))
 
@@ -423,6 +424,10 @@ export default function Dashboard() {
       <WorkspaceTabs onWorkspaceChange={handleWorkspaceChange} />
 
       <main className="container mx-auto px-4 py-4">
+        {/* Monitoramento proativo — insights gerados pela SaraObserver */}
+        <div className="mb-6">
+          <SaraInsightsPanel />
+        </div>
         {/* Workflow Canvas — funil visual interativo (topo) */}
         <div className="mb-6">
           <FunnelFlow

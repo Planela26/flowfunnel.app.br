@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { usePathname } from 'next/navigation'
-import { Send, Sparkles, ChevronDown, RotateCcw, Loader2 } from 'lucide-react'
+import { Send, Sparkles, ChevronDown, RotateCcw, Loader2, AlertTriangle } from 'lucide-react'
 
 // ── Typing animation — 3 bouncing dots ──────────────────────────────────────
 function TypingDots() {
@@ -33,6 +33,12 @@ interface Message {
   role: 'user' | 'assistant'
   content: string
   streaming?: boolean
+}
+
+interface PendingInsight {
+  id: string
+  title: string
+  severity: string
 }
 
 // ── Quick-action chips shown when chat is empty ──────────────────────────────
@@ -89,6 +95,7 @@ export default function SaraAIWidget() {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
+  const [pendingInsights, setPendingInsights] = useState<PendingInsight[]>([])
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const abortRef = useRef<AbortController | null>(null)
@@ -102,6 +109,14 @@ export default function SaraAIWidget() {
   useEffect(() => {
     if (open) setTimeout(() => inputRef.current?.focus(), 150)
   }, [open])
+
+  useEffect(() => {
+    if (!open) return
+    fetch('/api/sara/insights?unread=true&limit=3', { cache: 'no-store' })
+      .then(response => response.ok ? response.json() : null)
+      .then(data => setPendingInsights(Array.isArray(data?.insights) ? data.insights : []))
+      .catch(() => {})
+  }, [open, pathname])
 
   const sendMessage = useCallback(async (text: string) => {
     const trimmed = text.trim()
@@ -309,7 +324,26 @@ export default function SaraAIWidget() {
                   Analiso seus dados, diagnostico seu funil e respondo qualquer dúvida sobre a plataforma.
                 </p>
               </div>
-              {/* Quick actions */}
+               {pendingInsights.length > 0 && (
+                 <div className="w-full rounded-xl border border-amber-500/30 bg-amber-500/10 p-3">
+                   <div className="mb-2 flex items-center gap-2 text-amber-300">
+                     <AlertTriangle className="h-3.5 w-3.5" />
+                     <span className="text-[11px] font-semibold">A Sara encontrou algo para você</span>
+                   </div>
+                   <div className="space-y-1.5">
+                     {pendingInsights.map(insight => (
+                       <button
+                         key={insight.id}
+                         onClick={() => sendMessage(`Analise este insight para mim: ${insight.title}`)}
+                         className="block w-full truncate rounded-lg bg-gray-900/40 px-2.5 py-1.5 text-left text-[11px] text-gray-300 transition hover:bg-gray-700 hover:text-white"
+                       >
+                         {insight.title}
+                       </button>
+                     ))}
+                   </div>
+                 </div>
+               )}
+               {/* Quick actions */}
               <div className="flex flex-col gap-2 w-full">
                 {QUICK_ACTIONS.map(action => (
                   <button
