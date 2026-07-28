@@ -60,6 +60,7 @@ model User {
   trackedSessions      TrackedSession[]
   saleAttributions     SaleAttribution[]
   twoFactorRecoveryCodes TwoFactorRecoveryCode[]
+  supportTickets       SupportTicket[]
 }
 
 model TwoFactorRecoveryCode {
@@ -617,4 +618,120 @@ model RateLimit {
   createdAt DateTime @default(now())
 
   @@index([resetAt])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CENTRAL DE SUPORTE
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Chamado de suporte aberto por um usuário.
+// type:     'bug' | 'suggestion' | 'complaint' | 'question' | 'financial' | 'integration' | 'other'
+// priority: 'low' | 'medium' | 'high' | 'critical'
+// status:   'new' | 'analyzing' | 'investigating' | 'in_development' | 'waiting_client' | 'resolved' | 'closed'
+model SupportTicket {
+  id               String    @id @default(cuid())
+  number           Int       @unique @default(autoincrement())
+  userId           String
+  assigneeId       String?
+  subject          String
+  description      String
+  type             String    @default("question")
+  priority         String    @default("medium")
+  status           String    @default("new")
+  aiSummary        String?   // JSON com análise da Sara.AI
+  tags             String?   // JSON array
+  firstResponseAt  DateTime?
+  resolvedAt       DateTime?
+  closedAt         DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  user        User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages    SupportMessage[]
+  notes       SupportInternalNote[]
+  history     SupportHistory[]
+  attachments SupportAttachment[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([priority])
+  @@index([createdAt])
+}
+
+// Mensagens trocadas no ticket (usuário, admin ou Sara.AI).
+// senderType: 'user' | 'admin' | 'ai'
+model SupportMessage {
+  id         String   @id @default(cuid())
+  ticketId   String
+  senderId   String?  // null = Sara.AI
+  senderType String   @default("user")
+  content    String
+  createdAt  DateTime @default(now())
+
+  ticket      SupportTicket       @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  attachments SupportAttachment[]
+
+  @@index([ticketId])
+}
+
+// Arquivos anexados a um ticket ou a uma mensagem específica.
+model SupportAttachment {
+  id        String   @id @default(cuid())
+  ticketId  String
+  messageId String?
+  name      String
+  url       String
+  size      Int?
+  mimeType  String?
+  createdAt DateTime @default(now())
+
+  ticket  SupportTicket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  message SupportMessage? @relation(fields: [messageId], references: [id], onDelete: SetNull)
+
+  @@index([ticketId])
+}
+
+// Notas internas visíveis apenas para administradores.
+model SupportInternalNote {
+  id        String   @id @default(cuid())
+  ticketId  String
+  authorId  String
+  content   String
+  createdAt DateTime @default(now())
+
+  ticket SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId])
+}
+
+// Histórico de mudanças no ticket (status, prioridade, atribuição, etc.).
+// action: 'created' | 'status_changed' | 'priority_changed' | 'assigned' | 'closed' | 'reopened'
+// actorType: 'user' | 'admin' | 'ai' | 'system'
+model SupportHistory {
+  id        String   @id @default(cuid())
+  ticketId  String
+  actorId   String?
+  actorType String   @default("system")
+  action    String
+  from      String?
+  to        String?
+  createdAt DateTime @default(now())
+
+  ticket SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId])
+}
+
+// Base de conhecimento — artigos usados para alimentar o contexto da Sara.AI.
+model KnowledgeArticle {
+  id        String   @id @default(cuid())
+  title     String
+  content   String
+  category  String
+  tags      String?  // JSON array
+  published Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([category])
 }
