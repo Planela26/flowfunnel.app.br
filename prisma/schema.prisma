@@ -621,6 +621,33 @@ model RateLimit {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// SARA.AI — LOGS DE IA
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Registro de cada chamada ao modelo de IA — para auditoria, custo e otimização.
+// action: 'analyze_ticket' | 'suggest_reply' | 'chat' | 'classify'
+model AILog {
+  id             String   @id @default(cuid())
+  ticketId       String?
+  userId         String?
+  action         String
+  model          String   @default("gpt-4o-mini")
+  promptTokens   Int      @default(0)
+  completTokens  Int      @default(0)
+  totalTokens    Int      @default(0)
+  durationMs     Int      @default(0)
+  costUsd        Float    @default(0)
+  accepted       Boolean? // null = não rastreado, true = admin usou a sugestão
+  category       String?  // categoria do ticket analisado
+  createdAt      DateTime @default(now())
+
+  @@index([ticketId])
+  @@index([userId])
+  @@index([createdAt])
+  @@index([action])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // CENTRAL DE SUPORTE
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -726,12 +753,15 @@ model SupportHistory {
 model KnowledgeArticle {
   id        String   @id @default(cuid())
   title     String
-  content   String
+  content   String   // Markdown
   category  String
-  tags      String?  // JSON array
+  tags      String?  // JSON array de strings
   published Boolean  @default(true)
+  version   String?  // ex: '1.0', '2.3'
+  authorId  String?  // ID do admin que criou
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([category])
+  @@index([published])
 }

@@ -6,7 +6,7 @@ import { useNavigation } from './NavigationContext'
 import {
   Settings, LayoutDashboard, Phone, Megaphone, Webhook,
   BarChart2, Users2, UserCog, Users, FileText, CreditCard,
-  Target, Gift, Route, Brain, SlidersHorizontal, LifeBuoy,
+  Target, Gift, Route, Brain, SlidersHorizontal, LifeBuoy, Sparkles,
 } from 'lucide-react'
 import UserMenu from './UserMenu'
 import PlanBadge from './PlanBadge'
@@ -70,7 +70,8 @@ const navGroups: NavGroup[] = [
     items: [
       { href: '/admin/affiliates', label: 'Gerenciar Afiliados', icon: Users2, adminOnly: true },
       { href: '/admin/users', label: 'Usuários', icon: UserCog, adminOnly: true },
-      { href: '/admin/suporte', label: 'Central de Suporte', icon: LifeBuoy, adminOnly: true },
+      { href: '/admin/suporte',  label: 'Central de Suporte', icon: LifeBuoy,  adminOnly: true },
+      { href: '/admin/sara-ai', label: 'Sara.AI & KB',       icon: Sparkles,  adminOnly: true },
     ],
   },
 ]

@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import { authPatternUrl, authPatternSize } from '@/lib/authPattern'
 import ShowcaseSection from '@/components/landing/ShowcaseSection'
+import SaraAISection from '@/components/landing/SaraAISection'
 
 const encoded = authPatternUrl
 
@@ -277,6 +278,9 @@ export default function Home() {
 
       {/* ── SHOWCASE VISUAL DA PLATAFORMA ─────────────────────────────────── */}
       <ShowcaseSection />
+
+      {/* ── SARA.AI ───────────────────────────────────────────────────────── */}
+      <SaraAISection />
 
       {/* ── CARROSSEL DE MARCAS ──────────────────────────────────────────── */}
       <section className="bg-white border-y border-gray-100 overflow-hidden">
