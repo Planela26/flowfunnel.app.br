@@ -624,6 +624,45 @@ model RateLimit {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// SARA.AI — MEMÓRIA, INSIGHTS E OBSERVADOR
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Memória de longo prazo da Sara — preferências, objetivos, observações, decisões.
+// type: 'preference' | 'goal' | 'observation' | 'decision'
+model SaraMemory {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String   // 'preference' | 'goal' | 'observation' | 'decision'
+  content   String
+  context   String?  // página/módulo onde a memória foi criada
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([type])
+}
+
+// Insights proativos gerados pela Sara.AI e pelo SaraObserver.
+// severity: 'info' | 'warning' | 'critical'
+// type: 'webhook_failed' | 'integration_disconnected' | 'campaign_drop' | 'funnel_abandonment_spike'
+//       | 'payment_rejected' | 'metric_anomaly' | 'ticket_spike' | 'high_error_rate'
+model SaraInsight {
+  id          String   @id @default(cuid())
+  userId      String
+  type        String
+  title       String
+  description String
+  severity    String   @default("info")
+  isRead      Boolean  @default(false)
+  data        String?  // JSON com payload adicional
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+  @@index([severity])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // SARA.AI — LOGS DE IA
 // ─────────────────────────────────────────────────────────────────────────────
 

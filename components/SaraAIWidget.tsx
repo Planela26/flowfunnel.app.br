@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
+import { usePathname } from 'next/navigation'
 import { Send, Sparkles, ChevronDown, RotateCcw, Loader2 } from 'lucide-react'
 
 // ── Typing animation — 3 bouncing dots ──────────────────────────────────────
@@ -83,6 +84,7 @@ function inlineFormat(text: string): React.ReactNode {
 
 // ── Widget ───────────────────────────────────────────────────────────────────
 export default function SaraAIWidget() {
+  const pathname = usePathname()
   const [open, setOpen] = useState(false)
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
@@ -120,7 +122,10 @@ export default function SaraAIWidget() {
       const res = await fetch('/api/ai/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: newMessages }),
+        body: JSON.stringify({
+          messages: newMessages,
+          pageContext: { pathname },
+        }),
         signal: abortRef.current.signal,
       })
 

@@ -47,7 +47,7 @@ export async function GET() {
       }
     }
 
-    return NextResponse.json({ error: 'Não foi possível gerar o ID da conta' }, { status: 500 })
+    return NextResponse.json({ error: 'Não foi possível gerar o ID FlowSara' }, { status: 500 })
   } catch (err) {
     console.error('[public-id GET]', err)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })

@@ -132,7 +132,7 @@ async function generate(prefix: PublicIdPrefix, length: number = DEFAULT_LENGTH)
 
 export const IdGeneratorService = {
   /**
-   * ID de conta/usuário FlowSara — exibido ao cliente como "ID da Conta".
+   * ID público do usuário FlowSara — exibido como "ID FlowSara" na interface.
    * Formato: FLS-XXXXXX
    */
   generateAccountId(length?: number): Promise<string> {

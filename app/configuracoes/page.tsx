@@ -235,18 +235,18 @@ export default function ConfiguracoesPage() {
             <ThemeToggle />
           </div>
 
-          {/* ── ID da Conta ── */}
+          {/* ── ID FlowSara ── */}
           <div className="mb-6">
-            <SectionLabel>Identificação da conta</SectionLabel>
+            <SectionLabel>Identificação do usuário</SectionLabel>
             <Card>
               <div className="flex items-start gap-3">
                 <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center shrink-0">
                   <Hash className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-gray-900 dark:text-white mb-0.5">ID da Conta</p>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white mb-0.5">ID FlowSara</p>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-                    Use este ID para identificação junto ao suporte. Não compartilhe com desconhecidos.
+                    Seu identificador único na plataforma. Use-o ao contatar o suporte ou para integrar com a Sara.AI.
                   </p>
                   <div className="flex items-center gap-2">
                     <code className="flex-1 px-3 py-2 rounded-xl bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-sm font-mono text-blue-600 dark:text-blue-400 select-all tracking-wider">
