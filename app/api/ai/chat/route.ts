@@ -4,6 +4,7 @@ import OpenAI from 'openai'
 import { FLOW_AI } from '@/lib/ai-identity'
 import { SaraContextService, PageContext } from '@/lib/sara-context-service'
 import { SaraMemoryService } from '@/lib/sara-memory'
+import { checkRateLimit } from '@/lib/security-utils'
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || 'demo-mode' })
 
@@ -15,9 +16,22 @@ export async function POST(request: Request) {
     return new Response(JSON.stringify({ error: 'Não autorizado' }), { status: 401 })
   }
 
-  const { messages, pageContext } = await request.json() as {
-    messages:    { role: 'user' | 'assistant'; content: string }[]
-    pageContext?: PageContext
+  const rl = await checkRateLimit(`ai:chat:${session.user.id}`, 20, 60_000)
+  if (!rl.ok) {
+    return new Response(JSON.stringify({ error: 'Muitas mensagens, aguarde um instante.' }), { status: 429 })
+  }
+
+  let messages: { role: 'user' | 'assistant'; content: string }[]
+  let pageContext: PageContext | undefined
+  try {
+    const body = await request.json() as { messages?: typeof messages; pageContext?: PageContext }
+    messages = Array.isArray(body.messages) ? body.messages : []
+    pageContext = body.pageContext
+  } catch {
+    return new Response(JSON.stringify({ error: 'Corpo da requisição inválido' }), { status: 400 })
+  }
+  if (messages.length === 0) {
+    return new Response(JSON.stringify({ error: 'Nenhuma mensagem enviada' }), { status: 400 })
   }
 
   // ── Build rich context via SaraContextService (cached 5 min) ─────────────
@@ -90,13 +104,19 @@ INSTRUÇÕES:
     ...messages.map(m => ({ role: m.role, content: m.content })),
   ]
 
-  const openaiStream = await openai.chat.completions.create({
-    model:       'gpt-4o-mini',
-    messages:    openaiMessages,
-    stream:      true,
-    max_tokens:  800,
-    temperature: 0.7,
-  })
+  let openaiStream
+  try {
+    openaiStream = await openai.chat.completions.create({
+      model:       'gpt-4o-mini',
+      messages:    openaiMessages,
+      stream:      true,
+      max_tokens:  800,
+      temperature: 0.7,
+    })
+  } catch (error) {
+    console.error('Erro ao iniciar stream da OpenAI:', error)
+    return new Response(JSON.stringify({ error: 'Erro ao gerar resposta' }), { status: 502 })
+  }
 
   const encoder  = new TextEncoder()
   const readable = new ReadableStream({

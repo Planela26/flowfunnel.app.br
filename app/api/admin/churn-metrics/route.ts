@@ -39,13 +39,12 @@ export async function GET() {
     // ARR
     const arr = mrr * 12
 
-    // Churn = usuários que pagavam mas agora estão FREE
-    const totalPaying = users.filter(u => u.plan === 'START' || u.plan === 'PRO' || u.plan === 'SCALE').length
-    const churnedUsers = users.filter(u => {
-      return u.plan === 'FREE'
-    })
-    const churnRate = users.length > 0
-      ? Math.round((churnedUsers.length / users.length) * 100)
+    // Churn = usuários que já tiveram assinatura Stripe (pagaram em algum momento)
+    // e hoje estão no plano FREE. Quem nunca assinou não conta como churn.
+    const churnedUsers = users.filter(u => !!u.stripeSubscriptionId && u.plan === 'FREE')
+    const everPaidCount = payingUsers.length + churnedUsers.length
+    const churnRate = everPaidCount > 0
+      ? Math.round((churnedUsers.length / everPaidCount) * 100)
       : 0
 
     // Monthly signups

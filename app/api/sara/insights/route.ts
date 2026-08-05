@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { SaraInsightsService } from '@/lib/sara-insights'
 import { SaraObserver } from '@/lib/sara-observer'
+import { checkRateLimit } from '@/lib/security-utils'
 
 // ── GET /api/sara/insights ─────────────────────────────────────────────────
 export async function GET(request: Request) {
@@ -50,6 +51,9 @@ export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user?.id) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+
+    const rl = await checkRateLimit(`sara:insights:${session.user.id}`, 10, 60_000)
+    if (!rl.ok) return NextResponse.json({ error: 'Muitas tentativas' }, { status: 429 })
 
     const generated = await SaraInsightsService.analyzeUser(session.user.id)
     return NextResponse.json({ generated })

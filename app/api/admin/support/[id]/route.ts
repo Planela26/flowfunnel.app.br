@@ -3,6 +3,9 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
+const TICKET_STATUSES = ['new', 'analyzing', 'investigating', 'in_development', 'waiting_client', 'resolved', 'closed']
+const TICKET_PRIORITIES = ['low', 'medium', 'high', 'critical']
+
 function adminOnly(session: any) {
   if (!session?.user?.id) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
   if ((session.user as any).role !== 'ADMIN') return NextResponse.json({ error: 'Sem permissão' }, { status: 403 })
@@ -43,6 +46,13 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     const ticket = await prisma.supportTicket.findUnique({ where: { id } })
     if (!ticket) return NextResponse.json({ error: 'Não encontrado' }, { status: 404 })
 
+    if (body.status && !TICKET_STATUSES.includes(body.status)) {
+      return NextResponse.json({ error: 'Status inválido' }, { status: 400 })
+    }
+    if (body.priority && !TICKET_PRIORITIES.includes(body.priority)) {
+      return NextResponse.json({ error: 'Prioridade inválida' }, { status: 400 })
+    }
+
     const updateData: any  = { updatedAt: new Date() }
     const historyEntries: any[] = []
 
@@ -77,6 +87,9 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
     const session = await getServerSession(authOptions)
     const err = adminOnly(session); if (err) return err
     const { id } = await params
+
+    const existing = await prisma.supportTicket.findUnique({ where: { id }, select: { id: true } })
+    if (!existing) return NextResponse.json({ error: 'Chamado não encontrado' }, { status: 404 })
 
     await prisma.supportTicket.delete({ where: { id } })
     return NextResponse.json({ ok: true })

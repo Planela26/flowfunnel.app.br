@@ -3,6 +3,9 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
+const TICKET_STATUSES = ['new', 'analyzing', 'investigating', 'in_development', 'waiting_client', 'resolved', 'closed']
+const TICKET_PRIORITIES = ['low', 'medium', 'high', 'critical']
+
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await getServerSession(authOptions)
@@ -42,8 +45,21 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     })
     if (!existing) return NextResponse.json({ error: 'Chamado não encontrado' }, { status: 404 })
 
-    if (!isAdmin && status && !['waiting_client', 'closed'].includes(status)) {
+    // Transições que um usuário comum pode disparar, e a partir de qual status atual.
+    // Espelha os únicos dois botões que o front (app/suporte/[id]/page.tsx) mostra:
+    // "Respondido" (waiting_client -> analyzing) e "Fechar chamado" (resolved -> closed).
+    const USER_ALLOWED_TRANSITIONS: Record<string, string> = {
+      waiting_client: 'analyzing',
+      resolved: 'closed',
+    }
+    if (!isAdmin && status && USER_ALLOWED_TRANSITIONS[existing.status] !== status) {
       return NextResponse.json({ error: 'Sem permissão' }, { status: 403 })
+    }
+    if (status && !TICKET_STATUSES.includes(status)) {
+      return NextResponse.json({ error: 'Status inválido' }, { status: 400 })
+    }
+    if (priority && !TICKET_PRIORITIES.includes(priority)) {
+      return NextResponse.json({ error: 'Prioridade inválida' }, { status: 400 })
     }
 
     const updateData: any = { updatedAt: new Date() }
@@ -81,6 +97,9 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
     if (!session?.user?.id) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     if ((session.user as any).role !== 'ADMIN') return NextResponse.json({ error: 'Sem permissão' }, { status: 403 })
     const { id } = await params
+
+    const existing = await prisma.supportTicket.findUnique({ where: { id }, select: { id: true } })
+    if (!existing) return NextResponse.json({ error: 'Chamado não encontrado' }, { status: 404 })
 
     await prisma.supportTicket.delete({ where: { id } })
     return NextResponse.json({ ok: true })

@@ -49,10 +49,11 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user?.id) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+    const isAdmin = (session.user as any).role === 'ADMIN'
     const { id } = await params
 
     const ticket = await prisma.supportTicket.findFirst({
-      where:  { id },
+      where:  { id, ...(isAdmin ? {} : { userId: session.user.id }) },
       select: { aiSummary: true },
     })
     if (!ticket) return NextResponse.json({ error: 'Não encontrado' }, { status: 404 })

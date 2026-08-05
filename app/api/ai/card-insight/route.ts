@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import OpenAI from 'openai'
+import { checkRateLimit } from '@/lib/security-utils'
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || 'demo-mode',
@@ -261,6 +262,11 @@ export async function POST(request: Request) {
     const session = await getServerSession(authOptions)
     if (!session?.user) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+    }
+
+    const rl = await checkRateLimit(`ai:card-insight:${session.user.id}`, 15, 60_000)
+    if (!rl.ok) {
+      return NextResponse.json({ error: 'Muitas tentativas, aguarde um instante.' }, { status: 429 })
     }
 
     const { cardType, data } = await request.json()

@@ -163,6 +163,7 @@ dist/
 .local/
 .env
 .env.*
+.envi
 node_modules/
 .git_backup/
 *.tar.gz

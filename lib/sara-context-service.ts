@@ -52,6 +52,24 @@ interface CacheEntry {
 }
 
 const contextCache = new Map<string, CacheEntry>()
+// A chave inclui o pathname (rotas dinâmicas tipo /suporte/<id> geram uma entrada
+// por página visitada), então sem um teto o Map cresce indefinidamente no processo
+// Node de longa duração (PM2). Cap simples: ao ultrapassar o limite, remove primeiro
+// as entradas expiradas e, se ainda necessário, as mais antigas (ordem de inserção).
+const MAX_CACHE_ENTRIES = 500
+
+function evictIfNeeded(): void {
+  if (contextCache.size < MAX_CACHE_ENTRIES) return
+  const now = Date.now()
+  for (const [k, v] of contextCache) {
+    if (v.expiresAt <= now) contextCache.delete(k)
+  }
+  while (contextCache.size >= MAX_CACHE_ENTRIES) {
+    const oldestKey = contextCache.keys().next().value
+    if (oldestKey === undefined) break
+    contextCache.delete(oldestKey)
+  }
+}
 
 function cacheKey(userId: string, pathname?: string): string {
   return `${userId}::${pathname ?? ''}`
@@ -71,6 +89,7 @@ export const SaraContextService = {
     if (entry && entry.expiresAt > Date.now()) return entry.context
 
     const context = await SaraContextService._fetch(userId, page)
+    evictIfNeeded()
     contextCache.set(key, { context, expiresAt: Date.now() + CACHE_TTL_MS })
     return context
   },

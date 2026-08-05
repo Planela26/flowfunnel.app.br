@@ -9,8 +9,14 @@
  * CHARSET (sem: O, 0, I, 1, L — evita confusão visual):
  *   ABCDEFGHJKLMNPQRSTUVWXYZ23456789
  *
- * UNICIDADE: verifica no banco antes de retornar.
- * COLISÃO: em caso de erro UNIQUE no INSERT, gera automaticamente outro código.
+ * UNICIDADE: verifica no banco (SELECT) antes de retornar — reduz a chance de
+ * colisão, mas não a elimina: entre o SELECT aqui e o INSERT/UPDATE do chamador
+ * ainda existe uma janela de corrida. `generate()` NÃO captura erro de unique
+ * constraint (P2002) — cada chamador que persiste o ID retornado é responsável
+ * por tratar esse erro e tentar novamente (ver `app/api/account/public-id/route.ts`
+ * para o padrão de retry esperado). Isso vale para todos os métodos abaixo
+ * (`generateTicketId`, `generateWorkspaceId`, `generateInviteId`, etc.) — nenhum
+ * deles tem proteção automática contra colisão além da checagem prévia.
  *
  * Para trocar o comprimento do código: altere DEFAULT_LENGTH sem refatoração.
  */

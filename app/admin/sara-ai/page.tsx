@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
 import {
   Sparkles, Zap, DollarSign, Clock, TrendingUp, RefreshCw,
   Loader2, BarChart2, CheckCircle2, BookOpen, Plus, Pencil, Trash2, Eye, EyeOff
@@ -131,6 +133,8 @@ function ArticleModal({ article, onClose, onSaved }: { article?: any; onClose: (
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function SaraAIDashboardPage() {
+  const { data: session, status } = useSession()
+  const router = useRouter()
   const [tab,      setTab]      = useState<'dashboard' | 'kb'>('dashboard')
   const [data,     setData]     = useState<any>(null)
   const [articles, setArticles] = useState<any[]>([])
@@ -154,7 +158,14 @@ export default function SaraAIDashboardPage() {
     } catch {}
   }, [])
 
-  useEffect(() => { loadDash(); loadKB() }, [loadDash, loadKB])
+  useEffect(() => {
+    if (status === 'unauthenticated') { router.push('/login'); return }
+    if (status === 'authenticated') {
+      if ((session?.user as any)?.role !== 'ADMIN') { router.push('/dashboard'); return }
+      loadDash()
+      loadKB()
+    }
+  }, [status, session, loadDash, loadKB])
 
   async function deleteArticle(id: string) {
     if (!confirm('Excluir este artigo?')) return

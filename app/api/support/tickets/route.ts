@@ -2,6 +2,12 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { checkRateLimit } from '@/lib/security-utils'
+
+const TICKET_TYPES = ['bug', 'suggestion', 'complaint', 'question', 'financial', 'integration', 'other']
+const TICKET_PRIORITIES = ['low', 'medium', 'high', 'critical']
+const SUBJECT_MAX_LEN = 200
+const DESCRIPTION_MAX_LEN = 10_000
 
 // ── GET /api/support/tickets ─ list user's tickets ───────────────────────────
 export async function GET(request: Request) {
@@ -51,10 +57,22 @@ export async function POST(request: Request) {
     const session = await getServerSession(authOptions)
     if (!session?.user?.id) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
+    const rl = await checkRateLimit(`support:ticket:create:${session.user.id}`, 5, 60_000)
+    if (!rl.ok) return NextResponse.json({ error: 'Muitos chamados criados, aguarde um instante.' }, { status: 429 })
+
     const { subject, description, type, priority } = await request.json()
 
     if (!subject?.trim() || !description?.trim()) {
       return NextResponse.json({ error: 'Assunto e descrição são obrigatórios' }, { status: 400 })
+    }
+    if (subject.trim().length > SUBJECT_MAX_LEN || description.trim().length > DESCRIPTION_MAX_LEN) {
+      return NextResponse.json({ error: 'Assunto ou descrição excedem o tamanho máximo permitido' }, { status: 400 })
+    }
+    if (type && !TICKET_TYPES.includes(type)) {
+      return NextResponse.json({ error: 'Tipo de chamado inválido' }, { status: 400 })
+    }
+    if (priority && !TICKET_PRIORITIES.includes(priority)) {
+      return NextResponse.json({ error: 'Prioridade inválida' }, { status: 400 })
     }
 
     const ticket = await prisma.supportTicket.create({

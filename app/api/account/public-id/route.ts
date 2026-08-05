@@ -34,12 +34,22 @@ export async function GET() {
     for (let attempt = 0; attempt < 5; attempt++) {
       try {
         const publicId = await IdGeneratorService.generateAccountId()
-        const updated  = await prisma.user.update({
-          where: { id: session.user.id },
+        // Update condicionado a publicId ainda ser null: evita que duas requisições
+        // concorrentes (ex.: StrictMode disparando o efeito 2x, ou duas abas abertas)
+        // gerem IDs diferentes e a última sobrescreva silenciosamente a primeira.
+        const { count } = await prisma.user.updateMany({
+          where: { id: session.user.id, publicId: null },
           data:  { publicId },
-          select: { publicId: true },
         })
-        return NextResponse.json({ publicId: updated.publicId })
+        if (count === 0) {
+          // Outra requisição já gravou um publicId nesse meio-tempo — usa o valor persistido.
+          const current = await prisma.user.findUnique({
+            where:  { id: session.user.id },
+            select: { publicId: true },
+          })
+          return NextResponse.json({ publicId: current?.publicId ?? null })
+        }
+        return NextResponse.json({ publicId })
       } catch (err: any) {
         // Código Postgres de violação de unique constraint
         if (err?.code === 'P2002' && attempt < 4) continue

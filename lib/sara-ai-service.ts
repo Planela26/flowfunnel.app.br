@@ -175,9 +175,27 @@ Retorne exatamente este JSON:
       response_format: { type: 'json_object' },
     })
     const durationMs = Date.now() - startMs
+    const usage      = completion.usage
 
-    const analysis = JSON.parse(completion.choices[0]?.message?.content ?? '{}') as TicketAnalysis
-    const usage    = completion.usage
+    let analysis: TicketAnalysis
+    try {
+      analysis = JSON.parse(completion.choices[0]?.message?.content ?? '{}') as TicketAnalysis
+    } catch (parseErr) {
+      // A chamada já foi paga à OpenAI mesmo que a resposta tenha vindo cortada/
+      // inválida — registra o custo antes de propagar o erro, para não deixar
+      // um ponto cego de billing nos casos mais caros (respostas longas).
+      await this.logAI({
+        ticketId:      ticket.id,
+        userId:        user.id,
+        action:        'analyze_ticket',
+        promptTokens:  usage?.prompt_tokens    ?? 0,
+        completTokens: usage?.completion_tokens ?? 0,
+        totalTokens:   usage?.total_tokens      ?? 0,
+        durationMs,
+        category:      'other',
+      })
+      throw parseErr
+    }
 
     await this.logAI({
       ticketId:      ticket.id,
