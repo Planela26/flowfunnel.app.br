@@ -1,6 +1,6 @@
 'use client'
 
-import { ArrowRight } from 'lucide-react'
+import { useEffect, useState } from 'react'
 
 interface FunnelStage {
   name: string
@@ -14,81 +14,255 @@ interface FunnelVisualizationProps {
   stages: FunnelStage[]
 }
 
+const SVG_WIDTH = 460
+const BAND_HEIGHT = 84
+const TOP_RATIO = 0.98
+const BOTTOM_RATIO = 0.1
+const SAMPLES_PER_BAND = 14
+
+// Posições fixas (não aleatórias de verdade) pra não gerar hydration mismatch
+// entre server e client — só o efeito visual de faísca importa aqui.
+const SPARKLES = [
+  { x: 8, y: 6, size: 5, delay: 0 },
+  { x: 88, y: 10, size: 3, delay: 300 },
+  { x: 78, y: 26, size: 4, delay: 900 },
+  { x: 14, y: 34, size: 3, delay: 600 },
+  { x: 92, y: 46, size: 5, delay: 150 },
+  { x: 6, y: 55, size: 3, delay: 1200 },
+  { x: 82, y: 66, size: 4, delay: 450 },
+  { x: 20, y: 74, size: 3, delay: 800 },
+  { x: 70, y: 88, size: 4, delay: 1000 },
+  { x: 30, y: 92, size: 3, delay: 250 },
+]
+
+// Clareia (percent > 0) ou escurece (percent < 0) uma cor hex.
+function shade(hex: string, percent: number): string {
+  const num = parseInt(hex.replace('#', ''), 16)
+  const clamp = (v: number) => Math.max(0, Math.min(255, v))
+  const r = clamp(((num >> 16) & 0xff) + Math.round(255 * percent))
+  const g = clamp(((num >> 8) & 0xff) + Math.round(255 * percent))
+  const b = clamp((num & 0xff) + Math.round(255 * percent))
+  return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`
+}
+
+// Curva de afunilamento única e contínua (não depende dos valores reais) —
+// garante um contorno sempre liso. Os números de verdade vão escritos em
+// cada faixa, sempre a partir de `stages` (dados reais recebidos por prop).
+function easeOutSoft(t: number): number {
+  return 1 - Math.pow(1 - t, 1.5)
+}
+
 export default function FunnelVisualization({ title, stages = [] }: FunnelVisualizationProps) {
-  const maxValue = (stages && stages[0]?.value) || 1
+  const [mounted, setMounted] = useState(false)
+  const [hovered, setHovered] = useState<number | null>(null)
+
+  useEffect(() => {
+    const t = setTimeout(() => setMounted(true), 50)
+    return () => clearTimeout(t)
+  }, [])
+
+  const maxValue = stages[0]?.value || 0
+  const hasData = stages.length >= 2 && maxValue > 0
+  const n = Math.max(stages.length, 1)
+  const topY = 10
+  const bodyHeight = n * BAND_HEIGHT
+  const svgHeight = topY + bodyHeight + 10
+
+  const ratioAtT = (t: number) => TOP_RATIO - (TOP_RATIO - BOTTOM_RATIO) * easeOutSoft(t)
+  const xLeftAtRatio = (ratio: number) => (SVG_WIDTH - SVG_WIDTH * ratio) / 2
+  const xRightAtRatio = (ratio: number) => xLeftAtRatio(ratio) + SVG_WIDTH * ratio
+
+  const totalSamples = n * SAMPLES_PER_BAND
+  const leftPts: [number, number][] = []
+  const rightPts: [number, number][] = []
+  for (let s = 0; s <= totalSamples; s++) {
+    const t = s / totalSamples
+    const y = topY + t * bodyHeight
+    const ratio = ratioAtT(t)
+    leftPts.push([xLeftAtRatio(ratio), y])
+    rightPts.push([xRightAtRatio(ratio), y])
+  }
+  const outlinePath =
+    `M ${leftPts.map(p => p.join(',')).join(' L ')} ` +
+    `L ${rightPts.slice().reverse().map(p => p.join(',')).join(' L ')} Z`
+
+  const yAt = (k: number) => topY + k * BAND_HEIGHT
+  const topWidth = SVG_WIDTH * ratioAtT(0)
+  const bottomWidth = SVG_WIDTH * ratioAtT(1)
+  const lastColor = stages[n - 1]?.color || '#888'
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
       <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-6">{title}</h3>
 
-      {/* Mobile: coluna vertical com setas para baixo. Desktop: linha horizontal */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-center gap-0">
-        {stages.map((stage, index) => {
-          const percentage = maxValue > 0 ? ((stage.value / maxValue) * 100).toFixed(1) : '0.0'
-          const prevValue = index > 0 ? stages[index - 1].value : null
-          const conversionRate =
-            prevValue != null && prevValue > 0
-              ? ((stage.value / prevValue) * 100).toFixed(1)
-              : null
+      {/* Palco escuro — dá contraste pro brilho "gema" das faixas */}
+      <div className="relative rounded-2xl overflow-hidden bg-gradient-to-b from-[#12141c] to-[#020203] py-6">
+        {/* Faíscas */}
+        {SPARKLES.map((s, idx) => (
+          <span
+            key={idx}
+            className="absolute rounded-full bg-white animate-pulse"
+            style={{
+              left: `${s.x}%`,
+              top: `${s.y}%`,
+              width: s.size,
+              height: s.size,
+              boxShadow: `0 0 ${s.size * 2.5}px ${s.size}px rgba(255,255,255,0.55)`,
+              opacity: mounted ? undefined : 0,
+              animationDelay: `${s.delay}ms`,
+              animationDuration: '2200ms',
+              transition: 'opacity 600ms ease',
+            }}
+          />
+        ))}
 
-          return (
-            <div key={index} className="flex flex-col sm:flex-row sm:items-center">
-              {/* Card do estágio */}
-              <div
-                className="rounded-xl p-4 flex sm:flex-col items-center sm:text-center gap-3 sm:gap-0 w-full sm:w-[130px] transition-all hover:shadow-md"
+        {/* Brilho ambiente atrás do topo e da ponta */}
+        <div
+          className="absolute rounded-full blur-3xl"
+          style={{
+            left: '50%', top: -40, width: topWidth * 1.1, height: 120,
+            transform: 'translateX(-50%)',
+            background: `radial-gradient(ellipse at center, ${shade(stages[0]?.color || '#888', 0.25)}55, transparent 70%)`,
+          }}
+        />
+        <div
+          className="absolute rounded-full blur-3xl"
+          style={{
+            left: '50%', bottom: -30, width: 160, height: 100,
+            transform: 'translateX(-50%)',
+            background: `radial-gradient(ellipse at center, ${shade(lastColor, 0.2)}66, transparent 70%)`,
+          }}
+        />
+
+        <svg
+          width="100%"
+          height={svgHeight}
+          viewBox={`0 0 ${SVG_WIDTH} ${svgHeight}`}
+          preserveAspectRatio="xMidYMin meet"
+          className="relative block mx-auto max-w-[460px]"
+        >
+          <defs>
+            {stages.map((stage, i) => (
+              <linearGradient key={i} id={`funnel-grad-${i}`} x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stopColor={shade(stage.color, -0.45)} />
+                <stop offset="18%" stopColor={shade(stage.color, -0.1)} />
+                <stop offset="38%" stopColor={shade(stage.color, 0.4)} />
+                <stop offset="52%" stopColor={shade(stage.color, 0.08)} />
+                <stop offset="100%" stopColor={shade(stage.color, -0.45)} />
+              </linearGradient>
+            ))}
+            {stages.map((_, i) => (
+              <clipPath key={i} id={`funnel-band-${i}`}>
+                <rect x={0} y={yAt(i)} width={SVG_WIDTH} height={BAND_HEIGHT + 0.5} />
+              </clipPath>
+            ))}
+          </defs>
+
+          {/* Elipse escura no topo — efeito de "olhar para dentro" da abertura */}
+          <ellipse
+            cx={SVG_WIDTH / 2}
+            cy={topY}
+            rx={topWidth / 2}
+            ry={12}
+            fill="#000000"
+            opacity={mounted ? 0.6 : 0}
+            style={{ transition: 'opacity 500ms ease' }}
+          />
+
+          {/* Faixas do funil com degradê "gema" */}
+          {stages.map((stage, i) => {
+            const isHovered = hovered === i
+            return (
+              <path
+                key={i}
+                d={outlinePath}
+                clipPath={`url(#funnel-band-${i})`}
+                fill={`url(#funnel-grad-${i})`}
+                onMouseEnter={() => setHovered(i)}
+                onMouseLeave={() => setHovered(null)}
                 style={{
-                  backgroundColor: stage.color + '18',
-                  border: `2px solid ${stage.color}40`,
+                  opacity: mounted ? 1 : 0,
+                  filter: isHovered ? 'brightness(1.15)' : 'brightness(1)',
+                  transform: mounted ? 'scale(1)' : 'scale(0.9)',
+                  transformOrigin: `${SVG_WIDTH / 2}px ${yAt(i) + BAND_HEIGHT / 2}px`,
+                  transition: `opacity 520ms ease ${i * 100}ms, transform 520ms cubic-bezier(0.34,1.15,0.64,1) ${i * 100}ms, filter 200ms ease`,
+                  cursor: 'default',
+                }}
+              />
+            )
+          })}
+
+          {/* Anéis de profundidade entre as faixas */}
+          {Array.from({ length: n - 1 }).map((_, idx) => {
+            const k = idx + 1
+            const ratio = ratioAtT(k / n)
+            const width = SVG_WIDTH * ratio
+            return (
+              <ellipse
+                key={`rim-${k}`}
+                cx={SVG_WIDTH / 2}
+                cy={yAt(k)}
+                rx={width / 2}
+                ry={6}
+                fill={shade(stages[k - 1]?.color || '#888', -0.5)}
+                opacity={mounted ? 0.9 : 0}
+                style={{ transition: `opacity 400ms ease ${k * 100}ms` }}
+              />
+            )
+          })}
+
+          {/* Ponta na base */}
+          <ellipse
+            cx={SVG_WIDTH / 2}
+            cy={yAt(n)}
+            rx={bottomWidth / 2}
+            ry={4}
+            fill={shade(lastColor, -0.35)}
+            opacity={mounted ? 1 : 0}
+            style={{ transition: 'opacity 500ms ease 500ms' }}
+          />
+
+          {/* Rótulos — sempre a partir dos dados reais recebidos via props */}
+          {stages.map((stage, i) => {
+            const percentage = maxValue > 0 ? ((stage.value / maxValue) * 100).toFixed(1) : '0.0'
+            const centerY = yAt(i) + BAND_HEIGHT / 2
+            return (
+              <g
+                key={i}
+                style={{
+                  opacity: mounted ? 1 : 0,
+                  transition: `opacity 400ms ease ${i * 100 + 250}ms`,
+                  pointerEvents: 'none',
                 }}
               >
-                {stage.icon && (
-                  <span className="text-2xl sm:text-3xl sm:mb-2 flex-shrink-0">{stage.icon}</span>
-                )}
-                <div className="flex-1 sm:flex-none flex sm:flex-col items-center sm:items-center gap-2 sm:gap-0">
-                  <div
-                    className="text-xl sm:text-2xl font-bold sm:mb-1"
-                    style={{ color: stage.color }}
-                  >
-                    {stage.value.toLocaleString('pt-BR')}
-                  </div>
-                  <div className="text-xs font-semibold text-gray-700 dark:text-gray-200 leading-tight sm:mb-1.5">
-                    {stage.name}
-                  </div>
-                </div>
-                <div className="ml-auto sm:ml-0 flex flex-col items-end sm:items-center gap-1">
-                  <div
-                    className="text-xs font-bold px-2 py-0.5 rounded-full whitespace-nowrap"
-                    style={{ backgroundColor: stage.color + '25', color: stage.color }}
-                  >
-                    {percentage}%
-                  </div>
-                  {conversionRate !== null && (
-                    <div className="text-[10px] text-gray-500 dark:text-gray-400">
-                      ↳ {conversionRate}% conv.
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Seta: ↓ no mobile, → no desktop */}
-              {index < stages.length - 1 && (
-                <div className="flex items-center justify-center py-1 sm:py-0 sm:px-1 flex-shrink-0">
-                  {/* seta para baixo no mobile */}
-                  <svg className="w-5 h-5 text-gray-300 dark:text-gray-600 sm:hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14m-5-5l5 5 5-5"/>
-                  </svg>
-                  {/* seta para direita no desktop */}
-                  <ArrowRight className="w-5 h-5 text-gray-300 dark:text-gray-600 hidden sm:block" />
-                </div>
-              )}
-            </div>
-          )
-        })}
+                <text
+                  x={SVG_WIDTH / 2}
+                  y={centerY - 10}
+                  textAnchor="middle"
+                  fill="#ffffff"
+                  style={{ fontSize: 15, fontWeight: 700, letterSpacing: '0.01em', textShadow: '0 1px 4px rgba(0,0,0,0.6)' }}
+                >
+                  {stage.name}
+                </text>
+                <text
+                  x={SVG_WIDTH / 2}
+                  y={centerY + 18}
+                  textAnchor="middle"
+                  fill="#ffffff"
+                  style={{ fontSize: 20, fontWeight: 800, textShadow: '0 1px 4px rgba(0,0,0,0.6)' }}
+                >
+                  {stage.value.toLocaleString('pt-BR')}
+                  <tspan fillOpacity={0.8} style={{ fontSize: 14, fontWeight: 600 }}> · {percentage}%</tspan>
+                </text>
+              </g>
+            )
+          })}
+        </svg>
       </div>
 
       {/* Resumo */}
-      {stages.length >= 2 && stages[0].value > 0 ? (
-        <div className="mt-5 pt-5 border-t border-gray-200 dark:border-gray-700">
+      {hasData ? (
+        <div className="mt-6 pt-5 border-t border-gray-200 dark:border-gray-700">
           <div className="grid grid-cols-3 gap-4 text-center">
             <div>
               <div className="text-xs text-gray-500 dark:text-gray-400">Taxa Geral</div>
@@ -111,7 +285,7 @@ export default function FunnelVisualization({ title, stages = [] }: FunnelVisual
           </div>
         </div>
       ) : (
-        <div className="mt-5 pt-5 border-t border-gray-200 dark:border-gray-700 text-center text-sm text-gray-500 dark:text-gray-400">
+        <div className="mt-6 pt-5 border-t border-gray-200 dark:border-gray-700 text-center text-sm text-gray-500 dark:text-gray-400">
           Nenhum dado de funil disponível
         </div>
       )}

@@ -3,7 +3,7 @@ import UserMenu from '@/components/UserMenu'
 
 import { useEffect, useState, useCallback, Suspense } from 'react'
 import { useSession } from 'next-auth/react'
-import { MessageCircle, Settings, Download } from 'lucide-react'
+import { MessageCircle, Settings, Download, MousePointer2, Eye, Target, TrendingUp, DollarSign, BarChart3, Zap, Trophy, Pin, AlertTriangle, Smartphone, Megaphone, Plug2, ArrowRight } from 'lucide-react'
 import { useFunnelView } from '@/hooks/useFunnelView'
 import CardInsightModal from '@/components/CardInsightModal'
 import DateFilter from '@/components/DateFilter'
@@ -403,13 +403,13 @@ export default function Dashboard() {
         {/* Linha 2: ações rápidas */}
         <div className="flex gap-1.5 px-3 pb-2 overflow-x-auto scrollbar-hide">
           <Link href="/whatsapp-numbers" className="flex items-center gap-1 px-2.5 py-1 text-[11px] bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 rounded-lg font-medium whitespace-nowrap flex-shrink-0">
-            📱 WhatsApp
+            <Smartphone className="w-3 h-3" /> WhatsApp
           </Link>
           <Link href="/campaigns" className="flex items-center gap-1 px-2.5 py-1 text-[11px] bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 rounded-lg font-medium whitespace-nowrap flex-shrink-0">
-            📢 Campanhas
+            <Megaphone className="w-3 h-3" /> Campanhas
           </Link>
           <Link href="/analytics" className="flex items-center gap-1 px-2.5 py-1 text-[11px] bg-blue-600 text-white rounded-lg font-medium whitespace-nowrap flex-shrink-0">
-            📊 Analytics
+            <BarChart3 className="w-3 h-3" /> Analytics
           </Link>
           <button onClick={handleExportCSV} className="flex items-center gap-1 px-2.5 py-1 text-[11px] bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg font-medium whitespace-nowrap flex-shrink-0">
             <Download className="w-3 h-3" /> CSV
@@ -424,10 +424,6 @@ export default function Dashboard() {
       <WorkspaceTabs onWorkspaceChange={handleWorkspaceChange} />
 
       <main className="container mx-auto px-4 py-4">
-        {/* Monitoramento proativo — insights gerados pela SaraObserver */}
-        <div className="mb-6">
-          <SaraInsightsPanel />
-        </div>
         {/* Workflow Canvas — funil visual interativo (topo) */}
         <div className="mb-6">
           <FunnelFlow
@@ -465,46 +461,6 @@ export default function Dashboard() {
             userId={userId}
           />
         </div>
-
-        {/* Aviso "WhatsApp no funil" (movido pra baixo do funil) */}
-        {(() => {
-          const isProOrScale = planInfo.plan === 'PRO' || planInfo.plan === 'SCALE'
-          const hasWhatsApp = (whatsappData as any)?.connected
-          const realConversations = (whatsappData as any)?.raw?.conversations
-            ?? (whatsappData as any)?.conversations
-            ?? null
-
-          const title = isProOrScale
-            ? (hasWhatsApp ? 'Conversas iniciadas via WhatsApp Business' : 'Conecte seu WhatsApp Business para ver dados reais')
-            : 'Conversas iniciadas estimadas a partir dos cliques'
-
-          const description = isProOrScale
-            ? (hasWhatsApp
-                ? 'Métricas reais da conexão oficial do WhatsApp Business com a API da Meta.'
-                : 'Seu plano libera a conexão oficial. Conecte sua conta verificada em Meus Números para ver métricas reais.')
-            : 'No Start, usamos estimativa por clique. Métricas detalhadas do WhatsApp exigem Pro ou Scale com conta verificada.'
-
-          const valueLabel = isProOrScale && hasWhatsApp ? 'Total atual' : 'Estimativa atual'
-          const value = isProOrScale && hasWhatsApp && realConversations != null
-            ? realConversations
-            : estimatedWhatsAppConversations
-
-          return (
-            <div className="mb-6 rounded-2xl border border-blue-200/70 dark:border-blue-900/50 bg-white/90 dark:bg-gray-800/90 p-4 shadow-sm">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-500 dark:text-gray-400">WhatsApp no funil</p>
-                  <h2 className="text-lg font-black text-gray-900 dark:text-white">{title}</h2>
-                  <p className="text-sm text-gray-600 dark:text-gray-300">{description}</p>
-                </div>
-                <div className="rounded-xl bg-gray-50 dark:bg-gray-800 px-4 py-3">
-                  <div className="text-[11px] uppercase tracking-wide text-gray-500 font-semibold">{valueLabel}</div>
-                  <div className="text-2xl font-black text-gray-900 dark:text-white">{value}</div>
-                </div>
-              </div>
-            </div>
-          )
-        })()}
 
         {/* Gatilhos dinâmicos de upgrade — só aparecem para FREE/START */}
         <UpgradeTriggers />
@@ -620,24 +576,56 @@ export default function Dashboard() {
           }
 
           const neutralColor = 'text-gray-900 dark:text-white'
+
+          // Classes completas (não interpoladas) para o Tailwind conseguir detectar em build.
+          const hueBadge: Record<string, string> = {
+            blue:    'bg-blue-500/10 text-blue-500 dark:text-blue-400',
+            emerald: 'bg-emerald-500/10 text-emerald-500 dark:text-emerald-400',
+            orange:  'bg-orange-500/10 text-orange-500 dark:text-orange-400',
+            violet:  'bg-violet-500/10 text-violet-500 dark:text-violet-400',
+            cyan:    'bg-cyan-500/10 text-cyan-500 dark:text-cyan-400',
+            teal:    'bg-teal-500/10 text-teal-500 dark:text-teal-400',
+            amber:   'bg-amber-500/10 text-amber-500 dark:text-amber-400',
+            red:     'bg-red-500/10 text-red-500 dark:text-red-400',
+            green:   'bg-green-500/10 text-green-500 dark:text-green-400',
+            purple:  'bg-purple-500/10 text-purple-500 dark:text-purple-400',
+            gray:    'bg-gray-500/10 text-gray-500 dark:text-gray-400',
+          }
+          const hueTopBorder: Record<string, string> = {
+            blue:    'border-t-blue-500',
+            emerald: 'border-t-emerald-500',
+            orange:  'border-t-orange-500',
+            violet:  'border-t-violet-500',
+            cyan:    'border-t-cyan-500',
+            teal:    'border-t-teal-500',
+            amber:   'border-t-amber-500',
+            red:     'border-t-red-500',
+            green:   'border-t-green-500',
+            purple:  'border-t-purple-500',
+            gray:    'border-t-gray-300 dark:border-t-gray-600',
+          }
+          const roiHue = !hasROI(totRevenue, totSpend)
+            ? 'gray'
+            : roiTotal < 0 ? 'red' : roiTotal < 100 ? 'amber' : roiTotal < 500 ? 'green' : 'purple'
+
           const kpis = [
             {
-              label: 'Total de Cliques', icon: '🖱️', color: neutralColor,
+              label: 'Total de Cliques', icon: <MousePointer2 className="w-4 h-4" />, hue: 'blue' as const, color: neutralColor,
               value: anyConnected && visibleSources.length > 0 ? totCliques.toLocaleString('pt-BR') : null,
               breakdown: <SourceBreakdown getValue={s => s.cliques.toLocaleString('pt-BR')} />,
             },
             {
-              label: 'Total de Impressões', icon: '👁️', color: neutralColor,
+              label: 'Total de Impressões', icon: <Eye className="w-4 h-4" />, hue: 'emerald' as const, color: neutralColor,
               value: anyConnected && visibleSources.length > 0 ? totImpressoes.toLocaleString('pt-BR') : null,
               breakdown: <SourceBreakdown getValue={s => s.impressoes.toLocaleString('pt-BR')} />,
             },
             {
-              label: 'Total de Leads', icon: '🎯', color: neutralColor,
+              label: 'Total de Leads', icon: <Target className="w-4 h-4" />, hue: 'orange' as const, color: neutralColor,
               value: (totLeads > 0 || (anyConnected && visibleSources.length > 0)) ? totLeads.toLocaleString('pt-BR') : null,
               breakdown: <SourceBreakdown getValue={s => s.leads.toLocaleString('pt-BR')} />,
             },
             {
-              label: 'Taxa de Conversão', icon: '📈', color: neutralColor,
+              label: 'Taxa de Conversão', icon: <TrendingUp className="w-4 h-4" />, hue: 'violet' as const, color: neutralColor,
               value: num(convRate, '', '%'),
               breakdown: <SourceBreakdown getValue={s => {
                 const r = s.cliques > 0 ? (s.leads / s.cliques) * 100 : null
@@ -645,22 +633,22 @@ export default function Dashboard() {
               }} />,
             },
             {
-              label: 'CPC Médio', icon: '💰', color: neutralColor,
+              label: 'CPC Médio', icon: <DollarSign className="w-4 h-4" />, hue: 'cyan' as const, color: neutralColor,
               value: num(cpcMedio, 'R$ '),
               breakdown: <SourceBreakdown getValue={s => num(calculateCPC(s.spend, s.cliques), 'R$ ')} />,
             },
             {
-              label: 'CPM Médio', icon: '📊', color: neutralColor,
+              label: 'CPM Médio', icon: <BarChart3 className="w-4 h-4" />, hue: 'teal' as const, color: neutralColor,
               value: num(cpmMedio, 'R$ '),
               breakdown: <SourceBreakdown getValue={s => num(calculateCPM(s.spend, s.impressoes), 'R$ ')} />,
             },
             {
-              label: 'CTR Médio', icon: '⚡', color: neutralColor,
+              label: 'CTR Médio', icon: <Zap className="w-4 h-4" />, hue: 'amber' as const, color: neutralColor,
               value: num(ctrMedio, '', '%'),
               breakdown: <SourceBreakdown getValue={s => num(calculateCTR(s.cliques, s.impressoes), '', '%')} />,
             },
             {
-              label: 'ROI Geral', icon: '🏆',
+              label: 'ROI Geral', icon: <Trophy className="w-4 h-4" />, hue: roiHue,
               color: hasROI(totRevenue, totSpend)
                 ? (roiTotal < 0
                     ? 'text-red-500 dark:text-red-400'
@@ -668,7 +656,7 @@ export default function Dashboard() {
                       ? 'text-amber-500 dark:text-amber-400'
                       : roiTotal < 500
                         ? 'text-green-500 dark:text-green-400'
-                        : 'text-green-600 dark:text-green-500')
+                        : 'text-purple-500 dark:text-purple-400')
                 : neutralColor,
               value: hasROI(totRevenue, totSpend) ? roiTotal.toFixed(2).replace('.', ',') + '%' : null,
               breakdown: hasROI(totRevenue, totSpend) ? (
@@ -681,8 +669,9 @@ export default function Dashboard() {
                     Para cada R$1 investido, seu funil gerou R${roasTotal.toFixed(2).replace('.', ',')} em receita
                   </p>
                   {roiHigh && (
-                    <p className="text-[10px] text-amber-600 dark:text-amber-400 leading-tight">
-                      ⚠️ Resultados acima da média. Verifique se todas as fontes de custo e receita estão corretamente integradas.
+                    <p className="text-[10px] text-amber-600 dark:text-amber-400 leading-tight flex items-start gap-1">
+                      <AlertTriangle className="w-2.5 h-2.5 mt-0.5 flex-shrink-0" />
+                      <span>Resultados acima da média. Verifique se todas as fontes de custo e receita estão corretamente integradas.</span>
                     </p>
                   )}
                 </div>
@@ -694,7 +683,9 @@ export default function Dashboard() {
             <div className="mb-6">
               {/* Header + seletor de fonte */}
               <div className="flex flex-wrap items-center gap-2 mb-3">
-                <span className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide">📌 Resumo Geral</span>
+                <span className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide flex items-center gap-1.5">
+                  <Pin className="w-3.5 h-3.5 text-gray-400" />Resumo Geral
+                </span>
                 <span className="text-xs text-gray-400 dark:text-gray-500 mr-2">— fontes conectadas</span>
 
                 {sourceButtons.map(btn => {
@@ -724,28 +715,149 @@ export default function Dashboard() {
                 })}
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {kpis.map(({ label, value, icon, color, breakdown }) => (
-                  <div key={label} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 shadow-sm">
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1 flex items-center gap-1">
-                      <span>{icon}</span>{label}
-                    </p>
-                    {value !== null ? (
-                      <>
-                        <p className={`text-xl font-bold ${color}`}>{value}</p>
-                        {breakdown}
-                      </>
-                    ) : (
-                      <p className="text-sm text-gray-500 dark:text-gray-400 italic font-medium">
-                        {anyConnected ? 'Sem dados' : 'Sem integrações'}
-                      </p>
-                    )}
+              {anyConnected ? (() => {
+                // Métricas que respondem "meu funil está funcionando?" ganham destaque;
+                // as demais são detalhes de mídia paga e ficam numa faixa secundária.
+                const featuredLabels = ['Taxa de Conversão', 'ROI Geral']
+                const featuredKpis = kpis.filter(k => featuredLabels.includes(k.label))
+                const secondaryKpis = kpis.filter(k => !featuredLabels.includes(k.label))
+
+                return (
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {featuredKpis.map(({ label, value, icon, color, breakdown, hue }) => (
+                        <div
+                          key={label}
+                          className={`bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 border-t-2 ${hueTopBorder[hue]} rounded-xl p-4 sm:p-5 shadow-sm hover:shadow-lg hover:border-gray-300 dark:hover:border-gray-600 hover:-translate-y-1.5 hover:scale-[1.03] motion-reduce:hover:translate-y-0 motion-reduce:hover:scale-100 transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)]`}
+                        >
+                          <div className="flex items-center gap-2.5 mb-3">
+                            <span className={`inline-flex items-center justify-center w-8 h-8 rounded-lg flex-shrink-0 ${hueBadge[hue]}`}>
+                              {icon}
+                            </span>
+                            <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                              {label}
+                            </p>
+                          </div>
+                          {value !== null ? (
+                            <>
+                              <p className={`text-3xl font-black tabular-nums ${color}`}>{value}</p>
+                              {breakdown}
+                            </>
+                          ) : (
+                            <p className="text-sm text-gray-500 dark:text-gray-400 italic font-medium">
+                              Sem dados
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                      {secondaryKpis.map(({ label, value, icon, color, breakdown, hue }) => (
+                        <div
+                          key={label}
+                          className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 shadow-sm hover:shadow-lg hover:border-gray-300 dark:hover:border-gray-600 hover:-translate-y-1.5 hover:scale-[1.04] motion-reduce:hover:translate-y-0 motion-reduce:hover:scale-100 transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)]"
+                        >
+                          <div className="flex items-center gap-1.5 mb-2">
+                            <span className={`inline-flex items-center justify-center w-6 h-6 rounded-md flex-shrink-0 ${hueBadge[hue]}`}>
+                              {icon}
+                            </span>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{label}</p>
+                          </div>
+                          {value !== null ? (
+                            <>
+                              <p className={`text-lg font-bold tabular-nums ${color}`}>{value}</p>
+                              {breakdown}
+                            </>
+                          ) : (
+                            <p className="text-sm text-gray-500 dark:text-gray-400 italic font-medium">
+                              Sem dados
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                ))}
+                )
+              })() : (
+                <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5 sm:p-6 shadow-sm">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                    <div className="w-11 h-11 rounded-full bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
+                      <Plug2 className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-gray-900 dark:text-white">
+                        Conecte uma fonte de tráfego para ver suas métricas
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                        Cliques, impressões, leads, conversão, CPC, CPM, CTR e ROI aparecem aqui assim que Meta, Google ou TikTok Ads estiverem conectados.
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <Link
+                        href="/facebook-connect"
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition whitespace-nowrap"
+                      >
+                        Conectar Meta Ads
+                      </Link>
+                      <Link
+                        href="/settings"
+                        className="inline-flex items-center gap-1 px-3 py-2 text-xs font-semibold text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition whitespace-nowrap"
+                      >
+                        Ver integrações <ArrowRight className="w-3 h-3" />
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )
+        })()}
+
+        {/* Aviso "WhatsApp no funil" (abaixo do Resumo Geral) */}
+        {(() => {
+          const isProOrScale = planInfo.plan === 'PRO' || planInfo.plan === 'SCALE'
+          const hasWhatsApp = (whatsappData as any)?.connected
+          const realConversations = (whatsappData as any)?.raw?.conversations
+            ?? (whatsappData as any)?.conversations
+            ?? null
+
+          const title = isProOrScale
+            ? (hasWhatsApp ? 'Conversas iniciadas via WhatsApp Business' : 'Conecte seu WhatsApp Business para ver dados reais')
+            : 'Conversas iniciadas estimadas a partir dos cliques'
+
+          const description = isProOrScale
+            ? (hasWhatsApp
+                ? 'Métricas reais da conexão oficial do WhatsApp Business com a API da Meta.'
+                : 'Seu plano libera a conexão oficial. Conecte sua conta verificada em Meus Números para ver métricas reais.')
+            : 'No Start, usamos estimativa por clique. Métricas detalhadas do WhatsApp exigem Pro ou Scale com conta verificada.'
+
+          const valueLabel = isProOrScale && hasWhatsApp ? 'Total atual' : 'Estimativa atual'
+          const value = isProOrScale && hasWhatsApp && realConversations != null
+            ? realConversations
+            : estimatedWhatsAppConversations
+
+          return (
+            <div className="mb-6 rounded-2xl border border-blue-200/70 dark:border-blue-900/50 bg-white/90 dark:bg-gray-800/90 p-4 shadow-sm">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-500 dark:text-gray-400">WhatsApp no funil</p>
+                  <h2 className="text-lg font-black text-gray-900 dark:text-white">{title}</h2>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">{description}</p>
+                </div>
+                <div className="rounded-xl bg-gray-50 dark:bg-gray-800 px-4 py-3">
+                  <div className="text-[11px] uppercase tracking-wide text-gray-500 font-semibold">{valueLabel}</div>
+                  <div className="text-2xl font-black text-gray-900 dark:text-white">{value}</div>
+                </div>
               </div>
             </div>
           )
         })()}
+
+        {/* Monitoramento proativo — insights gerados pela SaraObserver */}
+        <div className="mb-6">
+          <SaraInsightsPanel />
+        </div>
 
         {/* Sugestões da Sara.ai */}
         <div className="mt-8">

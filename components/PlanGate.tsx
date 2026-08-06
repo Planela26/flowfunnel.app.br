@@ -33,7 +33,7 @@ export default function PlanGate({
   if (unlocked) return <>{children}</>
 
   return (
-    <div className="relative rounded-xl overflow-hidden">
+    <div className="group relative rounded-xl overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] motion-reduce:hover:translate-y-0">
       {/* Conteúdo real ficando como prévia borrada */}
       <div
         aria-hidden="true"
@@ -45,8 +45,11 @@ export default function PlanGate({
       {/* Overlay de bloqueio */}
       <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-blue-900/85 via-blue-800/80 to-indigo-900/85 backdrop-blur-[2px]">
         <div className="text-center px-6 py-8 max-w-md">
-          <div className="mx-auto w-14 h-14 rounded-full bg-white/15 border border-white/30 flex items-center justify-center mb-3 shadow-lg">
-            <Lock className="w-7 h-7 text-white" />
+          <div className="relative mx-auto w-14 h-14 mb-3">
+            <div className="absolute inset-0 rounded-full bg-amber-400/30 blur-md group-hover:bg-amber-400/45 transition-colors duration-300" />
+            <div className="relative w-14 h-14 rounded-full bg-white/15 border border-white/30 flex items-center justify-center shadow-lg">
+              <Lock className="w-7 h-7 text-white" />
+            </div>
           </div>
           <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-400/95 text-amber-950 text-[10px] font-extrabold uppercase tracking-wider mb-2">
             Exclusivo {requiredPlan}
@@ -57,10 +60,10 @@ export default function PlanGate({
           <p className="text-blue-100 text-sm mb-5">{message}</p>
           <Link
             href={href}
-            className="inline-flex items-center gap-2 bg-amber-400 hover:bg-amber-300 text-amber-950 font-bold px-5 py-2.5 rounded-lg shadow-lg transition transform hover:scale-105"
+            className="group/cta inline-flex items-center gap-2 bg-amber-400 hover:bg-amber-300 text-amber-950 font-bold px-5 py-2.5 rounded-lg shadow-lg transition-all duration-200 hover:scale-105"
           >
             {ctaLabel}
-            <ArrowRight className="w-4 h-4" />
+            <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover/cta:translate-x-0.5" />
           </Link>
         </div>
       </div>

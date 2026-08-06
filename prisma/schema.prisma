@@ -193,17 +193,20 @@ model FunnelStage {
 }
 
 model FunnelEvent {
-  id        String   @id @default(cuid())
-  funnelId  String
-  stageId   String
-  leadId    String?
-  eventType String
-  metadata  String?
-  timestamp DateTime @default(now())
-  
+  id            String   @id @default(cuid())
+  funnelId      String
+  stageId       String
+  leadId        String?
+  eventType     String
+  source        String?  // 'hotmart', 'kiwify', 'eduzz', 'monetizze', 'perfect_pay', etc.
+  transactionId String?  // ID da transação na plataforma (ex: Hotmart purchase.transaction)
+  metadata      String?
+  timestamp     DateTime @default(now())
+
   funnel Funnel      @relation(fields: [funnelId], references: [id], onDelete: Cascade)
   stage  FunnelStage @relation(fields: [stageId], references: [id], onDelete: Cascade)
-  
+
+  @@unique([funnelId, source, transactionId], name: "idx_funnel_event_dedup")
   @@index([funnelId, timestamp])
   @@index([stageId])
   @@index([timestamp])

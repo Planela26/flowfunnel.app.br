@@ -18,7 +18,7 @@ interface ComparisonChartProps {
 export default function ComparisonChart({ title, data, bars }: ComparisonChartProps) {
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
-      <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">{title}</h3>
+      {title && <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">{title}</h3>}
       <ResponsiveContainer width="100%" height={300}>
         <BarChart data={data}>
           <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" className="dark:stroke-gray-700" />

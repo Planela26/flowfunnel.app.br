@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Eye, MessageCircle, ShoppingCart, TrendingUp, Copy, Check, Code2, ChevronDown } from 'lucide-react'
+import { Eye, MessageCircle, ShoppingCart, TrendingUp, Copy, Check, Code2, ChevronDown, Rocket } from 'lucide-react'
 
 type Stats = {
   days: number
@@ -57,8 +57,10 @@ export default function LandingTracking() {
   return (
     <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm overflow-hidden">
       <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between flex-wrap gap-2">
-        <div className="flex items-center gap-2">
-          <TrendingUp className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+        <div className="flex items-center gap-2.5">
+          <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 flex-shrink-0">
+            <TrendingUp className="w-4 h-4" />
+          </span>
           <h3 className="font-bold text-gray-900 dark:text-white text-sm sm:text-base">
             Rastreamento de Landing Page
           </h3>
@@ -103,6 +105,9 @@ export default function LandingTracking() {
           <p className="text-sm text-gray-500 py-3">Carregando…</p>
         ) : !hasData ? (
           <div className="text-center py-6 px-3 rounded-lg bg-gray-50 dark:bg-gray-700/30">
+            <span className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-blue-500/10 text-blue-500 dark:text-blue-400 mb-2">
+              <Rocket className="w-5 h-5" />
+            </span>
             <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
               Nenhum dado ainda. Instale o script na sua landing page para começar a rastrear.
             </p>
@@ -133,7 +138,10 @@ export default function LandingTracking() {
                       <span className="text-gray-700 dark:text-gray-300 font-bold flex-shrink-0">{o.leads}</span>
                     </div>
                     <div className="w-full h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
-                      <div className="h-full bg-blue-500" style={{ width: `${pct}%` }} />
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-blue-500 to-blue-400 transition-all duration-500"
+                        style={{ width: `${pct}%` }}
+                      />
                     </div>
                   </div>
                 </div>
@@ -185,20 +193,30 @@ export default function LandingTracking() {
 }
 
 function Card({ icon, label, value, color, subtitle }: { icon: React.ReactNode; label: string; value: number; color: 'blue' | 'green' | 'purple' | 'amber'; subtitle?: string }) {
-  const colors: Record<string, string> = {
-    blue: 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400',
-    green: 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400',
-    purple: 'bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-400',
-    amber: 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400',
+  const badge: Record<string, string> = {
+    blue: 'bg-blue-500/10 text-blue-500 dark:text-blue-400',
+    green: 'bg-green-500/10 text-green-500 dark:text-green-400',
+    purple: 'bg-purple-500/10 text-purple-500 dark:text-purple-400',
+    amber: 'bg-amber-500/10 text-amber-500 dark:text-amber-400',
+  }
+  const topBorder: Record<string, string> = {
+    blue: 'border-t-blue-500',
+    green: 'border-t-green-500',
+    purple: 'border-t-purple-500',
+    amber: 'border-t-amber-500',
   }
   return (
-    <div className={`rounded-lg p-3 ${colors[color]}`}>
-      <div className="flex items-center gap-1.5 mb-1 opacity-90">
-        {icon}
-        <span className="text-[10px] font-bold uppercase tracking-wider">{label}</span>
+    <div
+      className={`bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 border-t-2 ${topBorder[color]} rounded-xl p-3 shadow-sm hover:shadow-lg hover:border-gray-300 dark:hover:border-gray-600 hover:-translate-y-1.5 hover:scale-[1.03] motion-reduce:hover:translate-y-0 motion-reduce:hover:scale-100 transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)]`}
+    >
+      <div className="flex items-center gap-1.5 mb-2">
+        <span className={`inline-flex items-center justify-center w-6 h-6 rounded-md flex-shrink-0 ${badge[color]}`}>
+          {icon}
+        </span>
+        <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 truncate">{label}</span>
       </div>
-      <div className="text-2xl font-extrabold">{value.toLocaleString('pt-BR')}</div>
-      {subtitle && <div className="text-[11px] opacity-80 mt-0.5">{subtitle}</div>}
+      <div className="text-2xl font-extrabold tabular-nums text-gray-900 dark:text-white">{value.toLocaleString('pt-BR')}</div>
+      {subtitle && <div className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">{subtitle}</div>}
     </div>
   )
 }

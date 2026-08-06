@@ -94,12 +94,18 @@ export default function JourneyExplorer() {
     setLoadError(null)
     try {
       const res = await fetch(`/api/journey?days=30&onlySales=${onlySales}`)
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      if (!res.ok) {
+        throw new Error(
+          res.status === 401
+            ? 'Sua sessão expirou. Atualize a página e faça login novamente.'
+            : 'Não foi possível carregar os leads agora. Tente novamente em instantes.'
+        )
+      }
       const data = await res.json()
       setLeads(data.leads || [])
       setUnmatchedSales(data.unmatchedSales || [])
     } catch (e: any) {
-      setLoadError(e.message || 'Erro ao carregar dados')
+      setLoadError(e.message || 'Não foi possível carregar os leads agora.')
     } finally {
       setLoading(false)
     }
@@ -114,10 +120,18 @@ export default function JourneyExplorer() {
     setJourneyError(null)
     try {
       const res = await fetch(`/api/journey/${encodeURIComponent(leadId)}`)
-      if (!res.ok) throw new Error(res.status === 404 ? 'Jornada não encontrada.' : `Erro HTTP ${res.status}`)
+      if (!res.ok) {
+        throw new Error(
+          res.status === 404
+            ? 'Jornada não encontrada.'
+            : res.status === 401
+              ? 'Sua sessão expirou. Atualize a página e faça login novamente.'
+              : 'Não foi possível carregar a jornada agora.'
+        )
+      }
       setJourney(await res.json())
     } catch (e: any) {
-      setJourneyError(e.message || 'Erro ao carregar jornada')
+      setJourneyError(e.message || 'Não foi possível carregar a jornada agora.')
     } finally {
       setJourneyLoading(false)
     }
@@ -128,8 +142,11 @@ export default function JourneyExplorer() {
       {/* Lista de leads */}
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-            <Target className="w-4 h-4 text-violet-500" /> Leads rastreados (30 dias)
+          <h2 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2.5">
+            <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-violet-500/10 text-violet-500 dark:text-violet-400 flex-shrink-0">
+              <Target className="w-4 h-4" />
+            </span>
+            Leads rastreados (30 dias)
           </h2>
           <div className="flex items-center gap-2">
             <label className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 cursor-pointer">
@@ -150,10 +167,20 @@ export default function JourneyExplorer() {
         {loading ? (
           <p className="text-sm text-gray-400 py-8 text-center">Carregando…</p>
         ) : loadError ? (
-          <p className="text-sm text-red-500 py-8 text-center">{loadError}</p>
+          <div className="text-center py-8">
+            <span className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-red-500/10 text-red-500 dark:text-red-400 mb-2">
+              <RefreshCw className="w-5 h-5" />
+            </span>
+            <p className="text-sm text-red-500 dark:text-red-400">{loadError}</p>
+            <button onClick={load} className="text-xs font-semibold text-violet-600 dark:text-violet-400 hover:underline mt-1.5">
+              Tentar novamente
+            </button>
+          </div>
         ) : leads.length === 0 ? (
           <div className="text-center py-8">
-            <HelpCircle className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+            <span className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700/60 text-gray-400 mb-2">
+              <HelpCircle className="w-5 h-5" />
+            </span>
             <p className="text-sm text-gray-500 dark:text-gray-400">
               Nenhum lead rastreado ainda.
             </p>
@@ -167,10 +194,10 @@ export default function JourneyExplorer() {
               <button
                 key={l.leadId}
                 onClick={() => openJourney(l.leadId)}
-                className={`w-full text-left p-3 rounded-lg border transition-colors ${
+                className={`w-full text-left p-3 rounded-lg border transition-all duration-150 ${
                   selected === l.leadId
-                    ? 'border-violet-400 bg-violet-50 dark:bg-violet-900/20'
-                    : 'border-gray-200 dark:border-gray-700 hover:border-violet-300'
+                    ? 'border-violet-400 bg-violet-50 dark:bg-violet-900/20 shadow-sm'
+                    : 'border-gray-200 dark:border-gray-700 hover:border-violet-300 hover:bg-gray-50 dark:hover:bg-gray-700/30 hover:shadow-sm'
                 }`}
               >
                 <div className="flex items-center justify-between">
@@ -224,14 +251,22 @@ export default function JourneyExplorer() {
 
       {/* Timeline da jornada */}
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
-        <h2 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2 mb-4">
-          <Clock className="w-4 h-4 text-violet-500" /> Jornada completa
+        <h2 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2.5 mb-4">
+          <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-violet-500/10 text-violet-500 dark:text-violet-400 flex-shrink-0">
+            <Clock className="w-4 h-4" />
+          </span>
+          Jornada completa
         </h2>
 
         {!selected ? (
-          <p className="text-sm text-gray-400 py-12 text-center">
-            Selecione um lead ao lado para ver a jornada completa.
-          </p>
+          <div className="text-center py-12">
+            <span className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700/60 text-gray-400 mb-2">
+              <Clock className="w-5 h-5" />
+            </span>
+            <p className="text-sm text-gray-400">
+              Selecione um lead ao lado para ver a jornada completa.
+            </p>
+          </div>
         ) : journeyLoading ? (
           <p className="text-sm text-gray-400 py-12 text-center">Carregando jornada…</p>
         ) : journeyError ? (

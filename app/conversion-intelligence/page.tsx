@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { Target, Lock } from 'lucide-react'
 import LeadIntelligence from '@/components/LeadIntelligence'
 import WastedTrafficCard from '@/components/WastedTrafficCard'
 import PlanGate from '@/components/PlanGate'
@@ -34,18 +35,23 @@ export default function ConversionIntelligencePage() {
 
   return (
     <main className="container mx-auto px-4 py-6">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
-            🎯 Inteligência de Conversão
-          </h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            Score de leads e desperdício de tráfego em um só lugar.
-          </p>
+      <div className="flex items-center justify-between mb-6 gap-3">
+        <div className="flex items-center gap-3">
+          <span className="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-orange-500/10 text-orange-500 dark:text-orange-400 flex-shrink-0">
+            <Target className="w-5 h-5" />
+          </span>
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
+              Inteligência de Conversão
+            </h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+              Score de leads e desperdício de tráfego em um só lugar.
+            </p>
+          </div>
         </div>
         {!canScoreLeads && (
-          <span className="hidden sm:inline-flex items-center gap-1 px-3 py-1 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 text-xs font-bold">
-            🔒 Recursos PRO
+          <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 text-xs font-bold flex-shrink-0">
+            <Lock className="w-3 h-3" /> Recursos PRO
           </span>
         )}
       </div>

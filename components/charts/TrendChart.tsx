@@ -1,6 +1,7 @@
 'use client'
 
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
+import { LineChart as LineChartIcon } from 'lucide-react'
 
 interface TrendChartProps {
   title: string
@@ -18,7 +19,15 @@ interface TrendChartProps {
 export default function TrendChart({ title, data, lines }: TrendChartProps) {
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
-      <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">{title}</h3>
+      {title && <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">{title}</h3>}
+      {data.length === 0 ? (
+        <div className="h-[300px] flex flex-col items-center justify-center gap-2">
+          <span className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700/60 text-gray-400">
+            <LineChartIcon className="w-5 h-5" />
+          </span>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Sem dados no período selecionado</p>
+        </div>
+      ) : (
       <ResponsiveContainer width="100%" height={300}>
         <LineChart data={data}>
           <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" className="dark:stroke-gray-700" />
@@ -59,6 +68,7 @@ export default function TrendChart({ title, data, lines }: TrendChartProps) {
           ))}
         </LineChart>
       </ResponsiveContainer>
+      )}
     </div>
   )
 }
