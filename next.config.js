@@ -16,6 +16,10 @@ const SECURITY_HEADERS = [
 
 const nextConfig = {
   reactStrictMode: false,
+  experimental: {
+    // Hostinger linux/x64 usa GLIBC antigo; Turbopack precisa de bindings nativos
+    turbopack: false,
+  },
   devIndicators: {
     buildActivity: false,
     appIsrStatus: false,
