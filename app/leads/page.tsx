@@ -9,6 +9,7 @@ import {
   ChevronLeft, ChevronRight, LayoutList, Kanban
 } from 'lucide-react'
 import LeadKanban from '@/components/LeadKanban'
+import { toCsv } from '@/lib/csv'
 
 interface Lead {
   id: string
@@ -108,7 +109,7 @@ export default function LeadsPage() {
       new Date(l.firstSeen).toLocaleDateString('pt-BR'),
       new Date(l.lastSeen).toLocaleDateString('pt-BR'),
     ])
-    const csv = [headers, ...rows].map(r => r.map(c => `"${c}"`).join(',')).join('\n')
+    const csv = toCsv([headers, ...rows])
     const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
