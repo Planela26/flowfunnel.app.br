@@ -4,9 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 5000 -H 0.0.0.0",
-    "build": "prisma generate && bash scripts/db-migrate-deploy.sh && next build",
+    "build": "prisma generate && bash scripts/db-migrate-deploy.sh && next build --webpack",
     "postbuild": "pm2 restart flowsara 2>/dev/null || pm2 restart flowfunnel 2>/dev/null || pm2 restart all 2>/dev/null || true",
-    "build:app": "prisma generate && bash scripts/db-migrate-deploy.sh && next build",
+    "build:app": "prisma generate && bash scripts/db-migrate-deploy.sh && next build --webpack",
     "db:migrate:deploy": "npx prisma migrate deploy",
     "start": "next start -p 5000 -H 0.0.0.0",
     "lint": "next lint",
