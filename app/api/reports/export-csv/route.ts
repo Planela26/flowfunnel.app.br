@@ -3,19 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { getHistoryLimitDays } from '@/lib/plans'
-
-function escapeCSV(value: any): string {
-  if (value === null || value === undefined) return ''
-  const str = String(value)
-  if (str.includes(',') || str.includes('"') || str.includes('\n')) {
-    return `"${str.replace(/"/g, '""')}"`
-  }
-  return str
-}
-
-function row(fields: any[]): string {
-  return fields.map(escapeCSV).join(',')
-}
+import { toCsvRow as row } from '@/lib/csv'
 
 export async function GET(request: Request) {
   try {

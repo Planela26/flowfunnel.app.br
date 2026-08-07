@@ -7,6 +7,7 @@ import {
   Download, RefreshCw, BarChart2, MessageCircle, ShoppingCart,
   DollarSign, Webhook, TrendingUp, Calendar, FileText, AlertCircle
 } from 'lucide-react'
+import { toCsv } from '@/lib/csv'
 
 interface ReportData {
   period: { days: number; since: string }
@@ -107,7 +108,7 @@ export default function ReportsPage() {
       lines.push([event, String(count)])
     }
 
-    const csv = lines.map(row => row.map(cell => `"${cell}"`).join(',')).join('\n')
+    const csv = toCsv(lines)
     const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -182,7 +183,7 @@ export default function ReportsPage() {
       ]
     )
 
-    const csv = lines.map(row => row.map(cell => `"${cell}"`).join(',')).join('\n')
+    const csv = toCsv(lines)
     const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
