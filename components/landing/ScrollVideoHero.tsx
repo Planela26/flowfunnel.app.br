@@ -28,8 +28,10 @@ type Props = {
   children?: React.ReactNode
 }
 
+// Servidos por app/frames/[name]/route.ts — a Hostinger não serve `public/`,
+// então os frames passam por um route handler (mesmo motivo dos logos).
 const framePath = (i: number) =>
-  `/scroll-frames/frame_${String(i).padStart(4, '0')}.jpg`
+  `/frames/frame_${String(i).padStart(4, '0')}.jpg`
 
 const toneClass = {
   green: 'text-emerald-400',
