@@ -169,3 +169,8 @@ node_modules/
 *.tar.gz
 *.zip
 attached_assets/
+
+# Imagens intermediárias da montagem da landing por scroll
+# (os scripts em assets-edit/ ficam versionados; os arquivos gerados, não)
+assets-edit/*.jpg
+assets-edit/*.png

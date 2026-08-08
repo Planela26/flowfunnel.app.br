@@ -1,0 +1,22 @@
+<!doctype html><html><head><meta charset="utf-8"><style>body{margin:0;background:#111}canvas{display:block}</style></head>
+<body><canvas id="c"></canvas>
+<script>
+const SCALE=2, STEP=20;
+const img=new Image();
+img.onload=()=>{
+  const c=document.getElementById('c'), x=c.getContext('2d');
+  c.width=img.width*SCALE; c.height=img.height*SCALE;
+  x.imageSmoothingEnabled=false;
+  x.drawImage(img,0,0,c.width,c.height);
+  x.font='10px monospace';
+  for(let gx=0;gx<=img.width;gx+=STEP){
+    x.strokeStyle='rgba(0,255,255,.35)';x.beginPath();x.moveTo(gx*SCALE,0);x.lineTo(gx*SCALE,c.height);x.stroke();
+    x.fillStyle='#0ff';x.fillText(gx,gx*SCALE+1,10);
+  }
+  for(let gy=0;gy<=img.height;gy+=STEP){
+    x.strokeStyle='rgba(255,0,255,.35)';x.beginPath();x.moveTo(0,gy*SCALE);x.lineTo(c.width,gy*SCALE);x.stroke();
+    x.fillStyle='#f0f';x.fillText(gy,1,gy*SCALE-1);
+  }
+};
+img.src='setup.jpg';
+</script></body></html>

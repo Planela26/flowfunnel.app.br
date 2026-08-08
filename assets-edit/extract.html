@@ -1,0 +1,57 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Extrator de frames</title>
+<style>
+  body{background:#0b0b0f;color:#e6e6ee;font:14px system-ui;margin:0;padding:24px}
+  #log{margin-top:12px;font-variant-numeric:tabular-nums}
+  #bar{height:6px;background:#1e1e2a;border-radius:99px;overflow:hidden;margin-top:10px}
+  #fill{height:100%;width:0;background:linear-gradient(90deg,#3b82f6,#22d3ee)}
+  video,canvas{max-width:420px;border-radius:8px;display:block;margin-top:12px}
+</style>
+<h2>Extraindo frames…</h2>
+<div id="bar"><div id="fill"></div></div>
+<div id="log">iniciando…</div>
+<video id="v" src="/video.mp4" muted playsinline preload="auto"></video>
+<canvas id="c" style="display:none"></canvas>
+<script>
+const FRAMES = 200;      // quantos frames gerar
+const WIDTH  = 1440;     // largura de saída
+const QUALITY = 0.72;    // qualidade JPEG
+const START  = 1.0;      // corta o início do vídeo (segundos)
+
+const v = document.getElementById('v');
+const c = document.getElementById('c');
+const x = c.getContext('2d');
+const log = document.getElementById('log');
+const fill = document.getElementById('fill');
+
+function seek(t){
+  return new Promise(res=>{
+    const on=()=>{v.removeEventListener('seeked',on);res()};
+    v.addEventListener('seeked',on);
+    v.currentTime=t;
+  });
+}
+
+v.addEventListener('loadedmetadata', async ()=>{
+  const dur = v.duration;
+  const h = Math.round(WIDTH * v.videoHeight / v.videoWidth);
+  c.width = WIDTH; c.height = h;
+  const usable = dur - START - 0.05;
+  log.textContent = `duração ${dur.toFixed(1)}s · início em ${START}s · trecho ${usable.toFixed(1)}s · saída ${WIDTH}x${h}`;
+
+  const t0 = Date.now();
+  for (let i=0;i<FRAMES;i++){
+    const t = START + (i/(FRAMES-1))*usable;
+    await seek(t);
+    x.drawImage(v,0,0,c.width,c.height);
+    const data = c.toDataURL('image/jpeg', QUALITY);
+    await fetch('/frame/'+(i+1),{method:'POST',body:data});
+    fill.style.width = ((i+1)/FRAMES*100)+'%';
+    const el = (Date.now()-t0)/1000;
+    log.textContent = `frame ${i+1}/${FRAMES} · ${el.toFixed(0)}s decorridos · ETA ${((el/(i+1))*(FRAMES-i-1)).toFixed(0)}s`;
+  }
+  log.textContent = 'CONCLUIDO ' + FRAMES + ' frames';
+  document.title = 'DONE';
+});
+</script>

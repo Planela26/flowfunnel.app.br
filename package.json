@@ -52,6 +52,8 @@
     "autoprefixer": "^10.4.16",
     "eslint": "^9.39.2",
     "eslint-config-next": "^16.2.12",
+    "jpeg-js": "^0.4.4",
+    "pngjs": "^7.0.0",
     "postcss": "^8.4.33",
     "prisma": "^6.19.3",
     "tailwindcss": "^3.4.1",
