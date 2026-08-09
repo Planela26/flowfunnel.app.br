@@ -11,75 +11,113 @@ const display = Inter_Tight({
   display: 'swap',
 })
 
-// As faixas de progresso vêm da análise de posição do monitor em cada frame:
-// o texto fica SEMPRE no lado oposto ao monitor.
+// `at` é a janela de scroll em que o vídeo está PARADO nesta etapa (ver
+// VIDEO_STAGES em ScrollVideoHero). Ela sozinha não decide quando o texto
+// aparece: o componente ainda exige que a imagem esteja parada E estabilizada
+// nesta etapa — por isso um scroll rápido nunca joga texto sobre o monitor
+// enquanto ele muda de posição.
+// `side` é o lado LIVRE do quadro naquela parada, medido no próprio vídeo;
+// o monitor fica sempre do lado oposto.
 const ACTS: Act[] = [
   {
-    at: [0.22, 0.4],
-    side: 'right', // monitor à esquerda (centro em ~36%)
+    at: [0.02, 0.18],
+    side: 'right', // 16s · monitor ocupa 3–67%, livre à direita
+    free: 0.33,
     eyebrow: 'Visão geral',
-    title: 'Todo o dinheiro numa tela.',
+    title: 'Do anúncio à venda. Tudo conectado.',
     body:
-      'Meta, Google e TikTok somados — e separados. Cliques, leads, CPC e ROI de cada fonte, atualizados sozinhos. E a Sara.AI apontando, em vermelho, o que está travando as vendas hoje.',
+      'Meta, Google, TikTok, leads, WhatsApp, checkout e receita em uma única visão. E quando os números mudam, a Sara.AI ajuda a identificar o que merece sua atenção.',
     bullets: [
-      '5.018.300 impressões e 92.940 cliques somados',
-      '6.284 leads com a origem já identificada',
-      '“Queda de conversão no checkout mobile: −38%”',
+      { label: 'Tráfego consolidado', value: '5.018.300 impressões e 92.940 cliques' },
+      { label: 'Atribuição', value: '6.284 leads com origem já identificada' },
+      {
+        label: 'Insight da Sara.AI',
+        value: 'Queda de conversão no checkout mobile: −38%',
+      },
     ],
     stats: [
       { value: '6,76%', label: 'Conversão', tone: 'sky' },
-      { value: 'R$ 3,37', label: 'Para cada R$ 1', tone: 'green' },
+      { value: 'R$ 3,37', label: 'Para cada R$ 1 investido', tone: 'green' },
     ],
+    note: 'Números da demonstração exibida — cada operação tem os seus.',
   },
   {
-    at: [0.43, 0.6],
-    side: 'left', // monitor à direita (centro em ~85%)
+    at: [0.17, 0.33],
+    side: 'left', // 24s · monitor ocupa 52–100%, livre à esquerda
+    free: 0.52,
     eyebrow: 'Leads & contatos',
-    title: 'Cada lead com nome, origem e valor.',
+    // Duas frases, uma por linha: deixá-las se misturarem partia a primeira ao
+    // meio e jogava o ponto final para o início da linha seguinte.
+    title: ['De onde veio cada cliente.', 'Quanto ele gerou.'],
     body:
-      'De qual anúncio a pessoa veio, em que etapa ela parou e quanto já pagou. Acabou o “não sei de onde veio essa venda”.',
+      'Relacione origem, etapa e receita no mesmo contato. Assim, aquela venda que antes parecia impossível de atribuir passa a ter contexto.',
     bullets: [
-      'Meta, Google ou TikTok marcado em cada contato',
-      'Status: lead, checkout abandonado ou cliente',
-      'Receita e nº de eventos por pessoa · exporta em CSV',
+      'Origem do lead identificada por canal',
+      'Etapa do funil e status de cada contato',
+      'Receita e eventos associados à jornada',
     ],
+    kicker: 'Menos achismo. Mais atribuição.',
     stats: [
       { value: '75%', label: 'Lead → checkout', tone: 'sky' },
       { value: '50%', label: 'Lead → cliente', tone: 'green' },
     ],
+    note: 'Números da demonstração exibida — cada operação tem os seus.',
   },
   {
-    at: [0.66, 0.84],
-    side: 'right', // monitor à esquerda (centro em ~29%)
+    at: [0.32, 0.48],
+    side: 'left', // 30s · monitor ocupa 45–100%, livre à esquerda
+    free: 0.45,
     eyebrow: 'Funil de conversão',
-    title: 'Onde o dinheiro escorre fica óbvio.',
+    title: 'Descubra exatamente onde suas vendas estão travando.',
     body:
-      'Cinco etapas, uma embaixo da outra, com a porcentagem que sobrevive em cada degrau. Você não procura o vazamento: ele aparece.',
+      'Do primeiro clique ao pagamento, o FlowSara mostra quantas pessoas avançam — e onde elas deixam de avançar.',
     bullets: [
-      '2.847.300 impressões → 52.840 cliques',
-      '6.284 conversas no WhatsApp → 2.318 checkouts',
-      '2.318 checkouts → 1.186 vendas',
+      { from: '2.847.300 impressões', to: '52.840 cliques' },
+      { from: '6.284 conversas no WhatsApp', to: '2.318 checkouts' },
+      { from: '2.318 checkouts', to: '1.186 vendas' },
     ],
     stats: [
       { value: '1,9%', label: 'Impressão → clique', tone: 'sky' },
       { value: '51%', label: 'Checkout → venda', tone: 'green' },
     ],
+    note: 'Números da demonstração exibida — cada operação tem os seus.',
   },
   {
-    at: [0.87, 1],
-    side: 'left', // monitor à direita (centro em ~72%)
+    at: [0.47, 0.63],
+    side: 'right', // 38s · monitor ocupa 0–60%, livre à direita
+    free: 0.4,
     eyebrow: 'Analytics',
-    title: 'Quanto entrou por cada real que saiu.',
+    title: 'Saiba quanto cada real investido realmente devolve.',
     body:
-      'Investimento e receita lado a lado, plataforma por plataforma. Com o WhatsApp e o checkout no mesmo relatório — pronto para exportar ou agendar.',
+      'Compare investimento, receita e ROI em um só lugar. O FlowSara conecta suas fontes de tráfego às vendas para mostrar quais canais geram dinheiro — e quais só consomem orçamento.',
     bullets: [
-      'Meta Ads · +R$ 310.252 · ROI 209%',
-      'Google Ads · +R$ 147.396 · ROI 236%',
-      'TikTok Ads · +R$ 109.262 · ROI 378%',
+      { label: 'Meta Ads', value: '+R$ 310.252 · ROI 209%' },
+      { label: 'Google Ads', value: '+R$ 147.396 · ROI 236%' },
+      { label: 'TikTok Ads', value: '+R$ 109.262 · ROI 378%' },
     ],
     stats: [
-      { value: '87%', label: 'Resposta no WhatsApp', tone: 'green' },
+      { value: '87%', label: 'Respostas no WhatsApp', tone: 'green' },
       { value: 'R$ 497', label: 'Ticket médio' },
+    ],
+  },
+  {
+    // Vai até o fim: depois da última parada o texto segura a cena enquanto o
+    // visitante rola o restante da seção e sai para o corpo da página.
+    at: [0.62, 1],
+    side: 'left', // 47s · monitor ocupa 48–98%, livre à esquerda
+    free: 0.48,
+    eyebrow: 'O dia seguinte',
+    title: 'Você abre o painel e a decisão já está pronta.',
+    body:
+      'Investimento, receita e conversão do período fechados no mesmo relatório — cada número já comparado com o anterior. Você não interpreta planilha: escolhe onde colocar o próximo real.',
+    bullets: [
+      'Variação de cada métrica contra o período anterior',
+      'PDF na hora ou por e-mail, no dia que você marcar',
+      'Histórico completo para repetir o que deu certo',
+    ],
+    stats: [
+      { value: '1.165', label: 'Vendas no período', tone: 'green' },
+      { value: '+38%', label: 'vs. período anterior', tone: 'sky' },
     ],
   },
 ]
@@ -118,7 +156,7 @@ export default function Home() {
         </div>
       </header>
 
-      <ScrollVideoHero frameCount={200} scrollHeightVh={700} acts={ACTS}>
+      <ScrollVideoHero scrollHeightVh={700} acts={ACTS}>
         {/* HERO — ancorado no topo, acima do monitor */}
         <div className="mx-auto max-w-3xl text-center">
           <h1
