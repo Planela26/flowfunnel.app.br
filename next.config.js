@@ -50,8 +50,13 @@ const nextConfig = {
       // pré-renderizadas; sem este override a CDN serve o HTML por até 1 ano após
       // um deploy, ignorando novos builds (confirmado via x-nextjs-cache: HIT).
       // Arquivos de _next/static têm hash no nome e podem ser cacheados normalmente.
+      // mp4/webm entram na lista pelo vídeo do herói: ele é servido por route
+      // handler (a Hostinger não serve public/) com Cache-Control immutable, e
+      // sem a exceção esta regra o sobrescreveria com no-store — o visitante
+      // rebaixaria 16 MB a cada carregamento, e cada busca de timestamp iria à
+      // origem em vez do cache.
       {
-        source: '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:png|jpg|jpeg|gif|webp|ico|svg|css|js|woff2?|ttf|eot)).*)',
+        source: '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:png|jpg|jpeg|gif|webp|ico|svg|css|js|woff2?|ttf|eot|mp4|webm)).*)',
         headers: [
           { key: 'Cache-Control', value: 'no-cache, no-store, must-revalidate' },
           { key: 'CDN-Cache-Control', value: 'no-store' },
