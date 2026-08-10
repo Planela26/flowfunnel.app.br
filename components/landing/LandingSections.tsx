@@ -1,19 +1,24 @@
 import Link from 'next/link'
 import {
   Sparkles, TrendingUp, AlertTriangle, BarChart2, Target, Brain, Zap,
-  Bot, Activity, ShieldCheck, BarChart3, Check, X, ArrowRight, CheckCircle2,
+  Bot, Check, X, ArrowRight, CheckCircle2,
 } from 'lucide-react'
 import SaraChatDemo from './SaraChatDemo'
 
 const display = { fontFamily: 'var(--font-display), Inter, sans-serif' }
 
 /* ─────────────────────────────────────────────────────────────────────────
-   Blocos reutilizáveis
+   Tipografia — clamp()/px, não rem.
+
+   app/globals.css define `html{font-size:14px}` no desktop e `12px` no
+   mobile (efeito colateral do dashboard, fora do escopo desta página).
+   Classes Tailwind padrão (`text-4xl` etc.) resolvem em rem e herdariam
+   esse encolhimento. clamp() em px escala pela viewport, não pela raiz.
    ──────────────────────────────────────────────────────────────────────── */
 
 function Eyebrow({ children }: { children: React.ReactNode }) {
   return (
-    <span className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/[0.04] px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-sky-400">
+    <span className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/[0.04] px-4 py-1.5 text-[clamp(11px,0.75vw,13px)] font-bold uppercase tracking-[0.22em] text-sky-400">
       {children}
     </span>
   )
@@ -22,7 +27,7 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
     <h2
-      className="mt-5 text-[2.1rem] font-extrabold leading-[1.05] tracking-[-0.035em] text-[#F4F7FB] sm:text-[3.25rem]"
+      className="mt-5 text-balance text-[clamp(34px,4vw,56px)] font-extrabold leading-[1] tracking-[-0.03em] text-[#F4F7FB]"
       style={display}
     >
       {children}
@@ -32,14 +37,45 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 
 function Lead({ children }: { children: React.ReactNode }) {
   return (
-    <p className="mx-auto mt-5 max-w-2xl text-[16px] leading-[1.6] text-slate-300/85 sm:text-[1.0625rem]">
+    <p className="mx-auto mt-5 max-w-[600px] text-pretty text-[clamp(16px,1.1vw,20px)] leading-[1.55] text-slate-300/85">
       {children}
     </p>
   )
 }
 
+function Stat({
+  value,
+  label,
+  tone = 'plain',
+}: {
+  value: string
+  label: string
+  tone?: 'green' | 'sky' | 'red' | 'plain'
+}) {
+  const toneClass = {
+    green: 'text-emerald-400',
+    sky: 'text-sky-400',
+    red: 'text-red-400',
+    plain: 'text-slate-100',
+  } as const
+  return (
+    <div>
+      <div
+        className={`text-[clamp(34px,3vw,52px)] font-extrabold leading-none tabular-nums tracking-[-0.03em] ${toneClass[tone]}`}
+        style={display}
+      >
+        {value}
+      </div>
+      <div className="mt-2 text-[clamp(10px,0.65vw,12px)] font-semibold uppercase leading-[1.3] tracking-[0.18em] text-slate-400/85">
+        {label}
+      </div>
+    </div>
+  )
+}
+
 /* ─────────────────────────────────────────────────────────────────────────
-   Dados
+   Dados reais — números, preços e depoimentos existentes no produto.
+   Nenhum valor abaixo foi inventado nesta reescrita.
    ──────────────────────────────────────────────────────────────────────── */
 
 const PROBLEMAS = [
@@ -57,27 +93,106 @@ const PROBLEMAS = [
   },
 ]
 
-const SOLUCOES = [
+type TourBullet = string | { label: string; value: string } | { from: string; to: string }
+
+/**
+ * Tour do produto — 5 blocos, cada um respondendo a uma pergunta diferente.
+ * As imagens vêm de app/showcase/[name]/route.ts (capturas reais do painel).
+ * Os números eram, até esta reconstrução, o array ACTS do herói de vídeo
+ * por etapas; migram para cá com os mesmos valores.
+ */
+const TOUR: {
+  eyebrow: string
+  question: string
+  title: string
+  body: string
+  image: string
+  bullets: TourBullet[]
+  stats: { value: string; label: string; tone?: 'green' | 'sky' | 'red' }[]
+  note?: string
+}[] = [
   {
-    icon: Bot,
-    destaque: true,
-    title: 'IA que diagnostica e orienta',
-    desc: 'Ela lê seus números, identifica onde as vendas travam e diz — em português — exatamente o que mudar para converter mais.',
+    eyebrow: 'Visão geral',
+    question: 'Onde estão meus números?',
+    title: 'Pare de abrir cinco painéis para entender um resultado.',
+    body: 'Meta, Google, TikTok, WhatsApp e checkout somados — e separados por origem. Cliques, leads, custo e receita de cada fonte, atualizados sozinhos.',
+    image: '/showcase/dashboard.jpg',
+    bullets: [
+      '5.018.300 impressões e 92.940 cliques consolidados',
+      'Toda fonte de tráfego, WhatsApp e checkout no mesmo painel',
+      'Sem exportar planilha, sem cruzar dado à mão',
+    ],
+    stats: [
+      { value: '6,76%', label: 'Conversão', tone: 'sky' },
+      { value: 'R$ 3,37', label: 'Para cada R$ 1 investido', tone: 'green' },
+    ],
+    note: 'Números da demonstração exibida — cada operação tem os seus.',
   },
   {
-    icon: BarChart3,
-    title: 'Veja onde cada venda nasce e morre',
-    desc: 'Do primeiro clique no anúncio ao pagamento confirmado, numa linha do tempo visual com a taxa de conversão de cada etapa.',
+    eyebrow: 'Atribuição',
+    question: 'De onde veio cada cliente?',
+    title: 'De onde veio cada cliente. Quanto ele gerou.',
+    body: 'Relacione origem, etapa e receita no mesmo contato. Assim, aquela venda que antes parecia impossível de atribuir passa a ter contexto.',
+    image: '/showcase/origem.jpg',
+    bullets: [
+      'Origem do lead identificada por canal',
+      'Etapa do funil e status de cada contato',
+      'Receita e eventos associados à jornada',
+    ],
+    stats: [
+      { value: '75%', label: 'Lead → checkout', tone: 'sky' },
+      { value: '50%', label: 'Lead → cliente', tone: 'green' },
+    ],
+    note: 'Números da demonstração exibida — cada operação tem os seus.',
   },
   {
-    icon: Activity,
-    title: 'Dados atualizados sem você fazer nada',
-    desc: 'Esqueça planilhas manuais. Cada venda, lead e mensagem chega automaticamente ao painel em tempo real.',
+    eyebrow: 'Funil de conversão',
+    question: 'Onde estou perdendo vendas?',
+    title: 'Descubra exatamente onde suas vendas estão travando.',
+    body: 'Do primeiro clique ao pagamento, o FlowSara mostra quantas pessoas avançam — e onde elas deixam de avançar.',
+    image: '/showcase/funil.jpg',
+    bullets: [
+      { from: '2.847.300 impressões', to: '52.840 cliques' },
+      { from: '6.284 conversas no WhatsApp', to: '2.318 checkouts' },
+      { from: '2.318 checkouts', to: '1.186 vendas' },
+    ],
+    stats: [
+      { value: '1,9%', label: 'Impressão → clique', tone: 'sky' },
+      { value: '51%', label: 'Checkout → venda', tone: 'green' },
+    ],
+    note: 'Números da demonstração exibida — cada operação tem os seus.',
   },
   {
-    icon: ShieldCheck,
-    title: 'Saiba antes que vire problema',
-    desc: 'Alerta automático quando o custo sobe, a taxa de resposta cai ou uma campanha para de gerar resultado.',
+    eyebrow: 'Analytics',
+    question: 'Quanto meu investimento realmente retorna?',
+    title: 'Saiba quanto cada real investido realmente devolve.',
+    body: 'Compare investimento, receita e ROI por canal. Veja quais campanhas geram dinheiro — e quais só consomem orçamento.',
+    image: '/showcase/metas.jpg',
+    bullets: [
+      { label: 'Meta Ads', value: '+R$ 310.252 · ROI 209%' },
+      { label: 'Google Ads', value: '+R$ 147.396 · ROI 236%' },
+      { label: 'TikTok Ads', value: '+R$ 109.262 · ROI 378%' },
+    ],
+    stats: [
+      { value: '87%', label: 'Respostas no WhatsApp', tone: 'green' },
+      { value: 'R$ 497', label: 'Ticket médio' },
+    ],
+    note: 'Números da demonstração exibida — cada operação tem os seus.',
+  },
+  {
+    eyebrow: 'Sara.AI',
+    question: 'O que precisa da minha atenção agora?',
+    title: 'A Sara.AI encontra o que precisa da sua atenção — antes que vire prejuízo.',
+    body: 'Ela lê seus dados a cada atualização do painel e aponta, em português, onde a venda está travando ou o custo está subindo.',
+    image: '/showcase/ia-gargalos.jpg',
+    bullets: [
+      'Webhook falhando, taxa de resposta caindo, CPC subindo — ela avisa primeiro',
+      'Cada alerta vem com o número e o que fazer a respeito',
+    ],
+    stats: [
+      { value: '−38%', label: 'Conversão no checkout mobile', tone: 'red' },
+      { value: '378%', label: 'Melhor ROI identificado', tone: 'green' },
+    ],
   },
 ]
 
@@ -241,7 +356,85 @@ const FAQ = [
    Seções
    ──────────────────────────────────────────────────────────────────────── */
 
-export default function ScrollLandingSections() {
+function TourBlockView({ item, index }: { item: (typeof TOUR)[number]; index: number }) {
+  const reverse = index % 2 === 1
+  return (
+    <div
+      className={`grid items-center gap-12 lg:grid-cols-2 lg:gap-16 ${
+        reverse ? 'lg:[&>*:first-child]:order-2' : ''
+      }`}
+    >
+      <div>
+        <Eyebrow>{item.eyebrow}</Eyebrow>
+        <p className="mt-4 text-[clamp(13px,0.85vw,15px)] font-semibold text-slate-500">
+          {item.question}
+        </p>
+        <h3
+          className="mt-2 text-balance text-[clamp(26px,2.6vw,38px)] font-extrabold leading-[1.08] tracking-[-0.02em] text-[#F4F7FB]"
+          style={display}
+        >
+          {item.title}
+        </h3>
+        <p className="mt-4 text-[clamp(15px,1.05vw,17px)] leading-[1.55] text-slate-300/85">
+          {item.body}
+        </p>
+
+        <ul className="mt-6 space-y-3 border-t border-white/10 pt-5">
+          {item.bullets.map((b) =>
+            typeof b === 'string' ? (
+              <li key={b} className="flex items-start gap-3">
+                <span className="mt-[0.65em] h-px w-4 shrink-0 bg-sky-400/70" />
+                <span className="text-[clamp(14px,1vw,16px)] leading-[1.45] text-slate-300/80">
+                  {b}
+                </span>
+              </li>
+            ) : 'from' in b ? (
+              <li key={b.from} className="flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5 text-[clamp(14px,1vw,16px)]">
+                <span className="tabular-nums text-slate-400/75">{b.from}</span>
+                <span aria-hidden className="text-sky-400/80">→</span>
+                <span className="font-semibold tabular-nums text-slate-100">{b.to}</span>
+              </li>
+            ) : (
+              <li key={b.label}>
+                <p className="text-[clamp(10px,0.62vw,11.5px)] font-semibold uppercase tracking-[0.15em] text-slate-400/80">
+                  {b.label}
+                </p>
+                <p className="mt-0.5 text-[clamp(14.5px,1.02vw,16.5px)] font-semibold tabular-nums text-slate-100">
+                  {b.value}
+                </p>
+              </li>
+            ),
+          )}
+        </ul>
+
+        <div className="mt-7 flex gap-8">
+          {item.stats.map((s) => (
+            <Stat key={s.label} value={s.value} label={s.label} tone={s.tone} />
+          ))}
+        </div>
+
+        {item.note && (
+          <p className="mt-4 text-[clamp(11px,0.7vw,12.5px)] text-slate-500">{item.note}</p>
+        )}
+      </div>
+
+      <div className="relative">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -inset-6 -z-10 rounded-[2rem] bg-sky-500/10 blur-3xl"
+        />
+        <img
+          src={item.image}
+          alt={item.title}
+          className="w-full rounded-2xl border border-white/10 shadow-2xl"
+          loading="lazy"
+        />
+      </div>
+    </div>
+  )
+}
+
+export default function LandingSections() {
   return (
     <>
       {/* ── PROBLEMA ────────────────────────────────────────────────────── */}
@@ -250,15 +443,15 @@ export default function ScrollLandingSections() {
           <div className="text-center">
             <Eyebrow>Por que você ainda perde vendas</Eyebrow>
             <SectionTitle>
-              Você investe em anúncios,
+              Você investe em anúncios.
               <br />
               <span className="bg-gradient-to-r from-sky-400 to-cyan-300 bg-clip-text text-transparent">
-                mas não sabe o que acontece depois do clique.
+                E não sabe o que acontece depois do clique.
               </span>
             </SectionTitle>
             <Lead>
-              Cada plataforma mostra só um pedaço. Você olha números isolados e decide no escuro —
-              enquanto o dinheiro escorre pelo ralo.
+              Cada plataforma mostra um pedaço. Decisão no escuro custa caro —
+              enquanto quem enxerga o funil inteiro está escalando.
             </Lead>
           </div>
 
@@ -275,61 +468,24 @@ export default function ScrollLandingSections() {
               </div>
             ))}
           </div>
-
-          <p className="mx-auto mt-10 max-w-3xl rounded-2xl border border-white/10 bg-white/[0.03] px-7 py-6 text-center text-[15px] leading-relaxed text-slate-200 sm:text-base">
-            Sem visibilidade do funil, você paga para aprender o que já deveria saber —{' '}
-            <span className="text-sky-300">
-              e quem tem essa visão está escalando enquanto você fica no escuro.
-            </span>
-          </p>
         </div>
       </section>
 
-      {/* ── SOLUÇÃO ─────────────────────────────────────────────────────── */}
+      {/* ── TOUR DO PRODUTO — 5 perguntas ───────────────────────────────── */}
       <section className="bg-black px-6 py-24 sm:py-28">
         <div className="mx-auto max-w-6xl">
           <div className="text-center">
-            <Eyebrow>Como o FlowSara resolve</Eyebrow>
-            <SectionTitle>
-              Tudo conectado, tudo visível,
-              <br />
-              <span className="text-slate-400">do anúncio até o dinheiro na conta.</span>
-            </SectionTitle>
+            <Eyebrow>O painel, por dentro</Eyebrow>
+            <SectionTitle>Cinco perguntas. Cinco respostas.</SectionTitle>
             <Lead>
-              Você não precisa entender de analytics. A IA lê tudo por você e fala em português
-              o que precisa mudar para vender mais.
+              Cada tela do FlowSara existe para responder uma pergunta
+              específica sobre o seu funil — não para acumular gráfico.
             </Lead>
           </div>
 
-          <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {SOLUCOES.map((s) => (
-              <div
-                key={s.title}
-                className={[
-                  'rounded-2xl border p-7 transition',
-                  s.destaque
-                    ? 'border-sky-400/30 bg-gradient-to-b from-sky-500/15 to-sky-500/[0.03]'
-                    : 'border-white/10 bg-white/[0.03] hover:border-white/20',
-                ].join(' ')}
-              >
-                <div
-                  className={[
-                    'mb-5 grid h-11 w-11 place-items-center rounded-xl border',
-                    s.destaque
-                      ? 'border-sky-400/30 bg-sky-400/15 text-sky-300'
-                      : 'border-white/10 bg-white/[0.06] text-slate-300',
-                  ].join(' ')}
-                >
-                  <s.icon className="h-5 w-5" />
-                </div>
-                {s.destaque && (
-                  <span className="mb-2 inline-block text-[10px] font-bold uppercase tracking-widest text-sky-400">
-                    Nosso diferencial
-                  </span>
-                )}
-                <h3 className="text-[17px] font-bold tracking-[-0.02em] text-white">{s.title}</h3>
-                <p className="mt-2 text-[14.5px] leading-[1.55] text-slate-400">{s.desc}</p>
-              </div>
+          <div className="mt-20 space-y-24 sm:space-y-28">
+            {TOUR.map((item, i) => (
+              <TourBlockView key={item.eyebrow} item={item} index={i} />
             ))}
           </div>
         </div>
@@ -352,8 +508,8 @@ export default function ScrollLandingSections() {
               </span>
             </SectionTitle>
             <Lead>
-              Sua especialista em funis, vendas e crescimento. Ela entende seu negócio, acompanha
-              seus dados em tempo real e transforma métrica em decisão.
+              Ela não substitui seu julgamento — encontra, nos seus próprios
+              dados, o que merece ser julgado primeiro.
             </Lead>
           </div>
 
@@ -377,7 +533,7 @@ export default function ScrollLandingSections() {
           <div className="mt-24">
             <div className="text-center">
               <h3
-                className="text-[1.6rem] font-extrabold tracking-[-0.03em] text-white sm:text-[2.1rem]"
+                className="text-[clamp(24px,2.2vw,34px)] font-extrabold tracking-[-0.03em] text-white"
                 style={display}
               >
                 Ela não espera você perguntar
@@ -429,7 +585,7 @@ export default function ScrollLandingSections() {
           <div className="mt-24">
             <div className="mb-10 text-center">
               <h3
-                className="text-[1.6rem] font-extrabold tracking-[-0.03em] text-white sm:text-[2.1rem]"
+                className="text-[clamp(24px,2.2vw,34px)] font-extrabold tracking-[-0.03em] text-white"
                 style={display}
               >
                 E responde qualquer pergunta
@@ -444,7 +600,7 @@ export default function ScrollLandingSections() {
           {/* conhece tudo */}
           <div className="mt-24 text-center">
             <h3
-              className="text-[1.6rem] font-extrabold tracking-[-0.03em] text-white sm:text-[2.1rem]"
+              className="text-[clamp(24px,2.2vw,34px)] font-extrabold tracking-[-0.03em] text-white"
               style={display}
             >
               A Sara conhece toda a sua operação
@@ -467,7 +623,7 @@ export default function ScrollLandingSections() {
 
           {/* citação */}
           <blockquote className="mx-auto mt-20 max-w-3xl rounded-2xl border border-sky-400/20 bg-sky-400/[0.05] px-8 py-9 text-center">
-            <Sparkles className="mx-auto mb-5 h-7 w-7 text-sky-400" />
+            <Bot className="mx-auto mb-5 h-7 w-7 text-sky-400" />
             <p className="text-[17px] font-semibold leading-[1.6] text-slate-100 sm:text-[19px]">
               Enquanto outras IAs apenas respondem perguntas, a Sara.AI entende o funcionamento
               completo do FlowSara, analisa seus dados em tempo real e transforma informação em
@@ -740,7 +896,7 @@ export default function ScrollLandingSections() {
         <div className="pointer-events-none absolute left-1/2 top-0 h-[420px] w-[720px] -translate-x-1/2 rounded-full bg-sky-500/10 blur-3xl" />
         <div className="relative mx-auto max-w-2xl">
           <h2
-            className="text-[2.1rem] font-extrabold leading-[1.05] tracking-[-0.035em] text-white sm:text-[3rem]"
+            className="text-[clamp(30px,3vw,48px)] font-extrabold leading-[1] tracking-[-0.03em] text-white"
             style={display}
           >
             Pronto para descobrir onde seu dinheiro está indo embora?
@@ -789,7 +945,7 @@ export default function ScrollLandingSections() {
               LGPD
             </Link>
           </div>
-          <p className="text-[13px] text-slate-600">© 2026 FlowSara</p>
+          <p className="text-[13px] text-slate-600">© {new Date().getFullYear()} FlowSara</p>
         </div>
       </footer>
     </>
