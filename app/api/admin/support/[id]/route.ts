@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
+// Painel administrativo: lê chamados de todos os tenants por design, sob o gate
+// de `role === 'ADMIN'` (adminOnly). Usa o client sem RLS conforme lib/prisma.ts.
+import { prismaAdmin as prisma } from '@/lib/prisma'
 
 const TICKET_STATUSES = ['new', 'analyzing', 'investigating', 'in_development', 'waiting_client', 'resolved', 'closed']
 const TICKET_PRIORITIES = ['low', 'medium', 'high', 'critical']

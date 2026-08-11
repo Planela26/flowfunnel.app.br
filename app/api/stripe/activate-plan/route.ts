@@ -45,13 +45,59 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Assinatura não pertence a este usuário' }, { status: 403 })
     }
 
-    // Only activate for valid statuses (active or trialing)
-    const validStatuses = ['active', 'trialing', 'past_due']
+    // O servidor é a autoridade sobre o estado da assinatura. Só 'active' e
+    // 'trialing' liberam plano — e 'trialing' apenas com cartão confirmado.
+    //
+    // 'past_due' NÃO entra: era o caminho que desfazia o downgrade por
+    // inadimplência (o usuário chamava esta rota e recuperava o plano sem pagar).
+    const validStatuses = ['active', 'trialing']
     if (!validStatuses.includes(subscription.status)) {
       return NextResponse.json({
         error: `Status da assinatura inválido: ${subscription.status}`,
         status: subscription.status,
       }, { status: 400 })
+    }
+
+    // Assinatura em teste nasce 'trialing' SEM cartão (create-trial usa
+    // trial_period_days). Sem esta trava, bastava criar um trial e chamar esta
+    // rota para ganhar o plano pago sem nunca cadastrar cartão — e repetir a
+    // cada ciclo. Mesma regra que o webhook já aplica em subscription.created.
+    if (subscription.status === 'trialing') {
+      const sub = subscription as any
+      const pm = sub.default_payment_method
+      let hasRealCard = !!(pm && typeof pm === 'object' && pm.type === 'card')
+      if (!hasRealCard && typeof pm === 'string') {
+        try {
+          const retrieved = await stripe.paymentMethods.retrieve(pm)
+          hasRealCard = retrieved?.type === 'card'
+        } catch {}
+      }
+      if (!hasRealCard) {
+        try {
+          const cardPms = await stripe.paymentMethods.list({
+            customer: subscription.customer as string,
+            type: 'card',
+            limit: 1,
+          })
+          hasRealCard = cardPms.data.length > 0
+        } catch {}
+      }
+
+      if (!hasRealCard) {
+        await logAudit({
+          action: 'billing.plan_activation_blocked',
+          result: 'failure',
+          userId: session.user.id,
+          entityType: 'Subscription',
+          entityId: subscriptionId,
+          request,
+          metadata: { reason: 'trialing_without_payment_method' },
+        })
+        return NextResponse.json(
+          { error: 'É necessário cadastrar um cartão para ativar o plano.' },
+          { status: 400 },
+        )
+      }
     }
 
     const priceId = subscription.items?.data?.[0]?.price?.id
@@ -84,7 +130,9 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ success: true, plan })
   } catch (error: any) {
-    console.error('Erro ao ativar plano:', error.message)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    // Detalhe fica no log; o cliente recebe mensagem genérica (erros da Stripe
+    // carregam customer id, price id e estado interno da conta).
+    console.error('Erro ao ativar plano:', error?.message ?? error)
+    return NextResponse.json({ error: 'Erro ao ativar plano. Tente novamente.' }, { status: 500 })
   }
 }

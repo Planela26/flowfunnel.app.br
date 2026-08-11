@@ -213,6 +213,6 @@ export async function POST(request: Request) {
     })
   } catch (error: any) {
     console.error('Erro ao ativar trial:', error?.message)
-    return NextResponse.json({ error: error.message || 'Erro interno' }, { status: 500 })
+    return NextResponse.json({ error: 'Erro ao ativar o teste. Tente novamente.' }, { status: 500 })
   }
 }

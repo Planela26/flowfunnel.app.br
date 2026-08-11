@@ -112,7 +112,6 @@ export async function middleware(request: NextRequest) {
     '/api/webhooks/eduzz',
     '/api/webhooks/kiwify',
     '/api/webhooks/perfect-pay',
-    '/api/webhooks/facebook',
     '/api/stripe/webhook',
     '/api/stripe/config', // Public: pricing page needs publishable key
     '/api/webhooks/mercadopago',
@@ -122,8 +121,14 @@ export async function middleware(request: NextRequest) {
     '/api/mercadopago/payment-status',
     '/api/plan-prices',
     '/api/team/accept',
-    '/api/team/viewer-stats',
     '/api/team/viewer-dashboard',
+    // Rastreamento de afiliado: dispara para visitante ANÔNIMO (?ref=CODIGO no
+    // AffiliateTracker, montado em todas as páginas via app/layout.tsx) — nunca
+    // há sessão nesse momento. Cada rota tem rate limit por IP e não expõe
+    // dado sensível (nome/código/desconto do afiliado já são públicos por
+    // design do link de indicação; não há email nem dado financeiro).
+    '/api/affiliates/validate',
+    '/api/affiliates/click',
     // Public tracker endpoints (chamadas a partir das landing pages dos clientes)
     '/api/track/event',
     '/api/track/conversion',

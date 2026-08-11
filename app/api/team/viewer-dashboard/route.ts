@@ -1,8 +1,15 @@
 import { NextResponse } from 'next/server'
 import { prismaAdmin as prisma } from '@/lib/prisma'
+import { checkRateLimit, getClientIp } from '@/lib/security-utils'
 
 export async function GET(request: Request) {
   try {
+    // Rota pública que devolve dados agregados do owner mediante token.
+    const rl = await checkRateLimit(`team:viewer-dashboard:${getClientIp(request.headers)}`, 30, 60_000)
+    if (!rl.ok) {
+      return NextResponse.json({ error: 'Muitas requisições. Aguarde.' }, { status: 429 })
+    }
+
     const { searchParams } = new URL(request.url)
     const token = searchParams.get('token')
     const ownerId = searchParams.get('ownerId')
@@ -16,7 +23,10 @@ export async function GET(request: Request) {
       include: { owner: { select: { name: true, email: true } } },
     })
 
-    if (!member || member.ownerId !== ownerId) {
+    // O convite só dá acesso aos dados depois de aceito. Um convite ainda
+    // PENDING não vale como credencial: o e-mail pode ter sido enviado ao
+    // endereço errado ou encaminhado, e o portador nunca confirmou nada.
+    if (!member || member.ownerId !== ownerId || member.status !== 'ACTIVE') {
       return NextResponse.json({ error: 'Convite inválido' }, { status: 401 })
     }
 

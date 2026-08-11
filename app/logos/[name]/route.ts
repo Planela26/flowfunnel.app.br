@@ -16,8 +16,10 @@ export async function GET(
   { params }: { params: Promise<{ name: string }> }
 ) {
   const { name } = await params
+  // Object.hasOwn e não truthiness: `LOGOS['constructor']` herda do protótipo,
+  // passava no `if (!entry)` e estourava 500 em `Buffer.from(undefined)`.
+  if (!Object.hasOwn(LOGOS, name)) return new Response(null, { status: 404 })
   const entry = LOGOS[name]
-  if (!entry) return new Response(null, { status: 404 })
   const buf = Buffer.from(entry.data, 'base64')
   return new Response(buf, {
     headers: {

@@ -4,12 +4,21 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { getHistoryLimitDays } from '@/lib/plans'
 import { toCsvRow as row } from '@/lib/csv'
+import { checkRateLimit } from '@/lib/security-utils'
 
 export async function GET(request: Request) {
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+    }
+
+    const rl = await checkRateLimit(`reports:export-csv:${session.user.id}`, 5, 60_000)
+    if (!rl.ok) {
+      return NextResponse.json(
+        { error: 'Muitas exportações seguidas. Aguarde um momento.' },
+        { status: 429 },
+      )
     }
 
     const dbUser = await prisma.user.findUnique({
@@ -36,6 +45,10 @@ export async function GET(request: Request) {
           where: { timestamp: { gte: startDate, lte: endDate } },
           orderBy: { timestamp: 'asc' },
           include: { stage: true },
+          // Teto de segurança: sem isto, um tenant de alto volume materializa
+          // centenas de milhares de eventos em memória (com JSON.parse por
+          // evento) e derruba a instância. Acima disso, reduza o período.
+          take: 50_000,
         },
       },
     })

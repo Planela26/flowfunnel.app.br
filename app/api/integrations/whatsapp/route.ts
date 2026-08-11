@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
+import { prisma, withTenantTx } from '@/lib/prisma'
 import { encryptSecret, decryptSecret, checkRateLimit } from '@/lib/security-utils'
 import { logAudit } from '@/lib/audit'
 import { safeIntegration } from '@/lib/integration-sanitize'
@@ -29,13 +29,17 @@ export async function POST(request: Request) {
       )
     }
 
-    // Verificar limite do plano (centralizado em lib/plans.ts)
-    const user = await prisma.user.findUnique({ where: { id: session.user.id }, select: { plan: true } })
+    // Leitura do limite, checagem e escrita acontecem na MESMA transação, com a
+    // linha do usuário travada — requisições concorrentes não furam mais o teto.
+    const result = await withTenantTx(async (tx) => {
+    await tx.$executeRaw`SELECT id FROM "User" WHERE id = ${session.user.id} FOR UPDATE`
+
+    const user = await tx.user.findUnique({ where: { id: session.user.id }, select: { plan: true } })
     const plan = normalizePlan(user?.plan)
     const limit = getMaxWhatsappNumbers(plan)
 
     // Verificar se já existe um número com esse phoneNumberId
-    const allIntegrations = await prisma.integration.findMany({
+    const allIntegrations = await tx.integration.findMany({
       where: { userId: session.user.id, platform: 'WHATSAPP' },
     })
 
@@ -48,7 +52,7 @@ export async function POST(request: Request) {
 
     if (existing) {
       // Atualiza o existente
-      const updated = await prisma.integration.update({
+      const updated = await tx.integration.update({
         where: { id: existing.id },
         data: {
           accessToken: encryptSecret(accessToken) || accessToken,
@@ -64,37 +68,17 @@ export async function POST(request: Request) {
           updatedAt: new Date(),
         },
       })
-      await logAudit({
-        action: 'integration.connect',
-        result: 'success',
-        userId: session.user.id,
-        entityType: 'Integration',
-        entityId: updated.id,
-        request,
-        metadata: { platform: 'WHATSAPP', mode: 'updated' },
-      })
-      return NextResponse.json({ success: true, integration: safeIntegration(updated), action: 'updated' })
+      return { kind: 'updated' as const, integration: updated }
     }
 
     // Verificar se atingiu o limite do plano (limit === -1 significa ilimitado)
     if (limit !== -1 && allIntegrations.length >= limit) {
-      return NextResponse.json(
-        {
-          error: 'plan_limit_reached',
-          resource: 'whatsapp_numbers',
-          currentPlan: plan,
-          limit,
-          current: allIntegrations.length,
-          message: `Seu plano ${plan} permite até ${limit} número(s) de WhatsApp. Faça upgrade para adicionar mais.`,
-          upgradeUrl: '/billing',
-        },
-        { status: 402 }
-      )
+      return { kind: 'limit' as const, plan, limit, current: allIntegrations.length }
     }
 
     // Novo número — se for o primeiro, marcar como padrão
     const hasAny = allIntegrations.length === 0
-    const integration = await prisma.integration.create({
+    const integration = await tx.integration.create({
       data: {
         userId: session.user.id,
         platform: 'WHATSAPP',
@@ -112,16 +96,38 @@ export async function POST(request: Request) {
       },
     })
 
+      return { kind: 'created' as const, integration }
+    })
+
+    if (result.kind === 'limit') {
+      return NextResponse.json(
+        {
+          error: 'plan_limit_reached',
+          resource: 'whatsapp_numbers',
+          currentPlan: result.plan,
+          limit: result.limit,
+          current: result.current,
+          message: `Seu plano ${result.plan} permite até ${result.limit} número(s) de WhatsApp. Faça upgrade para adicionar mais.`,
+          upgradeUrl: '/billing',
+        },
+        { status: 402 }
+      )
+    }
+
     await logAudit({
       action: 'integration.connect',
       result: 'success',
       userId: session.user.id,
       entityType: 'Integration',
-      entityId: integration.id,
+      entityId: result.integration.id,
       request,
-      metadata: { platform: 'WHATSAPP', mode: 'created' },
+      metadata: { platform: 'WHATSAPP', mode: result.kind },
     })
-    return NextResponse.json({ success: true, integration: safeIntegration(integration), action: 'created' })
+    return NextResponse.json({
+      success: true,
+      integration: safeIntegration(result.integration),
+      action: result.kind,
+    })
   } catch (error) {
     console.error('Erro ao conectar WhatsApp:', error)
     return NextResponse.json({ error: 'Erro ao conectar WhatsApp' }, { status: 500 })

@@ -173,7 +173,7 @@ export async function POST(request: Request) {
   } catch (error: any) {
     console.error('Erro ao processar pagamento Mercado Pago:', error)
     return NextResponse.json(
-      { error: error.message || 'Erro interno' },
+      { error: 'Erro ao processar o pagamento. Tente novamente.' },
       { status: 500 }
     )
   }

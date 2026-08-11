@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { getHistoryLimitDays, normalizePlan } from '@/lib/plans'
+import { checkRateLimit } from '@/lib/security-utils'
 
 // Plataformas que são "boca do funil" (origem do lead)
 const SOURCE_PLATFORMS = new Set(['META_ADS', 'GOOGLE_ADS', 'TIKTOK_ADS', 'DIRECT'])
@@ -39,6 +40,11 @@ export async function GET(request: Request) {
     const session = await getServerSession(authOptions)
     if (!session?.user) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+    }
+
+    const rl = await checkRateLimit(`leads:list:${session.user.id}`, 30, 60_000)
+    if (!rl.ok) {
+      return NextResponse.json({ error: 'Muitas requisições. Aguarde.' }, { status: 429 })
     }
 
     const u = await prisma.user.findUnique({

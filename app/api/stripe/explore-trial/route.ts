@@ -8,6 +8,12 @@ import { TRIAL_DAYS } from '@/lib/trial'
 
 const PLAN_VALUES: Record<string, number> = { START: 97, PRO: 147, SCALE: 297 }
 
+// Tier do teste SEM cartão é decidido pelo servidor, nunca pelo cliente.
+// Antes, `body.plan` era aceito e `{"plan":"SCALE"}` dava 7 dias do tier mais
+// caro (funis/WhatsApps/conversas ilimitados, 365 dias de histórico) sem cartão
+// e sem o antifraude de fingerprint — que só existe no trial COM cartão.
+const EXPLORE_TRIAL_PLAN = 'START'
+
 export async function POST(request: Request) {
   try {
     const ip = getClientIp(request.headers)
@@ -21,11 +27,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
 
-    const body = await request.json().catch(() => ({} as any))
-    const planKey = String(body?.plan ?? 'START').toUpperCase()
-    if (!['START', 'PRO', 'SCALE'].includes(planKey)) {
-      return NextResponse.json({ error: 'Plano inválido' }, { status: 400 })
-    }
+    // O corpo é lido mas o plano é ignorado de propósito: o tier vem do servidor.
+    await request.json().catch(() => ({} as any))
+    const planKey = EXPLORE_TRIAL_PLAN
 
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
@@ -99,7 +103,7 @@ export async function POST(request: Request) {
       value: PLAN_VALUES[planKey] ?? 0,
     })
   } catch (error: any) {
-    console.error('Erro ao iniciar trial exploratório:', error?.message)
-    return NextResponse.json({ error: error.message || 'Erro interno' }, { status: 500 })
+    console.error('Erro ao iniciar trial exploratório:', error?.message ?? error)
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

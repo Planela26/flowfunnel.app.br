@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
+import { prisma, withTenantTx } from '@/lib/prisma'
 import { getMaxFunnels, normalizePlan } from '@/lib/plans'
 
 // Buscar todos os workspaces do usuário (com dados das integrações)
@@ -66,40 +66,50 @@ export async function POST(request: Request) {
     const { name, emoji, whatsappIntegrationId, facebookCampaignId, checkoutSources } = await request.json()
     if (!name) return NextResponse.json({ error: 'Nome é obrigatório' }, { status: 400 })
 
-    // Verificar limite por plano (centralizado em lib/plans.ts → PLAN_FUNNEL_LIMITS)
-    const user = await prisma.user.findUnique({ where: { id: session.user.id }, select: { plan: true } })
-    const plan = normalizePlan(user?.plan)
-    const limit = getMaxFunnels(plan)
-    const count = await prisma.workspace.count({ where: { userId: session.user.id } })
-    if (limit !== -1 && count >= limit) {
+    // Limite verificado e workspace criado na MESMA transação, com a linha do
+    // usuário travada — sem isso, requisições concorrentes furam o limite.
+    const outcome = await withTenantTx(async (tx) => {
+      await tx.$executeRaw`SELECT id FROM "User" WHERE id = ${session.user.id} FOR UPDATE`
+
+      const user = await tx.user.findUnique({ where: { id: session.user.id }, select: { plan: true } })
+      const plan = normalizePlan(user?.plan)
+      const limit = getMaxFunnels(plan)
+      const count = await tx.workspace.count({ where: { userId: session.user.id } })
+
+      if (limit !== -1 && count >= limit) {
+        return { limitReached: true as const, plan, limit, count }
+      }
+
+      const created = await tx.workspace.create({
+        data: {
+          userId: session.user.id,
+          name: name.trim(),
+          emoji: emoji || '🚀',
+          whatsappIntegrationId: whatsappIntegrationId || null,
+          facebookCampaignId: facebookCampaignId || null,
+          checkoutSources: checkoutSources ? JSON.stringify(checkoutSources) : '["hotmart"]',
+          isDefault: count === 0,
+        },
+      })
+      return { limitReached: false as const, workspace: created }
+    })
+
+    if (outcome.limitReached) {
       return NextResponse.json(
         {
           error: 'plan_limit_reached',
           resource: 'funnels',
-          currentPlan: plan,
-          limit,
-          current: count,
-          message: `Seu plano ${plan} permite até ${limit} funil(is). Faça upgrade para criar mais.`,
+          currentPlan: outcome.plan,
+          limit: outcome.limit,
+          current: outcome.count,
+          message: `Seu plano ${outcome.plan} permite até ${outcome.limit} funil(is). Faça upgrade para criar mais.`,
           upgradeUrl: '/billing',
         },
         { status: 402 }
       )
     }
 
-    const isFirst = count === 0
-    const workspace = await prisma.workspace.create({
-      data: {
-        userId: session.user.id,
-        name: name.trim(),
-        emoji: emoji || '🚀',
-        whatsappIntegrationId: whatsappIntegrationId || null,
-        facebookCampaignId: facebookCampaignId || null,
-        checkoutSources: checkoutSources ? JSON.stringify(checkoutSources) : '["hotmart"]',
-        isDefault: isFirst,
-      },
-    })
-
-    return NextResponse.json({ workspace })
+    return NextResponse.json({ workspace: outcome.workspace })
   } catch (error) {
     console.error('Erro ao criar workspace:', error)
     return NextResponse.json({ error: 'Erro ao criar workspace' }, { status: 500 })

@@ -29,6 +29,6 @@ export async function GET(request: Request) {
       status: approved ? 'approved' : pending ? 'pending' : 'other',
     })
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error: 'Erro ao consultar o pagamento.' }, { status: 500 })
   }
 }

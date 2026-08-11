@@ -133,6 +133,6 @@ const buildSub = (status: string) => ({
     })
   } catch (error: any) {
     console.error('Erro ao buscar assinatura:', error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error: 'Erro ao consultar a assinatura.' }, { status: 500 })
   }
 }

@@ -135,7 +135,7 @@ export async function POST(request: Request) {
   } catch (error: any) {
     console.error('Erro ao criar preferência Mercado Pago:', error)
     return NextResponse.json(
-      { error: error.message || 'Erro interno' },
+      { error: 'Erro ao iniciar o pagamento. Tente novamente.' },
       { status: 500 }
     )
   }

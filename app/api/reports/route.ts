@@ -4,12 +4,18 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { getHistoryLimitDays } from '@/lib/plans'
 import { isSaleEvent, isCanceledSale, extractAmount, saleTransactionId } from '@/lib/sale-events'
+import { checkRateLimit } from '@/lib/security-utils'
 
 export async function GET(request: Request) {
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+    }
+
+    const rl = await checkRateLimit(`reports:list:${session.user.id}`, 30, 60_000)
+    if (!rl.ok) {
+      return NextResponse.json({ error: 'Muitas requisições. Aguarde.' }, { status: 429 })
     }
 
     const dbUser = await prisma.user.findUnique({

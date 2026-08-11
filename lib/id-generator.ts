@@ -26,7 +26,7 @@ import { prisma } from '@/lib/prisma'
 // ── Config ────────────────────────────────────────────────────────────────────
 
 /** Charset sem caracteres ambíguos conforme especificação. */
-export const CHARSET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789' as const
+export const CHARSET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789' as const
 
 /** Comprimento padrão da parte aleatória. Altere aqui para 8, 10 ou 12. */
 const DEFAULT_LENGTH = 6
@@ -75,7 +75,7 @@ export function buildPublicId(prefix: PublicIdPrefix, code: string): string {
 
 /** Valida se uma string segue o formato esperado de ID público. */
 export function isValidPublicId(id: string): boolean {
-  return /^[A-Z]{2,4}-[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{4,12}$/.test(id)
+  return /^[A-Z]{3}-[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{4,12}$/.test(id)
 }
 
 /** Extrai o prefixo de um ID público (ex: "FLS-2A9KX8" → "FLS"). */

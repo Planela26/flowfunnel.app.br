@@ -16,7 +16,10 @@ export function escapeCsvValue(value: unknown): string {
   if (typeof value === 'number') return String(value)
 
   let str = String(value)
-  if (/^[=+\-@\t\r]/.test(str)) {
+  // O espaço à esquerda também conta: LibreOffice e algumas configurações de
+  // importação do Excel fazem trim da célula ANTES de avaliar, então " =1+1"
+  // executava mesmo com a regex ancorada em `^[=+\-@...]`.
+  if (/^[\s ​]*[=+\-@\t\r]/.test(str)) {
     str = `'${str}`
   }
   if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes('\r')) {

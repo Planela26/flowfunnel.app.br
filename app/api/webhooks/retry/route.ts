@@ -83,6 +83,6 @@ export async function POST(request: Request) {
     })
   } catch (error: any) {
     console.error('Erro no retry de webhook:', error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error: 'Erro ao reenviar o webhook.' }, { status: 500 })
   }
 }

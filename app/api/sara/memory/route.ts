@@ -27,6 +27,11 @@ export async function POST(request: Request) {
     const { type, content, context } = await request.json()
     if (!VALID_TYPES.includes(type)) return NextResponse.json({ error: 'Tipo inválido' }, { status: 400 })
     if (!content?.trim())            return NextResponse.json({ error: 'Conteúdo obrigatório' }, { status: 400 })
+    // A memória entra no system prompt de TODA conversa futura: sem teto, uma
+    // única memória enorme vira custo permanente em cada requisição.
+    if (typeof content !== 'string' || content.length > 500) {
+      return NextResponse.json({ error: 'Conteúdo muito longo (máx. 500 caracteres)' }, { status: 400 })
+    }
 
     const memory = await SaraMemoryService.save(session.user.id, type, content.trim(), context)
     return NextResponse.json({ memory }, { status: 201 })

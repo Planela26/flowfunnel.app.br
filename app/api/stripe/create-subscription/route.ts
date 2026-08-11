@@ -206,6 +206,6 @@ export async function POST(request: Request) {
     })
   } catch (error: any) {
     console.error('Erro ao criar subscription:', error?.message)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error: 'Erro ao criar a assinatura. Tente novamente.' }, { status: 500 })
   }
 }

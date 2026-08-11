@@ -6,12 +6,23 @@ import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { getAdInsights } from '@/lib/facebook'
 import { getHistoryLimitDays } from '@/lib/plans'
+import { checkRateLimit } from '@/lib/security-utils'
 
 export async function GET(request: Request) {
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+    }
+
+    // Rota mais cara do produto: 6 queries + chamada à Graph API + render do PDF
+    // em memória. Sem freio, um único usuário logado derruba a instância.
+    const rl = await checkRateLimit(`reports:export-pdf:${session.user.id}`, 3, 60_000)
+    if (!rl.ok) {
+      return NextResponse.json(
+        { error: 'Muitas exportações seguidas. Aguarde um momento.' },
+        { status: 429 },
+      )
     }
 
     const dbUser = await prisma.user.findUnique({

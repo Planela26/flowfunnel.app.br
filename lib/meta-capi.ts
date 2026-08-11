@@ -107,11 +107,17 @@ export async function sendMetaCapiEvent(args: SendMetaEventArgs): Promise<{ ok: 
 
   const results = await Promise.allSettled(
     META_PIXEL_IDS.map(async (pixelId) => {
-      const url = `https://graph.facebook.com/${META_GRAPH_VERSION}/${pixelId}/events?access_token=${accessToken}`
+      // Token no header, não na query string: URLs vazam em log de proxy, APM e
+      // Referer. Timeout evita segurar a conexão se a Meta ficar lenta.
+      const url = `https://graph.facebook.com/${META_GRAPH_VERSION}/${pixelId}/events`
       const res = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
         body,
+        signal: AbortSignal.timeout(15_000),
       })
       if (!res.ok) {
         const text = await res.text().catch(() => '')

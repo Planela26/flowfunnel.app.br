@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
+// Painel administrativo: lê logs de IA de todos os tenants por design, sob o
+// gate de `role === 'ADMIN'`. Client sem RLS conforme documentado em lib/prisma.ts.
+import { prismaAdmin as prisma } from '@/lib/prisma'
 
 // ── GET /api/admin/ai-logs ─ dashboard de IA ──────────────────────────────────
 export async function GET(request: Request) {

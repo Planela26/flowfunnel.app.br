@@ -40,6 +40,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ url: portalSession.url })
   } catch (error: any) {
     console.error('Erro ao criar portal Stripe:', error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error: 'Erro ao abrir o portal de assinatura.' }, { status: 500 })
   }
 }

@@ -27,8 +27,10 @@ export async function POST(request: Request) {
     try {
       event = stripe.webhooks.constructEvent(rawBody, signature, webhookSecret)
     } catch (err: any) {
+      // Detalhe só no log — o endpoint é público e o motivo exato da falha de
+      // assinatura ajuda quem estiver sondando.
       console.error('Falha na validação do webhook Stripe:', err.message)
-      return NextResponse.json({ error: `Webhook validation failed: ${err.message}` }, { status: 400 })
+      return NextResponse.json({ error: 'Webhook validation failed' }, { status: 400 })
     }
 
     // Persistent deduplication — survives restarts and races between concurrent
@@ -54,18 +56,28 @@ export async function POST(request: Request) {
     return NextResponse.json({ received: true })
   } catch (error: any) {
     console.error('Erro no webhook Stripe:', error)
-    return NextResponse.json({ error: error.message }, { status: 400 })
+    return NextResponse.json({ error: 'Webhook error' }, { status: 400 })
   }
 }
 
 async function syncUserPlan(event: any, stripe: any, request: Request) {
-  // Auditoria de reembolso (não altera plano — apenas registra o evento).
+  // Reembolso: audita sempre; rebaixa apenas quando o valor foi devolvido por
+  // inteiro. Reembolso parcial (ajuste, cortesia) não deve tirar o acesso.
   if (event.type === 'charge.refunded') {
     const charge = event.data.object as any
     const cid = charge.customer
     const u = cid
       ? await prisma.user.findFirst({ where: { stripeCustomerId: cid }, select: { id: true } })
       : null
+    const fullyRefunded = Boolean(charge.refunded) || charge.amount_refunded >= charge.amount
+
+    if (fullyRefunded && cid) {
+      await prisma.user.updateMany({
+        where: { stripeCustomerId: cid },
+        data: { plan: 'FREE', subscriptionStatus: 'refunded', gracePeriodEndsAt: null },
+      })
+    }
+
     await logAudit({
       action: 'billing.refund',
       result: 'success',
@@ -73,7 +85,53 @@ async function syncUserPlan(event: any, stripe: any, request: Request) {
       entityType: 'Charge',
       entityId: charge.id,
       request,
-      metadata: { amount: (charge.amount_refunded || 0) / 100, customerId: cid },
+      metadata: {
+        amount: (charge.amount_refunded || 0) / 100,
+        customerId: cid,
+        fullyRefunded,
+        planDowngraded: fullyRefunded,
+      },
+    })
+    return
+  }
+
+  // Chargeback: o dinheiro foi retirado da conta. O acesso pago cai na hora.
+  // Antes, estes eventos nem estavam na lista de relevantes — o cliente pagava,
+  // abria disputa e mantinha o plano.
+  if (event.type === 'charge.dispute.created') {
+    const dispute = event.data.object as any
+    // `dispute.charge` normalmente vem como ID (string), não expandido —
+    // é preciso buscar a cobrança para chegar ao customer.
+    let cid: string | null = dispute.customer ?? null
+    if (!cid && typeof dispute.charge === 'string') {
+      try {
+        const charge = await stripe.charges.retrieve(dispute.charge)
+        cid = (charge?.customer as string) ?? null
+      } catch (err) {
+        console.error('[stripe/webhook] falha ao resolver charge da disputa:', err)
+      }
+    } else if (!cid && dispute.charge?.customer) {
+      cid = dispute.charge.customer
+    }
+    const u = cid
+      ? await prisma.user.findFirst({ where: { stripeCustomerId: cid }, select: { id: true } })
+      : null
+
+    if (cid) {
+      await prisma.user.updateMany({
+        where: { stripeCustomerId: cid },
+        data: { plan: 'FREE', subscriptionStatus: 'disputed', gracePeriodEndsAt: null },
+      })
+    }
+
+    await logAudit({
+      action: 'billing.chargeback',
+      result: 'success',
+      userId: u?.id ?? null,
+      entityType: 'Dispute',
+      entityId: dispute.id,
+      request,
+      metadata: { amount: (dispute.amount || 0) / 100, reason: dispute.reason, customerId: cid },
     })
     return
   }
@@ -275,7 +333,12 @@ async function syncUserPlan(event: any, stripe: any, request: Request) {
         plan: newPlan,
         ...(newPlan !== 'FREE'
           ? { subscriptionStatus: 'active', gracePeriodEndsAt: null }
-          : {}),
+          // Rebaixar para FREE sem tocar em subscriptionStatus deixava o status
+          // stale em 'active': isSubscriptionBlocked continuava false (ingestão
+          // seguia rodando) e hasPaidAccess continuava true. Só o
+          // subscription.deleted marcava cancelamento; o mesmo cancelamento
+          // chegando por subscription.updated passava batido.
+          : { subscriptionStatus: 'cancelled', gracePeriodEndsAt: null }),
       },
     })
     console.log(`✅ Plano atualizado para ${newPlan} (customer: ${customerId})`)

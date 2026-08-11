@@ -1,5 +1,24 @@
 // Biblioteca de funções para Meta/Facebook Ads API
 
+/**
+ * Chamada à Graph API com o token no header, nunca na query string.
+ *
+ * URLs acabam em log de proxy, APM, header Referer e rastro de erro — o próprio
+ * projeto já documenta isso em app/api/cron/snapshot/route.ts ("secret deve vir
+ * SOMENTE no header Authorization"). O timeout evita que um upstream lento
+ * segure a conexão indefinidamente.
+ */
+function graphFetch(url: string, accessToken: string, init?: RequestInit): Promise<Response> {
+  return fetch(url, {
+    ...init,
+    headers: {
+      ...(init?.headers ?? {}),
+      Authorization: `Bearer ${accessToken}`,
+    },
+    signal: init?.signal ?? AbortSignal.timeout(15_000),
+  })
+}
+
 interface AdInsights {
   impressions: number
   clicks: number
@@ -42,9 +61,9 @@ export async function getAdInsights(
       ? `time_range=${encodeURIComponent(JSON.stringify(timeRange))}`
       : `date_preset=${datePreset}`
 
-    const url = `https://graph.facebook.com/v18.0/${endpoint}?fields=${fields}&${dateParam}&access_token=${accessToken}`
+    const url = `https://graph.facebook.com/v18.0/${endpoint}?fields=${fields}&${dateParam}`
 
-    const response = await fetch(url)
+    const response = await graphFetch(url, accessToken)
     const result = await response.json()
 
     if (!response.ok) {
@@ -125,9 +144,9 @@ export async function getActiveCampaigns(
       'updated_time',
     ].join(',')
 
-    const url = `https://graph.facebook.com/v18.0/act_${adAccountId}/campaigns?fields=${fields}&access_token=${accessToken}`
+    const url = `https://graph.facebook.com/v18.0/act_${adAccountId}/campaigns?fields=${fields}`
 
-    const response = await fetch(url)
+    const response = await graphFetch(url, accessToken)
     const result = await response.json()
 
     if (!response.ok) {
@@ -163,9 +182,9 @@ export async function getAdAccountInfo(
       'balance',
     ].join(',')
 
-    const url = `https://graph.facebook.com/v18.0/act_${adAccountId}?fields=${fields}&access_token=${accessToken}`
+    const url = `https://graph.facebook.com/v18.0/act_${adAccountId}?fields=${fields}`
 
-    const response = await fetch(url)
+    const response = await graphFetch(url, accessToken)
     const result = await response.json()
 
     if (!response.ok) {
@@ -192,9 +211,23 @@ export async function exchangeForLongLivedToken(
   shortLivedToken: string
 ) {
   try {
-    const url = `https://graph.facebook.com/v18.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${appId}&client_secret=${appSecret}&fb_exchange_token=${shortLivedToken}`
+    // Endpoint de OAuth: ainda não existe bearer token para enviar no header, e
+    // a própria Meta espera estes parâmetros no corpo/query. Enviamos via POST
+    // para que `client_secret` não fique na URL (que vaza em log e Referer).
+    const url = 'https://graph.facebook.com/v18.0/oauth/access_token'
+    const form = new URLSearchParams({
+      grant_type: 'fb_exchange_token',
+      client_id: appId,
+      client_secret: appSecret,
+      fb_exchange_token: shortLivedToken,
+    })
 
-    const response = await fetch(url)
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: form.toString(),
+      signal: AbortSignal.timeout(15_000),
+    })
     const result = await response.json()
 
     if (!response.ok) {
@@ -219,9 +252,9 @@ export async function exchangeForLongLivedToken(
 export async function getAdAccounts(accessToken: string) {
   try {
     const fields = ['id', 'name', 'account_status', 'currency'].join(',')
-    const url = `https://graph.facebook.com/v18.0/me/adaccounts?fields=${fields}&access_token=${accessToken}`
+    const url = `https://graph.facebook.com/v18.0/me/adaccounts?fields=${fields}`
 
-    const response = await fetch(url)
+    const response = await graphFetch(url, accessToken)
     const result = await response.json()
 
     if (!response.ok) {
@@ -244,9 +277,9 @@ export async function getAdAccounts(accessToken: string) {
 // Validar access token
 export async function validateAccessToken(accessToken: string) {
   try {
-    const url = `https://graph.facebook.com/v18.0/me?access_token=${accessToken}`
+    const url = `https://graph.facebook.com/v18.0/me`
 
-    const response = await fetch(url)
+    const response = await graphFetch(url, accessToken)
     const result = await response.json()
 
     if (!response.ok) {

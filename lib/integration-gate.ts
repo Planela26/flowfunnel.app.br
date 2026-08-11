@@ -28,7 +28,17 @@ export async function assertCanCreateIntegration(
 
   const u = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { subscriptionStatus: true, paymentMethodAddedAt: true, plan: true },
+    select: {
+      subscriptionStatus: true,
+      paymentMethodAddedAt: true,
+      plan: true,
+      // Necessários para hasPaidAccess decidir se o direito de acesso ainda vale
+      // (cancelamento, carência vencida, teste expirado).
+      trialStatus: true,
+      trialEndsAt: true,
+      trialPlan: true,
+      gracePeriodEndsAt: true,
+    },
   })
   if (!u) {
     return NextResponse.json({ error: 'Usuário não encontrado' }, { status: 404 })

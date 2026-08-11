@@ -43,6 +43,12 @@ export async function checkRateLimit(
   key: string,
   limit = 20,
   windowMs = 60_000,
+  /**
+   * Quando true, um erro de banco NEGA a requisição em vez de liberá-la.
+   * Use em rotas onde passar significa gastar dinheiro (ex.: chamadas à OpenAI):
+   * ali o fail-open transforma um soluço do Postgres em conta ilimitada.
+   */
+  failClosed = false,
 ): Promise<RateLimitResult> {
   const now = Date.now()
   const resetAt = new Date(now + windowMs)
@@ -61,9 +67,10 @@ export async function checkRateLimit(
     if (count > limit) return { ok: false, remaining: 0, resetAt: rAt }
     return { ok: true, remaining: Math.max(0, limit - count), resetAt: rAt }
   } catch (e) {
-    // Fail-open: um soluço no DB não deve derrubar autenticação/webhooks legítimos
-    // (se o Postgres estiver fora, o app inteiro já não funciona). Erro é logado.
+    // Fail-open por padrão: um soluço no DB não deve derrubar autenticação/webhooks
+    // legítimos (se o Postgres estiver fora, o app inteiro já não funciona).
     console.error('checkRateLimit DB error:', e)
+    if (failClosed) return { ok: false, remaining: 0, resetAt: now + windowMs }
     return { ok: true, remaining: limit - 1, resetAt: now + windowMs }
   }
 }

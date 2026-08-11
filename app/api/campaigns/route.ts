@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma, withTenantTx } from '@/lib/prisma'
+import { checkRateLimit } from '@/lib/security-utils'
 
 // Buscar campanhas do Facebook Ads
 export async function GET(request: Request) {
@@ -13,6 +14,20 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url)
     const forceSync = searchParams.get('sync') === 'true'
+
+    // Esta rota faz upsert e chama a Graph API quando sincroniza — é um GET com
+    // efeito colateral e amplificação para serviço externo. O limite contém
+    // tanto abuso direto quanto disparo via navegação cross-site (sameSite=lax
+    // envia cookie em navegação de topo).
+    if (forceSync) {
+      const rl = await checkRateLimit(`campaigns:sync:${session.user.id}`, 10, 60_000)
+      if (!rl.ok) {
+        return NextResponse.json(
+          { error: 'Muitas sincronizações seguidas. Aguarde um momento.' },
+          { status: 429 },
+        )
+      }
+    }
 
     // Buscar integração ativa
     const integration = await prisma.integration.findFirst({

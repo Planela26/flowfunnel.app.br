@@ -3,6 +3,23 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import OpenAI from 'openai'
 import { checkRateLimit } from '@/lib/security-utils'
+import { checkAiAccess, logAI } from '@/lib/ai-guard'
+
+/**
+ * Coage qualquer entrada do cliente a número finito.
+ *
+ * Estes valores são interpolados no prompt. Sem a coerção, `?? 0` deixava
+ * passar string arbitrária — um payload grande num único campo virava centenas
+ * de milhares de tokens de entrada, no modelo mais caro.
+ */
+function num(v: unknown, fallback = 0): number {
+  if (typeof v === 'number') return Number.isFinite(v) ? v : fallback
+  if (typeof v === 'string') {
+    const parsed = parseFloat(v.replace(/[^0-9,.-]/g, '').replace(',', '.'))
+    return Number.isFinite(parsed) ? parsed : fallback
+  }
+  return fallback
+}
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || 'demo-mode',
@@ -20,7 +37,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Muitas tentativas, aguarde um instante.' }, { status: 429 })
     }
 
+    const access = await checkAiAccess(session.user.id, 'suggestions')
+    if (!access.ok) {
+      return NextResponse.json({ error: access.error }, { status: access.status })
+    }
+
     const { metrics } = await request.json()
+    if (!metrics || typeof metrics !== 'object') {
+      return NextResponse.json({ error: 'Métricas inválidas' }, { status: 400 })
+    }
 
     const userRecord = await import('@/lib/prisma').then(m => m.prisma.user.findUnique({
       where: { id: session.user.id },
@@ -58,27 +83,27 @@ export async function POST(request: Request) {
     // Mapear campos reais das APIs para o prompt
     // WhatsApp: API retorna conversasIniciadas, taxaResposta (string "73%"), leadsQualificados
     const wa = metrics.whatsapp || {}
-    const waConversas = wa.conversasIniciadas ?? wa.conversas ?? 0
-    const waTaxaResposta = parseFloat(String(wa.taxaResposta).replace('%', '')) || 0
-    const waLeads = wa.leadsQualificados ?? 0
-    const waMedia = wa.mediaConversasDia ?? 0
-    const waNaoTerminadas = wa.conversasNaoTerminadas ?? 0
+    const waConversas = num(wa.conversasIniciadas ?? wa.conversas)
+    const waTaxaResposta = num(wa.taxaResposta)
+    const waLeads = num(wa.leadsQualificados)
+    const waMedia = num(wa.mediaConversasDia)
+    const waNaoTerminadas = num(wa.conversasNaoTerminadas)
 
     // Facebook: API retorna impressoes, cliques, ctr (string "1.48%"), cpc (string "R$ 2.15"), gastos
     const fb = metrics.facebook || {}
-    const fbImpressoes = fb.raw?.impressions ?? fb.impressoes ?? 0
-    const fbCliques = fb.raw?.clicks ?? fb.cliques ?? 0
-    const fbCtr = parseFloat(String(fb.ctr).replace('%', '')) || 0
-    const fbCpc = parseFloat(String(fb.cpc).replace(/[^0-9,.]/g, '').replace(',', '.')) || 0
-    const fbGastos = parseFloat(String(fb.gastos).replace(/[^0-9,.]/g, '').replace(',', '.')) || 0
+    const fbImpressoes = num(fb.raw?.impressions ?? fb.impressoes)
+    const fbCliques = num(fb.raw?.clicks ?? fb.cliques)
+    const fbCtr = num(fb.ctr)
+    const fbCpc = num(fb.cpc)
+    const fbGastos = num(fb.gastos)
 
     // Hotmart: API retorna pagamentosConfirmados, faturamento (string "R$ 36.015"), ticketMedio, taxaConversaoCheckout
     const hm = metrics.hotmart || {}
-    const hmVendas = hm.raw?.totalSales ?? hm.pagamentosConfirmados ?? 0
-    const hmReceita = hm.raw?.totalRevenue ?? (parseFloat(String(hm.faturamento).replace(/[^0-9,.]/g, '').replace(',', '.')) || 0)
-    const hmTicket = hm.raw?.averageTicket ?? (parseFloat(String(hm.ticketMedio).replace(/[^0-9,.]/g, '').replace(',', '.')) || 0)
-    const hmConversao = parseFloat(String(hm.taxaConversaoCheckout).replace('%', '')) || 0
-    const hmCheckouts = hm.checkoutsIniciados ?? 0
+    const hmVendas = num(hm.raw?.totalSales ?? hm.pagamentosConfirmados)
+    const hmReceita = num(hm.raw?.totalRevenue ?? hm.faturamento)
+    const hmTicket = num(hm.raw?.averageTicket ?? hm.ticketMedio)
+    const hmConversao = num(hm.taxaConversaoCheckout)
+    const hmCheckouts = num(hm.checkoutsIniciados)
 
     const depthInstruction = isScale
       ? 'Faça uma análise profunda com tendências, previsões e sugestões estratégicas avançadas.'
@@ -150,8 +175,11 @@ Foque em:
 3. Destacar pontos positivos
 4. Propor testes A/B ou ajustes de estratégia`
 
+    const SUGGESTIONS_MODEL = 'gpt-4o'
+    const startedAt = Date.now()
+
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4o',
+      model: SUGGESTIONS_MODEL,
       messages: [
         {
           role: 'system',
@@ -167,6 +195,16 @@ Foque em:
       response_format: { type: 'json_object' },
     })
 
+    await logAI({
+      userId: session.user.id,
+      action: 'suggestions',
+      model: SUGGESTIONS_MODEL,
+      promptTokens: completion.usage?.prompt_tokens ?? 0,
+      completTokens: completion.usage?.completion_tokens ?? 0,
+      totalTokens: completion.usage?.total_tokens ?? 0,
+      durationMs: Date.now() - startedAt,
+    })
+
     const response = completion.choices[0].message.content
     let aiSuggestions: { suggestions?: any[] } = { suggestions: [] }
     try {
@@ -178,7 +216,7 @@ Foque em:
     return NextResponse.json({
       suggestions: aiSuggestions.suggestions || [],
       mode: 'ai',
-      model: 'gpt-4o',
+      model: SUGGESTIONS_MODEL,
     })
   } catch (error: any) {
     console.error('Erro ao gerar sugestões de IA:', error)

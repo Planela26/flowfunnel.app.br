@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import OpenAI from 'openai'
 import { checkRateLimit } from '@/lib/security-utils'
+import { checkAiAccess, logAI } from '@/lib/ai-guard'
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || 'demo-mode',
@@ -269,10 +270,23 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Muitas tentativas, aguarde um instante.' }, { status: 429 })
     }
 
+    const access = await checkAiAccess(session.user.id, 'card-insight')
+    if (!access.ok) {
+      return NextResponse.json({ error: access.error }, { status: access.status })
+    }
+
     const { cardType, data } = await request.json()
 
-    if (!cardType || !CARD_PROMPTS[cardType]) {
+    // Object.hasOwn e não truthiness: `CARD_PROMPTS['constructor']` herda do
+    // protótipo e passaria na checagem antiga.
+    if (typeof cardType !== 'string' || !Object.hasOwn(CARD_PROMPTS, cardType)) {
       return NextResponse.json({ error: 'Tipo de card inválido' }, { status: 400 })
+    }
+
+    // `data` é interpolado no prompt. Sem teto, um payload grande vira centenas
+    // de milhares de tokens de entrada.
+    if (data !== undefined && JSON.stringify(data).length > 8_000) {
+      return NextResponse.json({ error: 'Dados do card muito grandes' }, { status: 400 })
     }
 
     if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === 'demo-mode') {
@@ -289,9 +303,11 @@ export async function POST(request: Request) {
     }
 
     const prompt = CARD_PROMPTS[cardType](data)
+    const CARD_MODEL = 'gpt-4o-mini'
+    const startedAt = Date.now()
 
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: CARD_MODEL,
       messages: [
         {
           role: 'system',
@@ -302,6 +318,16 @@ export async function POST(request: Request) {
       temperature: 0.7,
       max_tokens: 600,
       response_format: { type: 'json_object' },
+    })
+
+    await logAI({
+      userId: session.user.id,
+      action: 'card-insight',
+      model: CARD_MODEL,
+      promptTokens: completion.usage?.prompt_tokens ?? 0,
+      completTokens: completion.usage?.completion_tokens ?? 0,
+      totalTokens: completion.usage?.total_tokens ?? 0,
+      durationMs: Date.now() - startedAt,
     })
 
     const raw = completion.choices[0]?.message?.content || '{}'

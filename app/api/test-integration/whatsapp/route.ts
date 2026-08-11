@@ -107,7 +107,7 @@ export async function POST(request: Request) {
   } catch (error: any) {
     console.error('Erro ao testar WhatsApp:', error)
     return NextResponse.json(
-      { error: 'Erro ao executar testes', details: error.message },
+      { error: 'Erro ao executar testes' },
       { status: 500 }
     )
   }

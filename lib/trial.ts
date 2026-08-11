@@ -84,8 +84,30 @@ export function getEffectivePlan(user: TrialUser): Plan {
 export function hasPaidAccess(user: {
   subscriptionStatus?: string | null
   paymentMethodAddedAt?: Date | string | null
+  trialStatus?: string | null
+  trialEndsAt?: Date | string | null
+  trialPlan?: string | null
+  plan?: string | null
+  gracePeriodEndsAt?: Date | string | null
 }): boolean {
   if (user.subscriptionStatus === 'active') return true
-  if (user.paymentMethodAddedAt) return true
-  return false
+
+  // `paymentMethodAddedAt` é gravado uma vez e NUNCA é limpo. Sozinho, ele
+  // concedia acesso vitalício: quem cancelasse a assinatura continuava criando
+  // e reconectando integrações para sempre. Agora o cartão só vale enquanto o
+  // direito de acesso existir de fato.
+  if (!user.paymentMethodAddedAt) return false
+
+  const status = user.subscriptionStatus
+  if (status === 'canceled' || status === 'cancelled' || status === 'unpaid') return false
+
+  // Fora do período de carência de inadimplência.
+  if (user.gracePeriodEndsAt && new Date(user.gracePeriodEndsAt).getTime() <= Date.now()) {
+    return false
+  }
+
+  // Cartão cadastrado durante um teste que já venceu, sem assinatura ativa.
+  if (user.trialEndsAt && isTrialExpired(user as TrialUser)) return false
+
+  return true
 }

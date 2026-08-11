@@ -10,6 +10,7 @@
  */
 
 import OpenAI from 'openai'
+import { asUntrustedData, UNTRUSTED_DATA_NOTICE } from './ai-guard'
 import { prisma } from '@/lib/prisma'
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -136,7 +137,7 @@ export class SaraAIService {
       .map(m => `[${m.senderType.toUpperCase()}]: ${m.content}`)
       .join('\n')
 
-    const systemMsg = `Você é Sara.AI, especialista sênior em suporte da plataforma FlowSara. Responda SOMENTE com JSON válido (sem markdown).`
+    const systemMsg = `Você é Sara.AI, especialista sênior em suporte da plataforma FlowSara. Responda SOMENTE com JSON válido (sem markdown).\n\n${UNTRUSTED_DATA_NOTICE}`
 
     const userMsg = `BASE DE CONHECIMENTO DA PLATAFORMA:\n${PLATFORM_KNOWLEDGE}
 ${kbContext ? `\nARTIGOS RELEVANTES DA KB:\n${kbContext}` : ''}
@@ -146,9 +147,11 @@ DADOS DO CHAMADO #${ticket.number}:
 - Plano: ${user.plan} | Assinatura: ${user.subscriptionStatus ?? 'desconhecida'}
 - Cliente desde: ${user.createdAt.toLocaleDateString('pt-BR')}
 - Tipo: ${ticket.type} | Prioridade declarada: ${ticket.priority}
-- Assunto: ${ticket.subject}
-- Descrição: ${ticket.description}
-- Mensagens (${messages.length}):\n${convo || '(sem mensagens além da descrição)'}
+- Assunto e descrição escritos pelo cliente:
+${asUntrustedData('assunto_do_chamado', ticket.subject)}
+${asUntrustedData('descricao_do_chamado', ticket.description)}
+- Mensagens (${messages.length}):
+${asUntrustedData('conversa_do_chamado', convo || '(sem mensagens além da descrição)')}
 
 Retorne exatamente este JSON:
 {

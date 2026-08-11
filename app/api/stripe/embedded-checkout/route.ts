@@ -78,6 +78,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ clientSecret: checkoutSession.client_secret })
   } catch (error: any) {
     console.error('Erro ao criar embedded checkout:', error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error: 'Erro ao iniciar o checkout. Tente novamente.' }, { status: 500 })
   }
 }

@@ -47,7 +47,7 @@ const FORBIDDEN   = ['O', '0', 'I', '1', 'L']
 // ── 1. Charset ────────────────────────────────────────────────────────────────
 
 suite('CHARSET', () => {
-  eq(CHARSET.length, 32, 'contém exatamente 32 caracteres')
+  eq(CHARSET.length, 31, 'contém exatamente 31 caracteres')
   for (const ch of FORBIDDEN) {
     ok(!CHARSET.includes(ch), `não contém caractere proibido '${ch}'`)
   }

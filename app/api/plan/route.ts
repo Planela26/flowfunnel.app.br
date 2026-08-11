@@ -21,6 +21,7 @@ export async function GET() {
       trialPromptSeenAt: true,
       subscriptionStatus: true,
       paymentMethodAddedAt: true,
+      gracePeriodEndsAt: true,
     },
   })
 
@@ -32,6 +33,11 @@ export async function GET() {
   const paidAccess = hasPaidAccess({
     subscriptionStatus: u?.subscriptionStatus,
     paymentMethodAddedAt: u?.paymentMethodAddedAt,
+    trialStatus: u?.trialStatus,
+    trialEndsAt: u?.trialEndsAt,
+    trialPlan: u?.trialPlan,
+    plan: u?.plan,
+    gracePeriodEndsAt: u?.gracePeriodEndsAt,
   })
   // Modo explorar — sem cartão E sem assinatura. Pode usar o funil, mas sem criar integrações reais.
   const exploringOnly = !paidAccess

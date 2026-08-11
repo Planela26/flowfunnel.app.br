@@ -6,6 +6,6 @@ export async function GET() {
     const publishableKey = await getStripePublishableKey()
     return NextResponse.json({ publishableKey })
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error: 'Configuração de pagamento indisponível.' }, { status: 500 })
   }
 }

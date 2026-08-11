@@ -59,8 +59,8 @@ export async function POST(request: Request) {
 
     // Atualizar evento no banco se fornecido
     if (eventId) {
-      const event = await prisma.funnelEvent.findUnique({
-        where: { id: eventId },
+      const event = await prisma.funnelEvent.findFirst({
+        where: { id: eventId, funnel: { userId: session.user.id } },
       })
 
       if (event) {
