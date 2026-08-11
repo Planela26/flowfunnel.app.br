@@ -34,7 +34,12 @@ export async function GET(request: Request) {
         affiliateId: affiliate.id,
         createdAt: { gte: startDate },
       },
-      select: { createdAt: true, commissionAmount: true, discountedAmount: true },
+      select: {
+        createdAt: true,
+        discountedAmount: true,
+        // commissionAmount saiu de AffiliateSale — mora em AffiliateCommission.
+        commission: { select: { amount: true } },
+      },
       orderBy: { createdAt: 'asc' },
     }),
   ])
@@ -60,8 +65,8 @@ export async function GET(request: Request) {
     const entry = daysMap.get(key)
     if (entry) {
       entry.sales++
-      entry.commission += s.commissionAmount
-      entry.revenue += s.discountedAmount
+      entry.commission += Number(s.commission?.amount ?? 0)
+      entry.revenue += Number(s.discountedAmount)
     }
   }
 

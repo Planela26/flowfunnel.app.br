@@ -14,7 +14,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       where: { id },
       include: {
         clicks: { orderBy: { createdAt: 'desc' }, take: 100 },
-        sales: { orderBy: { createdAt: 'desc' } },
+        sales: { orderBy: { createdAt: 'desc' }, include: { commission: true } },
       },
     })
 
@@ -22,8 +22,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       return NextResponse.json({ error: 'Afiliado não encontrado' }, { status: 404 })
     }
 
-    const totalCommission = affiliate.sales.reduce((sum, s) => sum + s.commissionAmount, 0)
-    const totalRevenue = affiliate.sales.reduce((sum, s) => sum + s.discountedAmount, 0)
+    const totalCommission = affiliate.sales.reduce((sum, s) => sum + Number(s.commission?.amount ?? 0), 0)
+    const totalRevenue = affiliate.sales.reduce((sum, s) => sum + Number(s.discountedAmount), 0)
 
     return NextResponse.json({
       affiliate: {
@@ -45,9 +45,9 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       recentSales: affiliate.sales.slice(0, 20).map(s => ({
         id: s.id,
         plan: s.plan,
-        originalAmount: s.originalAmount,
-        discountedAmount: s.discountedAmount,
-        commissionAmount: s.commissionAmount,
+        originalAmount: Number(s.originalAmount),
+        discountedAmount: Number(s.discountedAmount),
+        commissionAmount: Number(s.commission?.amount ?? 0),
         createdAt: s.createdAt,
       })),
     })

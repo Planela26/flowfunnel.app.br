@@ -13,10 +13,21 @@ export async function GET() {
         affiliate: {
           select: { name: true, code: true },
         },
+        commission: { select: { amount: true } },
       },
     })
 
-    return NextResponse.json({ sales })
+    // Achata commission.amount em commissionAmount (formato que o frontend
+    // já espera) e converte Decimal -> number (Decimal serializa como string
+    // via JSON e quebraria .toFixed() no cliente).
+    const flattened = sales.map(({ commission, ...s }) => ({
+      ...s,
+      originalAmount: Number(s.originalAmount),
+      discountedAmount: Number(s.discountedAmount),
+      commissionAmount: Number(commission?.amount ?? 0),
+    }))
+
+    return NextResponse.json({ sales: flattened })
   } catch (error: any) {
     console.error('Erro ao listar vendas de afiliados:', error)
     return NextResponse.json({ error: 'Erro ao listar vendas' }, { status: 500 })

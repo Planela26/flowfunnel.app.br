@@ -3,9 +3,10 @@ import { prismaAdmin as prisma } from '@/lib/prisma'
 import { headers } from 'next/headers'
 import { checkRateLimit, getClientIp } from '@/lib/security-utils'
 
-// Nota de escopo: AffiliateClick NÃO alimenta comissão. `AffiliateSale.commissionAmount`
-// só é criado por app/api/affiliates/sale (admin-only, requer stripePaymentId
-// único de uma cobrança real) ou pelo webhook do Stripe. Este endpoint só
+// Nota de escopo: AffiliateClick NÃO alimenta comissão. AffiliateCommission
+// só é criada por app/api/affiliates/sale (admin-only, requer processor +
+// externalPaymentId únicos de uma cobrança real) ou pelo webhook (Fase 2,
+// ainda não implementado). Este endpoint só
 // grava uma métrica de clique exibida no dashboard do próprio afiliado
 // (app/api/affiliate/me/*) — não move dinheiro. Mesmo assim, aplicamos rate
 // limit e dedup para não deixar a métrica ser inflada trivialmente.

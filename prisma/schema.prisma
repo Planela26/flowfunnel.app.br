@@ -57,6 +57,7 @@ model User {
   affiliateProfile     Affiliate?               @relation("AffiliateOwner")
   referredByAffiliateId String?                 // congelado na primeira conversão paga — nunca reescrito pelo cliente (AFFILIATE_WALLET_ARCHITECTURE.md §18.7)
   referredByAffiliate  Affiliate?               @relation("AffiliateReferral", fields: [referredByAffiliateId], references: [id], onDelete: SetNull)
+  affiliateSales       AffiliateSale[]
   trackedLeads         TrackedLead[]
   trackedEvents        TrackedEvent[]
   trackedConversions   TrackedConversion[]
@@ -437,21 +438,25 @@ model AffiliateClick {
 // `originalAmount`/`discountedAmount` (ainda Float) e `commissionAmount`
 // permanecem intactos até a decisão sobre o histórico.
 model AffiliateSale {
-  id               String    @id @default(cuid())
-  affiliateId      String
-  userId           String?
-  stripePaymentId  String    @unique
-  plan             String
-  originalAmount   Float
-  discountedAmount Float
-  commissionAmount Float
-  createdAt        DateTime  @default(now())
+  id                     String           @id @default(cuid())
+  affiliateId            String
+  userId                 String?
+  processor              PaymentProcessor
+  externalPaymentId      String           // Stripe invoice.id OU MP payment.id
+  externalSubscriptionId String?          // Stripe subscription.id — null para MP (sem assinatura nativa)
+  type                   SaleType
+  plan                   String
+  originalAmount         Decimal          @db.Decimal(12, 2)
+  discountedAmount       Decimal          @db.Decimal(12, 2)
+  createdAt              DateTime         @default(now())
 
   affiliate  Affiliate            @relation(fields: [affiliateId], references: [id], onDelete: Restrict)
+  user       User?                @relation(fields: [userId], references: [id], onDelete: SetNull)
   commission AffiliateCommission?
 
-  @@index([affiliateId])
-  @@index([createdAt])
+  @@unique([processor, externalPaymentId])
+  @@index([affiliateId, createdAt])
+  @@index([userId])
 }
 
 model AffiliateCommission {

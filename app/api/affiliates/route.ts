@@ -12,7 +12,7 @@ export async function GET() {
       orderBy: { createdAt: 'desc' },
       include: {
         _count: { select: { clicks: true, sales: true } },
-        sales: { select: { commissionAmount: true } },
+        sales: { select: { commission: { select: { amount: true } } } },
       },
     })
 
@@ -27,7 +27,7 @@ export async function GET() {
       createdAt: a.createdAt,
       clicks: a._count.clicks,
       sales: a._count.sales,
-      totalCommission: a.sales.reduce((sum, s) => sum + s.commissionAmount, 0),
+      totalCommission: a.sales.reduce((sum, s) => sum + Number(s.commission?.amount ?? 0), 0),
     }))
 
     return NextResponse.json({ affiliates: result })

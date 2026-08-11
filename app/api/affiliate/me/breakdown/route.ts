@@ -14,7 +14,13 @@ export async function GET() {
 
   const sales = await prisma.affiliateSale.findMany({
     where: { affiliateId: affiliate.id },
-    select: { plan: true, commissionAmount: true, discountedAmount: true, originalAmount: true },
+    select: {
+      plan: true,
+      discountedAmount: true,
+      originalAmount: true,
+      // commissionAmount saiu de AffiliateSale — mora em AffiliateCommission.
+      commission: { select: { amount: true } },
+    },
   })
 
   const byPlan: Record<string, { count: number; commission: number; revenue: number; originalAmount: number }> = {}
@@ -25,9 +31,9 @@ export async function GET() {
       byPlan[plan] = { count: 0, commission: 0, revenue: 0, originalAmount: 0 }
     }
     byPlan[plan].count++
-    byPlan[plan].commission += s.commissionAmount
-    byPlan[plan].revenue += s.discountedAmount
-    byPlan[plan].originalAmount += s.originalAmount
+    byPlan[plan].commission += Number(s.commission?.amount ?? 0)
+    byPlan[plan].revenue += Number(s.discountedAmount)
+    byPlan[plan].originalAmount += Number(s.originalAmount)
   }
 
   const totalClicks = await prisma.affiliateClick.count({
@@ -35,9 +41,9 @@ export async function GET() {
   })
 
   const totalSales = sales.length
-  const totalCommission = sales.reduce((s, v) => s + v.commissionAmount, 0)
-  const totalRevenue = sales.reduce((s, v) => s + v.discountedAmount, 0)
-  const totalOriginalAmount = sales.reduce((s, v) => s + v.originalAmount, 0)
+  const totalCommission = sales.reduce((s, v) => s + Number(v.commission?.amount ?? 0), 0)
+  const totalRevenue = sales.reduce((s, v) => s + Number(v.discountedAmount), 0)
+  const totalOriginalAmount = sales.reduce((s, v) => s + Number(v.originalAmount), 0)
 
   const conversionRate = totalClicks > 0 ? (totalSales / totalClicks) * 100 : 0
   const avgCommission = totalSales > 0 ? totalCommission / totalSales : 0

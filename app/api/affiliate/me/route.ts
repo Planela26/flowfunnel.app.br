@@ -11,7 +11,7 @@ export async function GET() {
     where: { userId: session.user.id },
     include: {
       clicks: { orderBy: { createdAt: 'desc' }, take: 5 },
-      sales: { orderBy: { createdAt: 'desc' }, take: 10 },
+      sales: { orderBy: { createdAt: 'desc' }, take: 10, include: { commission: true } },
     },
   })
 
@@ -20,17 +20,30 @@ export async function GET() {
   const stats = {
     clicks: await prisma.affiliateClick.count({ where: { affiliateId: affiliate.id } }),
     sales: await prisma.affiliateSale.count({ where: { affiliateId: affiliate.id } }),
-    totalCommission: (await prisma.affiliateSale.aggregate({
+    // commissionAmount saiu de AffiliateSale — a obrigação financeira agora
+    // mora em AffiliateCommission (Seção 1 do desenho).
+    totalCommission: Number((await prisma.affiliateCommission.aggregate({
       where: { affiliateId: affiliate.id },
-      _sum: { commissionAmount: true },
-    }))._sum.commissionAmount ?? 0,
-    totalRevenue: (await prisma.affiliateSale.aggregate({
+      _sum: { amount: true },
+    }))._sum.amount ?? 0),
+    totalRevenue: Number((await prisma.affiliateSale.aggregate({
       where: { affiliateId: affiliate.id },
       _sum: { discountedAmount: true },
-    }))._sum.discountedAmount ?? 0,
+    }))._sum.discountedAmount ?? 0),
   }
 
-  return NextResponse.json({ affiliate, stats, recentSales: affiliate.sales })
+  // O frontend espera commissionAmount direto no objeto da venda (achata o
+  // relacionamento — mora em AffiliateCommission desde o redesenho) e espera
+  // originalAmount/discountedAmount como number, não como Decimal (que
+  // serializa como string via JSON e quebraria .toFixed() no cliente).
+  const recentSales = affiliate.sales.map(({ commission, ...s }) => ({
+    ...s,
+    originalAmount: Number(s.originalAmount),
+    discountedAmount: Number(s.discountedAmount),
+    commissionAmount: Number(commission?.amount ?? 0),
+  }))
+
+  return NextResponse.json({ affiliate: { ...affiliate, sales: recentSales }, stats, recentSales })
 }
 
 // Default affiliate terms — mirrors the admin panel default form
