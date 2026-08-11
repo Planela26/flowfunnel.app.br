@@ -23,7 +23,7 @@ export async function GET() {
       code: a.code,
       discountPercent: a.discountPercent,
       commissionPercent: a.commissionPercent,
-      isActive: a.isActive,
+      isActive: a.status === 'ACTIVE',
       createdAt: a.createdAt,
       clicks: a._count.clicks,
       sales: a._count.sales,

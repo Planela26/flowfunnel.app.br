@@ -40,20 +40,20 @@ export async function POST(request: Request) {
     if (couponCode) {
       const affiliate = await prisma.affiliate.findUnique({
         where: { code: couponCode.toUpperCase() },
-        select: { id: true, discountPercent: true, isActive: true },
+        select: { id: true, discountPercent: true, status: true },
       })
-      if (affiliate && affiliate.isActive) {
-        discountPercent = affiliate.discountPercent
+      if (affiliate && affiliate.status === 'ACTIVE') {
+        discountPercent = Number(affiliate.discountPercent)
         validAffiliateId = affiliate.id
       }
     }
     if (!validAffiliateId && affiliateId) {
       const affiliate = await prisma.affiliate.findUnique({
         where: { id: affiliateId },
-        select: { id: true, discountPercent: true, isActive: true },
+        select: { id: true, discountPercent: true, status: true },
       })
-      if (affiliate && affiliate.isActive) {
-        discountPercent = affiliate.discountPercent
+      if (affiliate && affiliate.status === 'ACTIVE') {
+        discountPercent = Number(affiliate.discountPercent)
         validAffiliateId = affiliate.id
       }
     }

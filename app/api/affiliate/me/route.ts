@@ -89,7 +89,6 @@ export async function POST(request: Request) {
           code,
           discountPercent: DEFAULT_DISCOUNT_PERCENT,
           commissionPercent: DEFAULT_COMMISSION_PERCENT,
-          isActive: true,
           userId: session.user.id,
         },
       })

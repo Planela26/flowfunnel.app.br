@@ -33,7 +33,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
         code: affiliate.code,
         discountPercent: affiliate.discountPercent,
         commissionPercent: affiliate.commissionPercent,
-        isActive: affiliate.isActive,
+        isActive: affiliate.status === 'ACTIVE',
         createdAt: affiliate.createdAt,
       },
       stats: {
@@ -68,7 +68,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     const data: any = {}
     if (body.name !== undefined) data.name = String(body.name)
     if (body.email !== undefined) data.email = body.email ? String(body.email) : null
-    if (body.isActive !== undefined) data.isActive = Boolean(body.isActive)
+    if (body.isActive !== undefined) data.status = body.isActive ? 'ACTIVE' : 'BLOCKED'
     if (body.commissionPercent !== undefined) {
       const cp = Number(body.commissionPercent)
       if (!Number.isFinite(cp) || cp < 0 || cp > 90) {

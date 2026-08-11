@@ -25,11 +25,11 @@ export async function POST(request: Request) {
         discountPercent: true,
         commissionPercent: true,
         stripeCouponId: true,
-        isActive: true,
+        status: true,
       },
     })
 
-    if (!affiliate || !affiliate.isActive) {
+    if (!affiliate || affiliate.status !== 'ACTIVE') {
       return NextResponse.json({ error: 'Código inválido ou inativo' }, { status: 404 })
     }
 
@@ -39,7 +39,9 @@ export async function POST(request: Request) {
         id: affiliate.id,
         name: affiliate.name,
         code: affiliate.code,
-        discountPercent: affiliate.discountPercent,
+        // Decimal do Prisma serializa como string via JSON — normaliza para
+        // number explicitamente, não depende de coerção implícita do JS no cliente.
+        discountPercent: Number(affiliate.discountPercent),
         stripeCouponId: affiliate.stripeCouponId,
       },
     })

@@ -29,10 +29,10 @@ export async function POST(request: Request) {
 
     const affiliate = await prisma.affiliate.findUnique({
       where: { id: affiliateId },
-      select: { id: true, isActive: true },
+      select: { id: true, status: true },
     })
 
-    if (!affiliate || !affiliate.isActive) {
+    if (!affiliate || affiliate.status !== 'ACTIVE') {
       return NextResponse.json({ error: 'Afiliado não encontrado' }, { status: 404 })
     }
 

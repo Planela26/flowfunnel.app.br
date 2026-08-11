@@ -31,7 +31,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Afiliado não encontrado' }, { status: 404 })
     }
 
-    const commissionAmount = (disc * affiliate.commissionPercent) / 100
+    const commissionAmount = (disc * Number(affiliate.commissionPercent)) / 100
 
     const existing = await prisma.affiliateSale.findUnique({ where: { stripePaymentId } })
     if (existing) return NextResponse.json({ sale: existing })

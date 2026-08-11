@@ -94,11 +94,11 @@ export async function POST(request: Request) {
     if (couponCode) {
       const aff = await prisma.affiliate.findUnique({
         where: { code: couponCode.toUpperCase().trim() },
-        select: { id: true, stripeCouponId: true, discountPercent: true, isActive: true },
+        select: { id: true, stripeCouponId: true, discountPercent: true, status: true },
       })
-      if (aff?.isActive && aff.stripeCouponId) {
+      if (aff?.status === 'ACTIVE' && aff.stripeCouponId) {
         stripeCouponId = aff.stripeCouponId
-        discountPercent = aff.discountPercent
+        discountPercent = Number(aff.discountPercent)
         resolvedAffiliateId = aff.id
       }
     }

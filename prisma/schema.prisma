@@ -54,7 +54,9 @@ model User {
   emailChangeCodes      EmailChangeCode[]
   teamMemberships      TeamMember[]
   leadStatuses         LeadStatus[]
-  affiliateProfile     Affiliate?
+  affiliateProfile     Affiliate?               @relation("AffiliateOwner")
+  referredByAffiliateId String?                 // congelado na primeira conversão paga — nunca reescrito pelo cliente (AFFILIATE_WALLET_ARCHITECTURE.md §18.7)
+  referredByAffiliate  Affiliate?               @relation("AffiliateReferral", fields: [referredByAffiliateId], references: [id], onDelete: SetNull)
   trackedLeads         TrackedLead[]
   trackedEvents        TrackedEvent[]
   trackedConversions   TrackedConversion[]
@@ -337,24 +339,81 @@ model Workspace {
   @@index([isDefault])
 }
 
+// ── Carteira financeira de afiliados ────────────────────────────────────────
+// Desenho completo, decisões de negócio e revisão adversarial em
+// AFFILIATE_WALLET_ARCHITECTURE.md. Enums e models abaixo implementam a
+// Seção 24 (IMPLEMENTATION SPECIFICATION) desse documento.
+
+enum AffiliateStatus {
+  ACTIVE
+  BLOCKED
+}
+
+enum PaymentProcessor {
+  STRIPE
+  MERCADOPAGO
+}
+
+enum SaleType {
+  INITIAL
+  RENEWAL
+}
+
+enum CommissionStatus {
+  PENDING   // dentro da janela de retenção (15 dias — Decisão D)
+  AVAILABLE // amadurecida, fundida ao saldo agregado da carteira
+  REVERSED  // estornada (refund/chargeback)
+}
+
+enum LedgerAccount {
+  PENDING
+  AVAILABLE
+  RESERVED
+}
+
+enum LedgerEntryType {
+  COMMISSION_ACCRUE
+  COMMISSION_MATURE
+  COMMISSION_REVERSE
+  PAYOUT_RESERVE
+  PAYOUT_RELEASE
+  PAYOUT_SETTLE
+  ADJUSTMENT
+}
+
+enum PayoutStatus {
+  REQUESTED
+  APPROVED
+  PAID
+  FAILED
+  CANCELLED
+  REJECTED
+}
+
 model Affiliate {
-  id                String   @id @default(cuid())
+  id                String          @id @default(cuid())
   name              String
   email             String?
-  code              String   @unique
-  discountPercent   Float
-  commissionPercent Float
+  code              String          @unique
+  discountPercent   Decimal         @db.Decimal(5, 2)
+  commissionPercent Decimal         @db.Decimal(5, 2)
   stripeCouponId    String?
-  isActive          Boolean  @default(true)
-  userId            String?  @unique
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  status            AffiliateStatus @default(ACTIVE)
+  userId            String?         @unique
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
 
-  clicks AffiliateClick[]
-  sales  AffiliateSale[]
-  user   User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user          User?                  @relation("AffiliateOwner", fields: [userId], references: [id], onDelete: SetNull)
+  referredUsers User[]                 @relation("AffiliateReferral")
+  clicks        AffiliateClick[]
+  sales         AffiliateSale[]
+  commissions   AffiliateCommission[]
+  ledgerEntries AffiliateLedgerEntry[]
+  wallet        AffiliateWallet?
+  payouts       AffiliatePayout[]
 
   @@index([code])
+  @@index([status])
 }
 
 model AffiliateClick {
@@ -364,12 +423,19 @@ model AffiliateClick {
   userAgent   String?
   createdAt   DateTime  @default(now())
 
-  affiliate Affiliate @relation(fields: [affiliateId], references: [id], onDelete: Cascade)
+  affiliate Affiliate @relation(fields: [affiliateId], references: [id], onDelete: Cascade) // não financeiro — cascade OK
 
   @@index([affiliateId])
   @@index([createdAt])
 }
 
+// PAUSADO — redesenho completo aguarda confirmação sobre dados históricos
+// (ver AFFILIATE_WALLET_ARCHITECTURE.md §24.1 / mensagem de acompanhamento).
+// Nesta etapa só foi adicionada a relação reversa com AffiliateCommission e
+// trocado onDelete de Cascade para Restrict (achado §0.3 — nenhum dos dois
+// exige migração de dados existentes). `stripePaymentId`, `plan`,
+// `originalAmount`/`discountedAmount` (ainda Float) e `commissionAmount`
+// permanecem intactos até a decisão sobre o histórico.
 model AffiliateSale {
   id               String    @id @default(cuid())
   affiliateId      String
@@ -381,10 +447,85 @@ model AffiliateSale {
   commissionAmount Float
   createdAt        DateTime  @default(now())
 
-  affiliate Affiliate @relation(fields: [affiliateId], references: [id], onDelete: Cascade)
+  affiliate  Affiliate            @relation(fields: [affiliateId], references: [id], onDelete: Restrict)
+  commission AffiliateCommission?
 
   @@index([affiliateId])
   @@index([createdAt])
+}
+
+model AffiliateCommission {
+  id                        String           @id @default(cuid())
+  saleId                    String           @unique
+  affiliateId               String
+  amount                    Decimal          @db.Decimal(12, 2)
+  commissionPercentSnapshot Decimal          @db.Decimal(5, 2)
+  status                    CommissionStatus @default(PENDING)
+  maturesAt                 DateTime
+  createdAt                 DateTime         @default(now())
+
+  sale          AffiliateSale          @relation(fields: [saleId], references: [id], onDelete: Restrict)
+  affiliate     Affiliate              @relation(fields: [affiliateId], references: [id], onDelete: Restrict)
+  ledgerEntries AffiliateLedgerEntry[]
+
+  @@index([affiliateId, status])
+  @@index([maturesAt])
+}
+
+model AffiliateLedgerEntry {
+  id              String          @id @default(cuid())
+  affiliateId     String
+  account         LedgerAccount
+  amount          Decimal         @db.Decimal(12, 2)
+  type            LedgerEntryType
+  transferGroupId String?
+  commissionId    String?
+  payoutId        String?
+  idempotencyKey  String          @unique
+  reason          String?
+  createdBy       String?
+  createdAt       DateTime        @default(now())
+
+  affiliate  Affiliate            @relation(fields: [affiliateId], references: [id], onDelete: Restrict)
+  commission AffiliateCommission? @relation(fields: [commissionId], references: [id], onDelete: SetNull)
+  payout     AffiliatePayout?     @relation(fields: [payoutId], references: [id], onDelete: SetNull)
+
+  @@index([affiliateId, createdAt])
+  @@index([commissionId])
+  @@index([payoutId])
+}
+
+model AffiliateWallet {
+  affiliateId      String   @id
+  pendingBalance   Decimal  @db.Decimal(12, 2) @default(0)
+  availableBalance Decimal  @db.Decimal(12, 2) @default(0)
+  reservedBalance  Decimal  @db.Decimal(12, 2) @default(0)
+  lifetimeEarned   Decimal  @db.Decimal(12, 2) @default(0)
+  lifetimePaid     Decimal  @db.Decimal(12, 2) @default(0)
+  updatedAt        DateTime @updatedAt
+
+  affiliate Affiliate @relation(fields: [affiliateId], references: [id], onDelete: Restrict)
+}
+
+model AffiliatePayout {
+  id             String       @id @default(cuid())
+  affiliateId    String
+  amount         Decimal      @db.Decimal(12, 2)
+  pixKey         String
+  status         PayoutStatus @default(REQUESTED)
+  idempotencyKey String
+  requestedAt    DateTime     @default(now())
+  reviewedBy     String?
+  reviewedAt     DateTime?
+  paidAt         DateTime?
+  failureReason  String?
+  adminNote      String?
+
+  affiliate     Affiliate              @relation(fields: [affiliateId], references: [id], onDelete: Restrict)
+  ledgerEntries AffiliateLedgerEntry[]
+
+  @@unique([affiliateId, idempotencyKey])
+  @@index([affiliateId, status])
 }
 
 model Campaign {
