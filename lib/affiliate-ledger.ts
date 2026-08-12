@@ -242,7 +242,7 @@ export async function reverseCommissionPartially(params: {
       where: { idempotencyKey },
     })
     if (existingEntry) {
-      return { reversedPartially: false as const, existingAmount: existingEntry.amount }
+      return { reversedPartially: false as const, existingAmount: existingEntry.amount.abs() }
     }
 
     // Buscar a comissão original

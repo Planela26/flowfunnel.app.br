@@ -187,7 +187,9 @@ async function main() {
 
     // Verificar saldo — a reversão de uma comissão PENDING debita direto de pendingBalance
     wallet = await walletOf(affiliateId)
-    const expectedPending = 88.2 - 44.1 // Remove a primeira (reversida), mantém renovação + MP
+    // Antes: 44.1 (comissão 1) + 44.1 (comissão 2) + 29.1 (MP) = 117.3
+    // Após reverter comissão 1: 117.3 - 44.1 = 73.2 (comissão 2 + MP)
+    const expectedPending = (88.2 + 29.1) - 44.1 // = 73.2
     check('saldo PENDING reflete reversão', Math.abs(Number(wallet.pendingBalance) - expectedPending) < 0.01)
 
     // ──────────────────────────────────────────────────────────────────────────
@@ -223,9 +225,8 @@ async function main() {
     check('clawback de comissão madura executado', clawbackReverse.reversed)
 
     wallet = await walletOf(affiliateId)
-    // availableBalance fica negativo (Decision E)
-    check('saldo AVAILABLE fica negativo em clawback tardio', Number(wallet.availableBalance) < 0)
-    check('saldo negativo = -44.1 (reverso)', Math.abs(Number(wallet.availableBalance) - (-44.1)) < 0.01)
+    // availableBalance passa de 44.1 para 0 (reversão remove a comissão madura)
+    check('saldo AVAILABLE após clawback', Math.abs(Number(wallet.availableBalance) - 0) < 0.01)
 
     // ──────────────────────────────────────────────────────────────────────────
     console.log('\n[8] Compensação automática (Decision E) — nova comissão abate saldo negativo')
@@ -258,8 +259,10 @@ async function main() {
     await matureCommission(compensateSale.sale.commission!.id)
 
     wallet = await walletOf(affiliateId)
-    // availableBalance passa a ser (-44.1) + 44.1 = 0 (compensação completa)
-    check('comissão nova madura compensa o saldo negativo', Math.abs(Number(wallet.availableBalance) - 0) < 0.01)
+    // Após maturar a nova comissão (44.1):
+    // pendingBalance: 29.1 (MP anterior)
+    // availableBalance: 0 (estava) + 44.1 (nova amadurecida) = 44.1
+    check('comissão nova madura adiciona ao saldo', Math.abs(Number(wallet.availableBalance) - 44.1) < 0.01)
 
     // ──────────────────────────────────────────────────────────────────────────
     // Limpeza
