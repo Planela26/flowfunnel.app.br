@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { createAffiliateWithWallet } from '@/lib/affiliate-ledger'
 
 export async function GET() {
   const session = await getServerSession(authOptions)
@@ -91,20 +92,25 @@ export async function POST(request: Request) {
   // Race-safe: a checagem prévia + create não é atômica. Em POSTs concorrentes
   // a constraint única pode disparar P2002 — em `userId` (já virou afiliado) ou
   // em `code` (colisão de código gerado). Retentamos o código; tratamos userId.
+  //
+  // Usa createAffiliateWithWallet (prismaAdmin) em vez do client de tenant:
+  // a AffiliateWallet criada junto (§3.1) não é gravável por app_rls de forma
+  // nenhuma (RLS revoga INSERT por completo — 20260811150000_add_affiliate_wallet_rls),
+  // então a transação Affiliate+Wallet só pode rodar via prismaAdmin. Ownership
+  // continua garantida por código: userId vem só da sessão já verificada acima.
   let affiliate
   for (let attempt = 0; attempt < 5; attempt++) {
     const code = await generateUniqueCode(codeBase)
     try {
-      affiliate = await prisma.affiliate.create({
-        data: {
-          name,
-          email,
-          code,
-          discountPercent: DEFAULT_DISCOUNT_PERCENT,
-          commissionPercent: DEFAULT_COMMISSION_PERCENT,
-          userId: session.user.id,
-        },
+      const created = await createAffiliateWithWallet({
+        name,
+        email,
+        code,
+        discountPercent: DEFAULT_DISCOUNT_PERCENT,
+        commissionPercent: DEFAULT_COMMISSION_PERCENT,
+        user: { connect: { id: session.user.id } },
       })
+      affiliate = created
       break
     } catch (e: any) {
       if (e?.code === 'P2002') {
