@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { getUncachableStripeClient } from '@/lib/stripeClient'
 import { prismaAdmin as prisma } from '@/lib/prisma'
 import { checkRateLimit } from '@/lib/security-utils'
+import { resolveCheckoutAffiliateId } from '@/lib/affiliate-attribution'
 
 const PLAN_PRICES: Record<string, string> = {
   START: process.env.STRIPE_PRICE_START || '',
@@ -56,7 +57,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
 
-    const { plan, couponCode, affiliateId } = await request.json()
+    const { plan, couponCode } = await request.json()
     const planKey = plan?.toUpperCase()
     const priceId = PLAN_PRICES[planKey]
 
@@ -68,7 +69,16 @@ export async function POST(request: Request) {
 
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { stripeCustomerId: true, email: true, name: true },
+      select: { stripeCustomerId: true, email: true, name: true, referredByAffiliateId: true },
+    })
+
+    // Atribuição de comissão — Fase 3 (§18/§24.4). NUNCA lê affiliateId do
+    // corpo da requisição. Prioridade: User.referredByAffiliateId já
+    // congelado (renovação/segunda compra do mesmo usuário) > cookie ff_attr
+    // verificado (HMAC) > null (checkout orgânico, sem afiliado).
+    const resolvedAffiliateId = resolveCheckoutAffiliateId({
+      request,
+      frozenAffiliateId: user?.referredByAffiliateId,
     })
 
     let customerId = user?.stripeCustomerId
@@ -87,9 +97,10 @@ export async function POST(request: Request) {
     }
 
     // ── Resolve Stripe coupon if coupon code provided ──
+    // couponCode continua vindo do cliente, mas só decide o DESCONTO — nunca
+    // mais a atribuição de comissão (essa já foi resolvida acima, server-side).
     let stripeCouponId: string | null = null
     let discountPercent: number | null = null
-    let resolvedAffiliateId: string | null = affiliateId || null
 
     if (couponCode) {
       const aff = await prisma.affiliate.findUnique({
@@ -99,7 +110,6 @@ export async function POST(request: Request) {
       if (aff?.status === 'ACTIVE' && aff.stripeCouponId) {
         stripeCouponId = aff.stripeCouponId
         discountPercent = Number(aff.discountPercent)
-        resolvedAffiliateId = aff.id
       }
     }
 

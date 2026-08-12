@@ -6,6 +6,7 @@ import { prismaAdmin as prisma } from '@/lib/prisma'
 import { checkRateLimit, getClientIp } from '@/lib/security-utils'
 import { createPreference, getPlanPrice, getPlanName } from '@/lib/mercadopago'
 import { Plan } from '@/lib/plans'
+import { getAttributionAffiliateId } from '@/lib/affiliate-attribution'
 
 const PLAN_KEYS: Record<string, Plan> = {
   START: 'START',
@@ -21,7 +22,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { plan, couponCode, affiliateId, email, cpf } = body
+    const { plan, couponCode, email, cpf } = body
     const planKey = plan?.toUpperCase()
     const planName = PLAN_KEYS[planKey]
 
@@ -34,27 +35,37 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Plano não disponível para pagamento' }, { status: 400 })
     }
 
-    // Validate coupon/affiliate and apply discount server-side
+    // Cookie de atribuição verificado (Fase 3, §18/§24.4) — nunca lemos
+    // affiliateId do corpo. Usado abaixo tanto para o desconto automático
+    // (preserva o comportamento existente: visitante rastreado por um
+    // afiliado ganha desconto mesmo sem digitar cupom) quanto, mais adiante,
+    // como fallback de atribuição de comissão.
+    const cookieAffiliateId = getAttributionAffiliateId(request)
+
+    // Desconto: cupom digitado manualmente tem prioridade; na ausência dele,
+    // cai para o afiliado rastreado pelo cookie — mesma UX de antes, só troca
+    // a fonte de confiança de "corpo da requisição" para "cookie assinado".
+    // Não decide atribuição de comissão — isso é resolvido mais abaixo,
+    // separadamente, depois que o userId estiver disponível.
     let discountPercent = 0
-    let validAffiliateId: string | null = null
+    let discountResolved = false
     if (couponCode) {
       const affiliate = await prisma.affiliate.findUnique({
         where: { code: couponCode.toUpperCase() },
-        select: { id: true, discountPercent: true, status: true },
+        select: { discountPercent: true, status: true },
       })
       if (affiliate && affiliate.status === 'ACTIVE') {
         discountPercent = Number(affiliate.discountPercent)
-        validAffiliateId = affiliate.id
+        discountResolved = true
       }
     }
-    if (!validAffiliateId && affiliateId) {
+    if (!discountResolved && cookieAffiliateId) {
       const affiliate = await prisma.affiliate.findUnique({
-        where: { id: affiliateId },
-        select: { id: true, discountPercent: true, status: true },
+        where: { id: cookieAffiliateId },
+        select: { discountPercent: true, status: true },
       })
       if (affiliate && affiliate.status === 'ACTIVE') {
         discountPercent = Number(affiliate.discountPercent)
-        validAffiliateId = affiliate.id
       }
     }
 
@@ -67,6 +78,11 @@ export async function POST(request: Request) {
     let payerEmail: string | null = session?.user?.email || email || null
     let payerName: string | undefined = session?.user?.name || undefined
 
+    // Atribuição de comissão — Fase 3 (§18/§24.4). NUNCA lê affiliateId do
+    // corpo. Prioridade: User.referredByAffiliateId já congelado > cookie
+    // ff_attr verificado > null (checkout orgânico).
+    let validAffiliateId: string | null = null
+
     if (!userId) {
       if (!payerEmail) {
         return NextResponse.json({ error: 'E-mail é obrigatório para realizar o pagamento' }, { status: 400 })
@@ -74,13 +90,22 @@ export async function POST(request: Request) {
       // Procurar usuário existente pelo email
       const existingUser = await prisma.user.findUnique({
         where: { email: payerEmail },
-        select: { id: true, name: true },
+        select: { id: true, name: true, referredByAffiliateId: true },
       })
       if (existingUser) {
         userId = existingUser.id
         payerName = existingUser.name || payerName
+        validAffiliateId = existingUser.referredByAffiliateId
       }
+    } else {
+      const existingUser = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { referredByAffiliateId: true },
+      })
+      validAffiliateId = existingUser?.referredByAffiliateId ?? null
     }
+
+    if (!validAffiliateId) validAffiliateId = cookieAffiliateId
 
     if (!payerEmail) {
       return NextResponse.json({ error: 'E-mail é obrigatório' }, { status: 400 })

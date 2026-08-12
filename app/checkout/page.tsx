@@ -266,13 +266,11 @@ function PaymentBrickCheckout({
   plan,
   amount,
   couponCode,
-  affiliateId,
   onPaid,
 }: {
   plan: string
   amount: number
   couponCode?: string | null
-  affiliateId?: string | null
   onPaid: (plan: string) => void
 }) {
   const sdkReady = useMercadoPagoSdk()
@@ -287,10 +285,10 @@ function PaymentBrickCheckout({
   const [copied, setCopied] = useState(false)
   const [polling, setPolling] = useState(false)
 
-  const dataRef = useRef({ plan, amount, couponCode, affiliateId })
+  const dataRef = useRef({ plan, amount, couponCode })
   useEffect(() => {
-    dataRef.current = { plan, amount, couponCode, affiliateId }
-  }, [plan, amount, couponCode, affiliateId])
+    dataRef.current = { plan, amount, couponCode }
+  }, [plan, amount, couponCode])
 
   const idemKeyRef = useRef<string | null>(null)
   const purchaseFiredRef = useRef(false)
@@ -379,7 +377,6 @@ function PaymentBrickCheckout({
                 body: JSON.stringify({
                   plan: d.plan,
                   couponCode: d.couponCode || null,
-                  affiliateId: d.affiliateId || null,
                   idempotencyKey: idemKeyRef.current,
                   token: formData.token || null,
                   payment_method_id: formData.payment_method_id,
@@ -587,7 +584,6 @@ function CheckoutInner({ planKey }: { planKey: string }) {
     window.fbq('track', 'InitiateCheckout', { value: price, currency: 'BRL', content_name: planKey }, { eventID: eventId })
   }, [price, planKey])
 
-  const [affiliateId, setAffiliateId] = useState<string | null>(null)
   const [discountPercent, setDiscountPercent] = useState(0)
   const [paidPlan, setPaidPlan] = useState<string | null>(null)
 
@@ -599,24 +595,34 @@ function CheckoutInner({ planKey }: { planKey: string }) {
 
   const searchParams = useSearchParams()
 
-  // On mount: auto-apply affiliate code from the URL (?ref/?aff/?code) or, as
-  // fallback, from a previously saved code in localStorage. The URL code wins
-  // (link de afiliado recém-clicado) e fica persistido para futuras visitas.
+  // On mount: auto-apply affiliate code from the URL (?ref/?aff/?code) — link
+  // de afiliado recém-clicado, ganha sempre. Se não houver código na URL,
+  // pré-visualiza o desconto de uma atribuição já existente (cookie ff_attr,
+  // httpOnly — não lemos o cookie aqui, só o resultado público via
+  // /api/affiliates/attribution). Isto é só para a UI mostrar o desconto —
+  // NUNCA é o que decide a comissão no servidor (Fase 3, §18/§24.7).
   useEffect(() => {
     if (typeof window === 'undefined') return
-    const fromUrl = searchParams.get('ref') || searchParams.get('aff') || searchParams.get('code')
-    const code = (fromUrl || localStorage.getItem('affiliate_code') || '').trim()
-    if (!code) return
-    fetch('/api/affiliates/validate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code }),
-    }).then(r => r.json()).then(data => {
-      if (data.valid) {
+    const fromUrl = (searchParams.get('ref') || searchParams.get('aff') || searchParams.get('code') || '').trim()
+
+    if (fromUrl) {
+      fetch('/api/affiliates/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: fromUrl }),
+      }).then(r => r.json()).then(data => {
+        if (data.valid) {
+          setAppliedCoupon({ code: data.affiliate.code, name: data.affiliate.name, discount: data.affiliate.discountPercent })
+          setDiscountPercent(data.affiliate.discountPercent)
+        }
+      }).catch(() => {})
+      return
+    }
+
+    fetch('/api/affiliates/attribution').then(r => r.json()).then(data => {
+      if (data.attributed) {
         setAppliedCoupon({ code: data.affiliate.code, name: data.affiliate.name, discount: data.affiliate.discountPercent })
-        setAffiliateId(data.affiliate.id)
         setDiscountPercent(data.affiliate.discountPercent)
-        localStorage.setItem('affiliate_code', data.affiliate.code)
       }
     }).catch(() => {})
   }, [searchParams])
@@ -634,11 +640,9 @@ function CheckoutInner({ planKey }: { planKey: string }) {
       const data = await res.json()
       if (!data.valid) { setCouponError(data.error || 'Código inválido'); setCouponLoading(false); return }
       setAppliedCoupon({ code: data.affiliate.code, name: data.affiliate.name, discount: data.affiliate.discountPercent })
-      setAffiliateId(data.affiliate.id)
       setDiscountPercent(data.affiliate.discountPercent)
       setCouponInput('')
       setCouponError('')
-      localStorage.setItem('affiliate_code', data.affiliate.code)
     } catch {
       setCouponError('Erro ao validar o código')
     }
@@ -647,9 +651,7 @@ function CheckoutInner({ planKey }: { planKey: string }) {
 
   const removeCoupon = () => {
     setAppliedCoupon(null)
-    setAffiliateId(null)
     setDiscountPercent(0)
-    localStorage.removeItem('affiliate_code')
   }
 
   const discountedPrice = discountPercent > 0
@@ -786,7 +788,6 @@ function CheckoutInner({ planKey }: { planKey: string }) {
                   plan={planKey}
                   amount={discountedPrice}
                   couponCode={appliedCoupon?.code || null}
-                  affiliateId={affiliateId}
                   onPaid={(plan) => setPaidPlan(plan)}
                 />
               ) : (
