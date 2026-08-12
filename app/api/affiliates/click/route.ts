@@ -2,14 +2,15 @@ import { NextResponse } from 'next/server'
 import { prismaAdmin as prisma } from '@/lib/prisma'
 import { headers } from 'next/headers'
 import { checkRateLimit, getClientIp } from '@/lib/security-utils'
+import { setAttributionCookie } from '@/lib/affiliate-attribution'
 
-// Nota de escopo: AffiliateClick NÃO alimenta comissão. AffiliateCommission
-// só é criada por app/api/affiliates/sale (admin-only, requer processor +
-// externalPaymentId únicos de uma cobrança real) ou pelo webhook (Fase 2,
-// ainda não implementado). Este endpoint só
-// grava uma métrica de clique exibida no dashboard do próprio afiliado
-// (app/api/affiliate/me/*) — não move dinheiro. Mesmo assim, aplicamos rate
-// limit e dedup para não deixar a métrica ser inflada trivialmente.
+// Nota de escopo: AffiliateClick em si NÃO alimenta comissão — é telemetria
+// (dashboard do próprio afiliado, app/api/affiliate/me/*). Desde a Fase 3,
+// esta rota também emite o cookie ff_attr assinado (lib/affiliate-attribution.ts),
+// que É a fonte de verdade da atribuição usada nos checkouts — não o
+// affiliateId aceito aqui no corpo, que continua existindo só para registrar
+// o clique em si. Mesmo assim, aplicamos rate limit e dedup para não deixar
+// a métrica ser inflada trivialmente.
 const CLICK_DEDUP_WINDOW_MS = 10 * 60_000
 
 export async function POST(request: Request) {
@@ -54,7 +55,9 @@ export async function POST(request: Request) {
       })
     }
 
-    return NextResponse.json({ ok: true })
+    const response = NextResponse.json({ ok: true })
+    setAttributionCookie(response, affiliateId)
+    return response
   } catch (error: any) {
     return NextResponse.json({ error: 'Não foi possível registrar o clique.' }, { status: 500 })
   }

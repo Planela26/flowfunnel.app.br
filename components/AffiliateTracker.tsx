@@ -20,7 +20,9 @@ export function AffiliateTracker() {
       .then(r => r.json())
       .then(data => {
         if (!data.valid) return
-        localStorage.setItem('affiliate_code', data.affiliate.code)
+        // A persistência da atribuição não é mais responsabilidade do
+        // cliente — /api/affiliates/click grava o cookie ff_attr (httpOnly,
+        // assinado) na resposta (Fase 3, §18.3 do desenho).
         return fetch('/api/affiliates/click', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

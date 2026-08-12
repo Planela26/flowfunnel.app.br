@@ -7,6 +7,7 @@ import { checkRateLimit, getClientIp } from '@/lib/security-utils'
 import { createPayment, getPlanPrice, getPlanName } from '@/lib/mercadopago'
 import { Plan } from '@/lib/plans'
 import { randomUUID } from 'crypto'
+import { getAttributionAffiliateId } from '@/lib/affiliate-attribution'
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -31,7 +32,6 @@ export async function POST(request: Request) {
     const {
       plan,
       couponCode,
-      affiliateId,
       idempotencyKey,
       // Payment Brick formData
       token,
@@ -63,27 +63,32 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Plano não disponível para pagamento' }, { status: 400 })
     }
 
-    // Validate coupon/affiliate and apply discount server-side
+    // Cookie de atribuição verificado (Fase 3, §18/§24.4) — nunca lemos
+    // affiliateId do corpo. Mesmo padrão de app/api/mercadopago/create-preference.
+    const cookieAffiliateId = getAttributionAffiliateId(request)
+
+    // Desconto: cupom digitado manualmente tem prioridade; na ausência dele,
+    // cai para o afiliado rastreado pelo cookie. Não decide atribuição de
+    // comissão — isso é resolvido separadamente, depois do userId.
     let discountPercent = 0
-    let validAffiliateId: string | null = null
+    let discountResolved = false
     if (couponCode) {
       const affiliate = await prisma.affiliate.findUnique({
         where: { code: couponCode.toUpperCase() },
-        select: { id: true, discountPercent: true, status: true },
+        select: { discountPercent: true, status: true },
       })
       if (affiliate && affiliate.status === 'ACTIVE') {
         discountPercent = Number(affiliate.discountPercent)
-        validAffiliateId = affiliate.id
+        discountResolved = true
       }
     }
-    if (!validAffiliateId && affiliateId) {
+    if (!discountResolved && cookieAffiliateId) {
       const affiliate = await prisma.affiliate.findUnique({
-        where: { id: affiliateId },
-        select: { id: true, discountPercent: true, status: true },
+        where: { id: cookieAffiliateId },
+        select: { discountPercent: true, status: true },
       })
       if (affiliate && affiliate.status === 'ACTIVE') {
         discountPercent = Number(affiliate.discountPercent)
-        validAffiliateId = affiliate.id
       }
     }
 
@@ -96,19 +101,32 @@ export async function POST(request: Request) {
     let payerEmail: string | null = session?.user?.email || payer?.email || null
     let payerName: string | undefined = session?.user?.name || undefined
 
+    // Atribuição de comissão — Fase 3 (§18/§24.4). Prioridade:
+    // User.referredByAffiliateId já congelado > cookie ff_attr > null.
+    let validAffiliateId: string | null = null
+
     if (!userId) {
       if (!payerEmail) {
         return NextResponse.json({ error: 'E-mail é obrigatório para realizar o pagamento' }, { status: 400 })
       }
       const existingUser = await prisma.user.findUnique({
         where: { email: payerEmail },
-        select: { id: true, name: true },
+        select: { id: true, name: true, referredByAffiliateId: true },
       })
       if (existingUser) {
         userId = existingUser.id
         payerName = existingUser.name || payerName
+        validAffiliateId = existingUser.referredByAffiliateId
       }
+    } else {
+      const existingUser = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { referredByAffiliateId: true },
+      })
+      validAffiliateId = existingUser?.referredByAffiliateId ?? null
     }
+
+    if (!validAffiliateId) validAffiliateId = cookieAffiliateId
 
     if (!payerEmail) {
       return NextResponse.json({ error: 'E-mail é obrigatório' }, { status: 400 })

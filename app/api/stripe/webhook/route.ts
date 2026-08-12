@@ -5,6 +5,7 @@ import { sendSaleNotificationEmail, sendWelcomeEmail, sendTrialWillEndEmail, sen
 import { claimStripeEvent, releaseStripeEvent } from '@/lib/stripe-dedup'
 import { logAudit } from '@/lib/audit'
 import { sendMetaCapiEvent } from '@/lib/meta-capi'
+import { createCommissionFromSale, reverseCommission, reverseCommissionPartially } from '@/lib/affiliate-ledger'
 
 export async function POST(request: Request) {
   try {
@@ -69,13 +70,49 @@ async function syncUserPlan(event: any, stripe: any, request: Request) {
     const u = cid
       ? await prisma.user.findFirst({ where: { stripeCustomerId: cid }, select: { id: true } })
       : null
-    const fullyRefunded = Boolean(charge.refunded) || charge.amount_refunded >= charge.amount
+
+    const chargeAmount = charge.amount || 0 // centavos
+    const refundedAmount = charge.amount_refunded || 0 // centavos
+    const fullyRefunded = Boolean(charge.refunded) || refundedAmount >= chargeAmount
 
     if (fullyRefunded && cid) {
       await prisma.user.updateMany({
         where: { stripeCustomerId: cid },
         data: { plan: 'FREE', subscriptionStatus: 'refunded', gracePeriodEndsAt: null },
       })
+    }
+
+    // Fase 4 — Reversão proporcional de comissão em reembolso (Decisão B).
+    // Reembolso total → reverter 100% da comissão.
+    // Reembolso parcial → reverter proporcionalmente.
+    if (refundedAmount > 0 && charge.id) {
+      try {
+        const sale = await prisma.affiliateSale.findFirst({
+          where: { externalPaymentId: charge.id, processor: 'STRIPE' },
+          select: { commission: { select: { id: true } }, originalAmount: true },
+        })
+        if (sale?.commission && Number(sale.originalAmount) > 0) {
+          if (fullyRefunded) {
+            // Reembolso total: reverter 100%
+            const idempotencyKey = `reverse:STRIPE:${charge.id}`
+            await reverseCommission(sale.commission.id, `Full refund of charge ${charge.id}`, idempotencyKey).catch(
+              (err) => console.error(`[stripe/webhook] failed to reverse commission (full): ${err.message}`),
+            )
+          } else {
+            // Reembolso parcial: reverter proporcionalmente (Decisão B)
+            const originalAmount = Math.round(Number(sale.originalAmount) * 100) // converte para centavos se necessário
+            await reverseCommissionPartially({
+              commissionId: sale.commission.id,
+              originalChargeAmount: chargeAmount,
+              refundedAmount,
+              refundId: charge.id,
+              reason: `Partial refund of charge`,
+            }).catch((err) => console.error(`[stripe/webhook] failed to reverse commission (partial): ${err.message}`))
+          }
+        }
+      } catch (err) {
+        console.error('[stripe/webhook] error checking/reversing commission on refund:', err)
+      }
     }
 
     await logAudit({
@@ -86,7 +123,7 @@ async function syncUserPlan(event: any, stripe: any, request: Request) {
       entityId: charge.id,
       request,
       metadata: {
-        amount: (charge.amount_refunded || 0) / 100,
+        amount: refundedAmount / 100,
         customerId: cid,
         fullyRefunded,
         planDowngraded: fullyRefunded,
@@ -103,6 +140,7 @@ async function syncUserPlan(event: any, stripe: any, request: Request) {
     // `dispute.charge` normalmente vem como ID (string), não expandido —
     // é preciso buscar a cobrança para chegar ao customer.
     let cid: string | null = dispute.customer ?? null
+    let chargeId: string | null = typeof dispute.charge === 'string' ? dispute.charge : null
     if (!cid && typeof dispute.charge === 'string') {
       try {
         const charge = await stripe.charges.retrieve(dispute.charge)
@@ -122,6 +160,34 @@ async function syncUserPlan(event: any, stripe: any, request: Request) {
         where: { stripeCustomerId: cid },
         data: { plan: 'FREE', subscriptionStatus: 'disputed', gracePeriodEndsAt: null },
       })
+    }
+
+    // Fase 4 — Reversão de comissão em chargeback. Mesma lógica de refund,
+    // mas disputa pode resultar em clawback tardio (já madura).
+    if (chargeId) {
+      try {
+        const sale = await prisma.affiliateSale.findFirst({
+          where: { externalPaymentId: chargeId, processor: 'STRIPE' },
+          select: { commission: { select: { id: true } } },
+        })
+        if (sale?.commission) {
+          const idempotencyKey = `reverse:STRIPE:chargeback:${dispute.id}`
+          await reverseCommission(sale.commission.id, `Chargeback dispute ${dispute.id}`, idempotencyKey).catch(
+            (err) => console.error(`[stripe/webhook] failed to reverse commission: ${err.message}`),
+          )
+          await logAudit({
+            action: 'affiliate.commission.reversed',
+            result: 'success',
+            userId: u?.id ?? null,
+            entityType: 'Dispute',
+            entityId: dispute.id,
+            request,
+            metadata: { reason: 'chargeback', disputeId: dispute.id, chargeId },
+          })
+        }
+      } catch (err) {
+        console.error('[stripe/webhook] error checking/reversing commission on chargeback:', err)
+      }
     }
 
     await logAudit({
@@ -366,8 +432,99 @@ async function syncUserPlan(event: any, stripe: any, request: Request) {
     try {
       const user = await prisma.user.findFirst({
         where: { stripeCustomerId: customerId },
-        select: { id: true, email: true, name: true },
+        select: { id: true, email: true, name: true, referredByAffiliateId: true },
       })
+
+      // ── Fase 4: Comissão de afiliado — integração de Fase 3 (atribuição segura) com Fase 2 (engine)
+      // Determinação do afiliado: prioridade (1) User.referredByAffiliateId congelado (renovação/segunda compra)
+      // (2) affiliateId no metadata da subscription (primeira conversão, resolvido no checkout via cookie)
+      // (3) null (checkout orgânico).
+      let affiliateIdForCommission: string | null = user?.referredByAffiliateId ?? null
+      let saleType: 'INITIAL' | 'RENEWAL' = 'INITIAL'
+
+      if (!affiliateIdForCommission && invoice.subscription) {
+        try {
+          const sub = await stripe.subscriptions.retrieve(invoice.subscription)
+          affiliateIdForCommission = sub.metadata?.affiliateId ?? null
+          // Detecção de renovação: se a subscription tem múltiplas invoices pagas, esta não é a primeira.
+          // Simplificado: invoices.data[0] é a mais recente; se temos mais de uma, é renovação.
+          if (sub.metadata?.affiliateId && invoice.id !== sub.latest_invoice) {
+            saleType = 'RENEWAL'
+          }
+        } catch (err) {
+          console.error('[stripe/webhook] erro ao buscar subscription:', err)
+        }
+      }
+
+      // Criar comissão apenas se houver afiliado válido e não for autoindicação
+      if (affiliateIdForCommission && user?.id && amount > 0) {
+        try {
+          const affiliate = await prisma.affiliate.findUnique({
+            where: { id: affiliateIdForCommission },
+            select: { userId: true, status: true },
+          })
+
+          // Bloqueia autoindicação (self-referral): afiliado não pode lucrar vendendo para si mesmo
+          if (affiliate && affiliate.status === 'ACTIVE' && affiliate.userId !== user.id) {
+            const originalAmount = (invoice.total || 0) / 100
+            const result = await createCommissionFromSale({
+              affiliateId: affiliateIdForCommission,
+              userId: user.id,
+              processor: 'STRIPE',
+              externalPaymentId: invoice.id,
+              externalSubscriptionId: invoice.subscription ?? undefined,
+              type: saleType,
+              plan,
+              originalAmount,
+              discountedAmount: amount,
+            })
+
+            if (result.created) {
+              console.log(
+                `✅ Comissão criada: afiliado ${affiliateIdForCommission}, venda ${invoice.id}, ` +
+                `R$${amount} (${saleType}), pendente por 15 dias`,
+              )
+              await logAudit({
+                action: 'affiliate.commission.created',
+                result: 'success',
+                userId: user.id,
+                entityType: 'AffiliateSale',
+                entityId: result.sale.id,
+                request,
+                metadata: {
+                  affiliateId: affiliateIdForCommission,
+                  invoiceId: invoice.id,
+                  amount,
+                  saleType,
+                  commissionAmount: Number(result.sale.commission?.amount ?? 0),
+                },
+              })
+            }
+          } else if (affiliate?.userId === user.id) {
+            // Self-referral bloqueado
+            console.log(
+              `⚠️ Self-referral bloqueado: usuário ${user.id} tentou se autoreferencia via ` +
+              `afiliado ${affiliateIdForCommission}`,
+            )
+            await logAudit({
+              action: 'affiliate.commission.blocked',
+              result: 'success',
+              userId: user.id,
+              entityType: 'Invoice',
+              entityId: invoice.id,
+              request,
+              metadata: { reason: 'self_referral', affiliateId: affiliateIdForCommission, invoiceId: invoice.id },
+            })
+          } else if (affiliate?.status !== 'ACTIVE') {
+            console.log(`⏭️ Afiliado inativo: ${affiliateIdForCommission}, sem comissão`)
+          }
+        } catch (err) {
+          console.error('[stripe/webhook] erro ao criar comissão:', err)
+          // Não falhar o webhook por causa de erro de comissão — billing tem prioridade.
+          // Comissão pode ser criada manualmente depois se necessário.
+        }
+      }
+
       if (user?.email) {
         sendSaleNotificationEmail(user.email, user.name || '', plan, amount).catch(() => {})
       }
@@ -378,7 +535,7 @@ async function syncUserPlan(event: any, stripe: any, request: Request) {
         entityType: 'Invoice',
         entityId: invoice.id ?? null,
         request,
-        metadata: { amount, plan, customerId },
+        metadata: { amount, plan, customerId, affiliateId: affiliateIdForCommission ?? undefined },
       })
 
       // ── Meta Purchase (CAPI) — fired ONLY here, after real payment confirmation.

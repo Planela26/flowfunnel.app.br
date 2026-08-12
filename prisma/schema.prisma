@@ -400,6 +400,7 @@ model Affiliate {
   commissionPercent Decimal         @db.Decimal(5, 2)
   stripeCouponId    String?
   status            AffiliateStatus @default(ACTIVE)
+  pixKey            String?         // cadastrado pelo próprio afiliado; POST /wallet/payout lê daqui, nunca do corpo do pedido de saque (§9/§24.6)
   userId            String?         @unique
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt

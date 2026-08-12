@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prismaAdmin as prisma } from '@/lib/prisma'
 import { getUncachableStripeClient } from '@/lib/stripeClient'
 import { requireAdmin } from '@/lib/requireAdmin'
+import { createAffiliateWithWallet } from '@/lib/affiliate-ledger'
 
 export async function GET() {
   try {
@@ -75,15 +76,13 @@ export async function POST(request: Request) {
       metadata: { affiliateCode: upperCode },
     })
 
-    const affiliate = await prisma.affiliate.create({
-      data: {
-        name,
-        email: email || null,
-        code: upperCode,
-        discountPercent: dp,
-        commissionPercent: cp,
-        stripeCouponId: coupon.id,
-      },
+    const affiliate = await createAffiliateWithWallet({
+      name,
+      email: email || null,
+      code: upperCode,
+      discountPercent: dp,
+      commissionPercent: cp,
+      stripeCouponId: coupon.id,
     })
 
     return NextResponse.json({ affiliate }, { status: 201 })
