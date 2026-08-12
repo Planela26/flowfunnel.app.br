@@ -5,6 +5,7 @@ import { logAudit } from '@/lib/audit'
 import { sendWelcomeEmail } from '@/lib/email'
 import { claimMercadoPagoEvent, releaseMercadoPagoEvent } from '@/lib/mercadopago-dedup'
 import { sendMetaCapiEvent } from '@/lib/meta-capi'
+import { createCommissionFromSale, reverseCommission } from '@/lib/affiliate-ledger'
 
 /**
  * Verify Mercado Pago webhook signature.
@@ -179,6 +180,80 @@ async function processPayment(request: Request, payment: any) {
         data: { plan: planKey, subscriptionStatus: 'active', gracePeriodEndsAt: null },
       })
 
+      // ── Fase 4: Comissão de afiliado — integração de Fase 3 (atribuição segura) com Fase 2 (engine)
+      // Mercado Pago: cada payment.approved é INITIAL (sem renovação automática — Seção 4.0.3).
+      // Determinação do afiliado: prioridade (1) User.referredByAffiliateId congelado
+      // (2) affiliateId da external_reference (verificado aqui, resolvido no checkout via cookie)
+      // (3) null.
+      let affiliateIdForCommission: string | null = user.referredByAffiliateId ?? null
+      if (!affiliateIdForCommission) {
+        affiliateIdForCommission = affiliateId // Do external_reference, se houver
+      }
+
+      if (affiliateIdForCommission && payment.transaction_amount > 0) {
+        try {
+          const affiliate = await prisma.affiliate.findUnique({
+            where: { id: affiliateIdForCommission },
+            select: { userId: true, status: true },
+          })
+
+          // Bloqueia autoindicação (self-referral)
+          if (affiliate && affiliate.status === 'ACTIVE' && affiliate.userId !== userId) {
+            const result = await createCommissionFromSale({
+              affiliateId: affiliateIdForCommission,
+              userId,
+              processor: 'MERCADOPAGO',
+              externalPaymentId: String(payment.id),
+              type: 'INITIAL', // MP não tem renovação automática (Seção 4.0.3)
+              plan: planKey,
+              originalAmount: payment.transaction_amount,
+              discountedAmount: payment.transaction_amount,
+            })
+
+            if (result.created) {
+              console.log(
+                `✅ Comissão criada: afiliado ${affiliateIdForCommission}, MP payment ${payment.id}, ` +
+                `R$${payment.transaction_amount} (INITIAL), pendente por 15 dias`,
+              )
+              await logAudit({
+                action: 'affiliate.commission.created',
+                result: 'success',
+                userId,
+                entityType: 'AffiliateSale',
+                entityId: result.sale.id,
+                request,
+                metadata: {
+                  affiliateId: affiliateIdForCommission,
+                  paymentId: payment.id,
+                  amount: payment.transaction_amount,
+                  saleType: 'INITIAL',
+                  commissionAmount: Number(result.sale.commission?.amount ?? 0),
+                },
+              })
+            }
+          } else if (affiliate?.userId === userId) {
+            console.log(
+              `⚠️ Self-referral bloqueado: usuário ${userId} tentou se autoreferencia via ` +
+              `afiliado ${affiliateIdForCommission}`,
+            )
+            await logAudit({
+              action: 'affiliate.commission.blocked',
+              result: 'success',
+              userId,
+              entityType: 'Payment',
+              entityId: String(payment.id),
+              request,
+              metadata: { reason: 'self_referral', affiliateId: affiliateIdForCommission, paymentId: payment.id },
+            })
+          } else if (affiliate?.status !== 'ACTIVE') {
+            console.log(`⏭️ Afiliado inativo: ${affiliateIdForCommission}, sem comissão`)
+          }
+        } catch (err) {
+          console.error('[mercadopago/webhook] erro ao criar comissão:', err)
+          // Não falhar o webhook por comissão — billing tem prioridade
+        }
+      }
+
       await logAudit({
         action: 'billing.plan_change',
         result: 'success',
@@ -191,7 +266,7 @@ async function processPayment(request: Request, payment: any) {
           paymentMethod: 'mercadopago',
           paymentId: payment.id,
           amount: payment.transaction_amount,
-          affiliateId,
+          affiliateId: affiliateIdForCommission ?? undefined,
         },
       })
 
@@ -238,6 +313,31 @@ async function processPayment(request: Request, payment: any) {
           data: { plan: 'FREE', subscriptionStatus: 'cancelled', gracePeriodEndsAt: null },
         })
 
+        // Fase 4 — Reversão de comissão em refund/cancel
+        try {
+          const sale = await prisma.affiliateSale.findFirst({
+            where: { externalPaymentId: String(payment.id), processor: 'MERCADOPAGO' },
+            select: { commission: { select: { id: true } } },
+          })
+          if (sale?.commission) {
+            const idempotencyKey = `reverse:MERCADOPAGO:${payment.id}`
+            await reverseCommission(sale.commission.id, `${payment.status} of payment ${payment.id}`, idempotencyKey).catch(
+              (err) => console.error(`[mercadopago/webhook] failed to reverse commission: ${err.message}`),
+            )
+            await logAudit({
+              action: 'affiliate.commission.reversed',
+              result: 'success',
+              userId,
+              entityType: 'Payment',
+              entityId: String(payment.id),
+              request,
+              metadata: { reason: payment.status, paymentId: payment.id },
+            })
+          }
+        } catch (err) {
+          console.error('[mercadopago/webhook] error checking/reversing commission on refund:', err)
+        }
+
         await logAudit({
           action: 'billing.plan_change',
           result: 'success',
@@ -256,6 +356,64 @@ async function processPayment(request: Request, payment: any) {
         console.log(`⚠️ Plano ${planKey} cancelado/reembolsado para usuário ${userId}, downgrade para FREE`)
       } else {
         console.log(`⏭️ Refund/cancel de ${planKey} ignorado: plano atual do usuário ${userId} é ${current?.plan}`)
+      }
+    } else if (payment.status === 'charged_back') {
+      // Fase 4 — Chargeback do Mercado Pago (achado da auditoria anterior, Seção 4.4).
+      // Mesmo tratamento que refund: downgrade e reversão de comissão.
+      const current = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { plan: true },
+      })
+      if (current?.plan === planKey) {
+        await prisma.user.update({
+          where: { id: userId },
+          data: { plan: 'FREE', subscriptionStatus: 'disputed', gracePeriodEndsAt: null },
+        })
+
+        // Reversão de comissão em chargeback
+        try {
+          const sale = await prisma.affiliateSale.findFirst({
+            where: { externalPaymentId: String(payment.id), processor: 'MERCADOPAGO' },
+            select: { commission: { select: { id: true } } },
+          })
+          if (sale?.commission) {
+            const idempotencyKey = `reverse:MERCADOPAGO:chargeback:${payment.id}`
+            await reverseCommission(sale.commission.id, `Chargeback of payment ${payment.id}`, idempotencyKey).catch(
+              (err) => console.error(`[mercadopago/webhook] failed to reverse commission: ${err.message}`),
+            )
+            await logAudit({
+              action: 'affiliate.commission.reversed',
+              result: 'success',
+              userId,
+              entityType: 'Payment',
+              entityId: String(payment.id),
+              request,
+              metadata: { reason: 'charged_back', paymentId: payment.id },
+            })
+          }
+        } catch (err) {
+          console.error('[mercadopago/webhook] error checking/reversing commission on chargeback:', err)
+        }
+
+        await logAudit({
+          action: 'billing.chargeback',
+          result: 'success',
+          userId,
+          entityType: 'Payment',
+          entityId: String(payment.id),
+          request,
+          metadata: {
+            plan: 'FREE',
+            reason: 'charged_back',
+            paymentMethod: 'mercadopago',
+            paymentId: payment.id,
+            amount: payment.transaction_amount,
+          },
+        })
+
+        console.log(`⚠️ Chargeback para usuário ${userId} (payment ${payment.id}), plano downgrade para FREE`)
+      } else {
+        console.log(`⏭️ Chargeback de ${planKey} ignorado: plano atual do usuário ${userId} é ${current?.plan}`)
       }
     }
 

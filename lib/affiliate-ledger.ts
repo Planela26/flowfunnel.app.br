@@ -178,16 +178,9 @@ export async function matureCommission(commissionId: string) {
 }
 
 // ────────────────────────────────────────────────────────────────────────
-// Reversão — refund/chargeback confirmado. Debita a conta onde a comissão
-// estiver hoje (PENDING ou AVAILABLE), lida atomicamente para evitar corrida
-// com a maturação (§24.2, item 12). `idempotencyKey` deve ser
-// `reverse:${processor}:${refundOrDisputeObjectId}` (§6) — quem chama (Fase
-// 4/5, handler de webhook) é responsável por montar essa chave; este módulo
-// não presume formato de processador.
-//
-// Se a comissão ainda não existir quando o evento de estorno chegar (webhook
-// fora de ordem, §24.2), o CHAMADOR deve tratar isso ANTES de invocar esta
-// função — aqui já se assume que `commissionId` é conhecido.
+// Reversão completa — refund/chargeback confirmado. Debita a conta onde a
+// comissão estiver hoje (PENDING ou AVAILABLE). Idempotente por
+// idempotencyKey.
 // ────────────────────────────────────────────────────────────────────────
 export async function reverseCommission(
   commissionId: string,
@@ -212,7 +205,117 @@ export async function reverseCommission(
       )
     `
     requireWalletRow(walletRows, `reverse commissionId=${commissionId}`)
-    return { reversed: true as const }
+    return { reversed: true as const, commission: rows[0] }
+  })
+}
+
+// ────────────────────────────────────────────────────────────────────────
+// Reversão proporcional — reembolso parcial. Calcula a proporção do valor
+// reembolsado e reverte apenas essa parcela da comissão. Idempotente por
+// refundId (§6, Decisão B — reembolso parcial). Protege contra:
+// - Múltiplos refunds parciais somando até 100%
+// - Tentativa de refund acima do valor original
+// - Replay do mesmo refund (via idempotencyKey)
+// ────────────────────────────────────────────────────────────────────────
+export async function reverseCommissionPartially(params: {
+  commissionId: string
+  originalChargeAmount: number // O valor total original da cobrança (em centavos ou unidade base)
+  refundedAmount: number // O valor reembolsado neste evento (mesma unidade)
+  refundId: string // ID único do reembolso (Stripe refund.id, MP refund id, etc.)
+  reason: string // Descrição do motivo
+}) {
+  const { commissionId, originalChargeAmount, refundedAmount, refundId, reason } = params
+
+  // Validação básica
+  if (originalChargeAmount <= 0 || refundedAmount <= 0) {
+    throw new Error('originalChargeAmount e refundedAmount devem ser positivos')
+  }
+  if (refundedAmount > originalChargeAmount) {
+    throw new Error(`refundedAmount (${refundedAmount}) não pode ultrapassar originalChargeAmount (${originalChargeAmount})`)
+  }
+
+  const idempotencyKey = `reverse-partial:${refundId}`
+
+  return prismaAdmin.$transaction(async (tx) => {
+    // Verificar se já existe reversão para este refund (idempotência)
+    const existingEntry = await tx.affiliateLedgerEntry.findUnique({
+      where: { idempotencyKey },
+    })
+    if (existingEntry) {
+      return { reversedPartially: false as const, existingAmount: existingEntry.amount }
+    }
+
+    // Buscar a comissão original
+    const commission = await tx.affiliateCommission.findUnique({
+      where: { id: commissionId },
+      select: { affiliateId: true, amount: true, status: true, saleId: true },
+    })
+    if (!commission) {
+      throw new Error(`Comissão ${commissionId} não encontrada`)
+    }
+
+    // Buscar a venda para obter o valor original
+    const sale = await tx.affiliateSale.findUnique({
+      where: { id: commission.saleId },
+      select: { originalAmount: true },
+    })
+    if (!sale) {
+      throw new Error(`Venda associada à comissão não encontrada`)
+    }
+
+    // Calcular a proporção a reverter
+    const proportion = new Prisma.Decimal(refundedAmount).div(originalChargeAmount)
+    const amountToReverse = new Prisma.Decimal(commission.amount).mul(proportion)
+
+    // Verificar que a soma de reembolsos não ultrapassa a comissão original
+    const previousReversals = await tx.affiliateLedgerEntry.aggregate({
+      where: {
+        commissionId,
+        type: 'COMMISSION_REVERSE',
+      },
+      _sum: { amount: true },
+    })
+    const totalReversed = (previousReversals._sum.amount ?? new Prisma.Decimal(0)).abs()
+    const projectedTotal = totalReversed.add(amountToReverse)
+
+    if (projectedTotal.gt(commission.amount)) {
+      throw new Error(
+        `Reembolsos acumulados (${projectedTotal}) não podem ultrapassar comissão original (${commission.amount})`,
+      )
+    }
+
+    // Determinar de qual conta debitar (PENDING ou AVAILABLE)
+    const account = commission.status === 'AVAILABLE' ? 'AVAILABLE' : 'PENDING'
+
+    // Criar entrada de reversão no ledger
+    await tx.affiliateLedgerEntry.create({
+      data: {
+        affiliateId: commission.affiliateId,
+        account,
+        amount: amountToReverse.mul(-1), // Negativo = débito
+        type: 'COMMISSION_REVERSE',
+        commissionId,
+        idempotencyKey,
+        reason: `${reason} (${refundedAmount}/${originalChargeAmount} = ${proportion.mul(100).toFixed(1)}%)`,
+      },
+    })
+
+    // Atualizar o wallet (subtrai da conta correspondente)
+    if (account === 'AVAILABLE') {
+      await tx.$executeRaw`
+        UPDATE "AffiliateWallet"
+        SET "availableBalance" = "availableBalance" - ${amountToReverse}
+        WHERE "affiliateId" = ${commission.affiliateId}
+      `
+    } else {
+      await tx.$executeRaw`
+        UPDATE "AffiliateWallet"
+        SET "pendingBalance" = "pendingBalance" - ${amountToReverse}
+        WHERE "affiliateId" = ${commission.affiliateId}
+      `
+    }
+
+    return { reversedPartially: true as const, amountReversed: amountToReverse, proportion: proportion.toFixed(4) }
   })
 }
 
