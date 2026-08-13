@@ -4,8 +4,22 @@ import {
   Bot, Check, X, ArrowRight, CheckCircle2,
 } from 'lucide-react'
 import SaraChatDemo from './SaraChatDemo'
+import RevealOnScroll from './RevealOnScroll'
 
 const display = { fontFamily: 'var(--font-display), Inter, sans-serif' }
+
+/**
+ * Escalonamento da revelação ao rolar: vira a custom property que o CSS de
+ * `[data-reveal]` lê como `transition-delay`. Em ms.
+ */
+const delay = (ms: number) => ({ '--reveal-delay': `${ms}ms` }) as React.CSSProperties
+
+/**
+ * Quando a lista de bullets termina de entrar. O escalonamento satura no 5º
+ * item — sem isso o bloco de Analytics (6 bullets) empurrava o rodapé para
+ * quase 0,9 s, e quem rolava rápido via o texto aparecendo atrasado.
+ */
+const bulletsEnd = (n: number) => 310 + Math.min(n - 1, 4) * 60
 
 /* ─────────────────────────────────────────────────────────────────────────
    Tipografia — clamp()/px, não rem.
@@ -96,10 +110,10 @@ const PROBLEMAS = [
 type TourBullet = string | { label: string; value: string } | { from: string; to: string }
 
 /**
- * Tour do produto — 5 blocos, cada um respondendo a uma pergunta diferente.
- * As imagens vêm de app/showcase/[name]/route.ts (capturas reais do painel).
- * Os números eram, até esta reconstrução, o array ACTS do herói de vídeo
- * por etapas; migram para cá com os mesmos valores.
+ * Tour do produto — um bloco por tela do painel.
+ *
+ * REGRA: todo número escrito aqui tem de estar visível na captura ao lado.
+ * As imagens são servidas por app/showcase/[name]/route.ts (base64 embutido).
  */
 const TOUR: {
   eyebrow: string
@@ -115,15 +129,15 @@ const TOUR: {
     eyebrow: 'Visão geral',
     question: 'Onde estão meus números?',
     title: 'Pare de abrir cinco painéis para entender um resultado.',
-    body: 'Meta, Google, TikTok, WhatsApp e checkout somados — e separados por origem. Cliques, leads, custo e receita de cada fonte, atualizados sozinhos.',
-    image: '/showcase/dashboard.jpg',
+    body: 'Meta, Google, TikTok, WhatsApp e checkout somados — e separados por origem. Cliques, impressões, leads e custo de cada fonte, atualizados sozinhos.',
+    image: '/showcase/visao-geral.jpg',
     bullets: [
       '5.018.300 impressões e 92.940 cliques consolidados',
-      'Toda fonte de tráfego, WhatsApp e checkout no mesmo painel',
-      'Sem exportar planilha, sem cruzar dado à mão',
+      '6.284 conversas iniciadas via WhatsApp Business',
+      'CPC médio de R$ 2,58 e CTR médio de 1,85%, abertos por canal',
     ],
     stats: [
-      { value: '6,76%', label: 'Conversão', tone: 'sky' },
+      { value: '6,76%', label: 'Taxa de conversão', tone: 'sky' },
       { value: 'R$ 3,37', label: 'Para cada R$ 1 investido', tone: 'green' },
     ],
     note: 'Números da demonstração exibida — cada operação tem os seus.',
@@ -132,12 +146,12 @@ const TOUR: {
     eyebrow: 'Atribuição',
     question: 'De onde veio cada cliente?',
     title: 'De onde veio cada cliente. Quanto ele gerou.',
-    body: 'Relacione origem, etapa e receita no mesmo contato. Assim, aquela venda que antes parecia impossível de atribuir passa a ter contexto.',
-    image: '/showcase/origem.jpg',
+    body: 'Cada contato numa linha: a plataforma que trouxe, em que etapa parou, o produto que comprou e quanto deixou. A venda que antes parecia impossível de atribuir passa a ter origem.',
+    image: '/showcase/leads.jpg',
     bullets: [
-      'Origem do lead identificada por canal',
-      'Etapa do funil e status de cada contato',
-      'Receita e eventos associados à jornada',
+      'Origem do lead identificada por canal — Meta, Google ou TikTok',
+      'Status de cada contato: lead, checkout ou cliente',
+      'Receita, produto e número de eventos da jornada',
     ],
     stats: [
       { value: '75%', label: 'Lead → checkout', tone: 'sky' },
@@ -150,7 +164,7 @@ const TOUR: {
     question: 'Onde estou perdendo vendas?',
     title: 'Descubra exatamente onde suas vendas estão travando.',
     body: 'Do primeiro clique ao pagamento, o FlowSara mostra quantas pessoas avançam — e onde elas deixam de avançar.',
-    image: '/showcase/funil.jpg',
+    image: '/showcase/funil-conversao.jpg',
     bullets: [
       { from: '2.847.300 impressões', to: '52.840 cliques' },
       { from: '6.284 conversas no WhatsApp', to: '2.318 checkouts' },
@@ -166,16 +180,19 @@ const TOUR: {
     eyebrow: 'Analytics',
     question: 'Quanto meu investimento realmente retorna?',
     title: 'Saiba quanto cada real investido realmente devolve.',
-    body: 'Compare investimento, receita e ROI por canal. Veja quais campanhas geram dinheiro — e quais só consomem orçamento.',
-    image: '/showcase/metas.jpg',
+    body: 'Investimento e receita lado a lado, por plataforma, com o ROI de cada canal calculado sozinho. Na mesma tela você acompanha CTR e CPC dos anúncios, a taxa de resposta do WhatsApp e a conversão do checkout.',
+    image: '/showcase/analytics.jpg',
     bullets: [
       { label: 'Meta Ads', value: '+R$ 310.252 · ROI 209%' },
       { label: 'Google Ads', value: '+R$ 147.396 · ROI 236%' },
       { label: 'TikTok Ads', value: '+R$ 109.262 · ROI 378%' },
+      { label: 'Facebook Ads', value: 'CTR 1,86% · CPC R$ 2,81 · gasto R$ 148.320' },
+      { label: 'WhatsApp', value: '87% de resposta · 37.704 mensagens · 6,0 por conversa' },
+      { label: 'Hotmart', value: 'Conversão 51,16% · ticket médio R$ 497' },
     ],
     stats: [
-      { value: '87%', label: 'Respostas no WhatsApp', tone: 'green' },
-      { value: 'R$ 497', label: 'Ticket médio' },
+      { value: 'R$ 589.442', label: 'Receita total no período', tone: 'green' },
+      { value: '378%', label: 'Melhor ROI — TikTok Ads', tone: 'sky' },
     ],
     note: 'Números da demonstração exibida — cada operação tem os seus.',
   },
@@ -183,16 +200,17 @@ const TOUR: {
     eyebrow: 'Sara.AI',
     question: 'O que precisa da minha atenção agora?',
     title: 'A Sara.AI encontra o que precisa da sua atenção — antes que vire prejuízo.',
-    body: 'Ela lê seus dados a cada atualização do painel e aponta, em português, onde a venda está travando ou o custo está subindo.',
-    image: '/showcase/ia-gargalos.jpg',
+    body: 'Ela lê seus dados a cada atualização do painel e escreve, em português, o que está travando: o problema, o número que comprova e o que fazer a respeito.',
+    image: '/showcase/sara-insights.jpg',
     bullets: [
-      'Webhook falhando, taxa de resposta caindo, CPC subindo — ela avisa primeiro',
-      'Cada alerta vem com o número e o que fazer a respeito',
+      'Queda de conversão, ROI acima da média, CPC subindo — ela avisa primeiro',
+      'Cada alerta vem com a data, o número e a ação recomendada',
     ],
     stats: [
       { value: '−38%', label: 'Conversão no checkout mobile', tone: 'red' },
       { value: '378%', label: 'Melhor ROI identificado', tone: 'green' },
     ],
+    note: 'Números da demonstração exibida — cada operação tem os seus.',
   },
 ]
 
@@ -290,34 +308,28 @@ const MARCAS = [
 
 const DEPOIMENTOS = [
   {
-    name: 'Rodrigo Alves', role: 'Produtor Digital | Hotmart', avatar: 'RA', metric: '+40% conversão',
+    name: 'Rodrigo Alves', role: 'Produtor Digital · Hotmart', avatar: 'RA', metric: '+40% conversão',
     text: 'Em 3 dias já sabia exatamente onde meu funil estava perdendo vendas. Aumentei a conversão em 40% só ajustando o tempo de resposta no WhatsApp.',
-    verified: true, resultado: 'R$ 2.500 > R$ 3.500/mês',
   },
   {
-    name: 'Lucas Mendonça', role: 'Infoprodutor | Kiwify', avatar: 'LM', metric: '+60% faturamento',
+    name: 'Lucas Mendonça', role: 'Infoprodutor · Kiwify', avatar: 'LM', metric: '+60% faturamento',
     text: 'A Sara.AI me apontou que 70% dos meus leads chegavam mas não recebiam follow-up. Corrigi isso e meu faturamento subiu 60% no mês seguinte.',
-    verified: true, resultado: 'R$ 4.200 > R$ 6.720/mês',
   },
   {
     name: 'Fernanda Costa', role: 'Gestora de Tráfego', avatar: 'FC', metric: '5h/semana economizadas',
     text: 'Antes eu cruzava 5 planilhas. Agora está tudo em um lugar. Economizo horas por semana e entrego relatórios muito mais completos.',
-    verified: true, resultado: '5h > 30min/semana',
   },
   {
-    name: 'Thiago Martins', role: 'Afiliado | Monetizze', avatar: 'TM', metric: 'ROI 3x em 30 dias',
+    name: 'Thiago Martins', role: 'Afiliado · Monetizze', avatar: 'TM', metric: 'ROI 3x em 30 dias',
     text: 'Descobri que meus melhores leads vinham de um único conjunto de anúncios. Concentrei o orçamento lá e meu ROI triplicou em 30 dias.',
-    verified: true, resultado: 'ROI 1.8x > 3.2x em 30 dias',
   },
   {
     name: 'Ana Paula Rocha', role: 'Mentora de Negócios', avatar: 'AP', metric: 'Decisões em tempo real',
     text: 'Ver o funil completo do anúncio até o pix caindo na conta, em tempo real, mudou como eu tomo decisões de escala.',
-    verified: true, resultado: 'Dashboard em tempo real',
   },
   {
-    name: 'Juliana Ferreira', role: 'Produtora | Eduzz', avatar: 'JF', metric: 'Lançamento salvo',
+    name: 'Juliana Ferreira', role: 'Produtora · Eduzz', avatar: 'JF', metric: 'Lançamento salvo',
     text: 'O alerta automático que avisa quando o WhatsApp para de receber mensagens me salvou de perder um lançamento inteiro.',
-    verified: true, resultado: 'Deteccao em 5min vs 6h',
   },
 ]
 
@@ -349,8 +361,7 @@ const PLANOS = [
 ]
 
 const FAQ = [
-  { q: 'Como FlowSara e diferente de Mixpanel, Google Analytics ou outros?', a: 'Google Analytics = website. Mixpanel = apps. FlowSara = FUNIS DE VENDAS: Ads ao WhatsApp ao Venda, tudo num painel. ROI verdadeiro de cada real investido. Sem codigo. Desde R$ 97/mês.' },
-  { q: 'Preciso mexer em código para integrar?', a: 'Não. A interface guia você passo a passo na configuração dos webhooks. É copiar uma URL e colar nas configurações da sua plataforma. Leva menos de 5 minutos.' },
+  { q: 'Preciso mexer em código para integrar?', a: 'Não. A interface guia você passo a passo na configuração dos webhooks. É copiar uma URL e colar nas configurações da sua plataforma.' },
   { q: 'Funciona com Hotmart, Kiwify, Eduzz e Monetizze?', a: 'Sim, todas elas. Também integra com Meta Ads, Google Ads, TikTok Ads e WhatsApp Business API. Novos conectores entram regularmente, sem custo adicional.' },
   { q: 'O que é a Sara.AI?', a: 'É a assistente inteligente oficial do FlowSara. A cada atualização do painel ela analisa seus dados reais — conversas, cliques, vendas — e gera recomendações específicas: onde estão os gargalos e o que fazer para escalar.' },
   { q: 'Posso cancelar quando quiser?', a: 'Sim, sem multa e sem burocracia. Você gerencia a assinatura pelo próprio painel, com cancelamento em um clique. O acesso continua até o fim do período pago.' },
@@ -372,37 +383,48 @@ function TourBlockView({ item, index }: { item: (typeof TOUR)[number]; index: nu
       }`}
     >
       <div>
-        <Eyebrow>{item.eyebrow}</Eyebrow>
-        <p className="mt-4 text-[clamp(13px,0.85vw,15px)] font-semibold text-slate-500">
+        <div data-reveal>
+          <Eyebrow>{item.eyebrow}</Eyebrow>
+        </div>
+        <p
+          data-reveal
+          style={delay(60)}
+          className="mt-4 text-[clamp(13px,0.85vw,15px)] font-semibold text-slate-500"
+        >
           {item.question}
         </p>
         <h3
+          data-reveal
           className="mt-2 text-balance text-[clamp(26px,2.6vw,38px)] font-extrabold leading-[1.08] tracking-[-0.02em] text-[#F4F7FB]"
-          style={display}
+          style={{ ...display, ...delay(110) }}
         >
           {item.title}
         </h3>
-        <p className="mt-4 text-[clamp(15px,1.05vw,17px)] leading-[1.55] text-slate-300/85">
+        <p
+          data-reveal
+          style={delay(180)}
+          className="mt-4 text-[clamp(15px,1.05vw,17px)] leading-[1.55] text-slate-300/85"
+        >
           {item.body}
         </p>
 
         <ul className="mt-6 space-y-3 border-t border-white/10 pt-5">
-          {item.bullets.map((b) =>
+          {item.bullets.map((b, i) =>
             typeof b === 'string' ? (
-              <li key={b} className="flex items-start gap-3">
+              <li key={b} data-reveal style={delay(250 + Math.min(i, 4) * 60)} className="flex items-start gap-3">
                 <span className="mt-[0.65em] h-px w-4 shrink-0 bg-sky-400/70" />
                 <span className="text-[clamp(14px,1vw,16px)] leading-[1.45] text-slate-300/80">
                   {b}
                 </span>
               </li>
             ) : 'from' in b ? (
-              <li key={b.from} className="flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5 text-[clamp(14px,1vw,16px)]">
+              <li key={b.from} data-reveal style={delay(250 + Math.min(i, 4) * 60)} className="flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5 text-[clamp(14px,1vw,16px)]">
                 <span className="tabular-nums text-slate-400/75">{b.from}</span>
                 <span aria-hidden className="text-sky-400/80">→</span>
                 <span className="font-semibold tabular-nums text-slate-100">{b.to}</span>
               </li>
             ) : (
-              <li key={b.label}>
+              <li key={b.label} data-reveal style={delay(250 + Math.min(i, 4) * 60)}>
                 <p className="text-[clamp(10px,0.62vw,11.5px)] font-semibold uppercase tracking-[0.15em] text-slate-400/80">
                   {b.label}
                 </p>
@@ -415,13 +437,21 @@ function TourBlockView({ item, index }: { item: (typeof TOUR)[number]; index: nu
         </ul>
 
         <div className="mt-7 flex gap-8">
-          {item.stats.map((s) => (
-            <Stat key={s.label} value={s.value} label={s.label} tone={s.tone} />
+          {item.stats.map((s, i) => (
+            <div key={s.label} data-reveal style={delay(bulletsEnd(item.bullets.length) + i * 80)}>
+              <Stat value={s.value} label={s.label} tone={s.tone} />
+            </div>
           ))}
         </div>
 
         {item.note && (
-          <p className="mt-4 text-[clamp(11px,0.7vw,12.5px)] text-slate-500">{item.note}</p>
+          <p
+            data-reveal
+            style={delay(bulletsEnd(item.bullets.length) + 170)}
+            className="mt-4 text-[clamp(11px,0.7vw,12.5px)] text-slate-500"
+          >
+            {item.note}
+          </p>
         )}
       </div>
 
@@ -431,6 +461,8 @@ function TourBlockView({ item, index }: { item: (typeof TOUR)[number]; index: nu
           className="pointer-events-none absolute -inset-6 -z-10 rounded-[2rem] bg-sky-500/10 blur-3xl"
         />
         <img
+          data-reveal="image"
+          style={delay(120)}
           src={item.image}
           alt={item.title}
           className="w-full rounded-2xl border border-white/10 shadow-2xl"
@@ -444,10 +476,35 @@ function TourBlockView({ item, index }: { item: (typeof TOUR)[number]; index: nu
 export default function LandingSections() {
   return (
     <>
+      {/* ── REVELAÇÃO AO ROLAR ──────────────────────────────────────────────
+          Só opacity/transform (compostos na GPU) — nada que force layout
+          durante o scroll. O atributo `data-visible` é posto pelo observer
+          em RevealOnScroll; sem JS o <noscript> abaixo mostra tudo.        */}
+      <style>{`
+        [data-reveal] {
+          opacity: 0;
+          transform: translate3d(0, 24px, 0);
+          transition:
+            opacity .75s cubic-bezier(.16, 1, .3, 1),
+            transform .75s cubic-bezier(.16, 1, .3, 1);
+          transition-delay: var(--reveal-delay, 0ms);
+        }
+        [data-reveal='image'] { transform: translate3d(0, 28px, 0) scale(.985) }
+        [data-reveal][data-visible] { opacity: 1; transform: none }
+
+        @media (prefers-reduced-motion: reduce) {
+          [data-reveal] { opacity: 1; transform: none; transition: none }
+        }
+      `}</style>
+      <noscript>
+        <style>{`[data-reveal] { opacity: 1; transform: none }`}</style>
+      </noscript>
+      <RevealOnScroll />
+
       {/* ── PROBLEMA ────────────────────────────────────────────────────── */}
       <section className="border-t border-white/10 bg-[#05070d] px-6 py-24 sm:py-28">
         <div className="mx-auto max-w-6xl">
-          <div className="text-center">
+          <div className="text-center" data-reveal>
             <Eyebrow>Por que você ainda perde vendas</Eyebrow>
             <SectionTitle>
               Você investe em anúncios.
@@ -463,8 +520,8 @@ export default function LandingSections() {
           </div>
 
           <div className="mt-14 grid gap-5 sm:grid-cols-3">
-            {PROBLEMAS.map((p) => (
-              <div
+            {PROBLEMAS.map((p, i) => (
+              <div data-reveal style={delay(i * 90)}
                 key={p.tag}
                 className="rounded-2xl border border-white/10 bg-white/[0.03] p-7 transition hover:border-white/20 hover:bg-white/[0.05]"
               >
@@ -478,15 +535,15 @@ export default function LandingSections() {
         </div>
       </section>
 
-      {/* ── TOUR DO PRODUTO — 5 perguntas ───────────────────────────────── */}
+      {/* ── TOUR DO PRODUTO ─────────────────────────────────────────────── */}
       <section className="bg-black px-6 py-24 sm:py-28">
         <div className="mx-auto max-w-6xl">
-          <div className="text-center">
+          <div className="text-center" data-reveal>
             <Eyebrow>O painel, por dentro</Eyebrow>
-            <SectionTitle>Cinco perguntas. Cinco respostas.</SectionTitle>
+            <SectionTitle>Cada tela responde uma pergunta.</SectionTitle>
             <Lead>
-              Cada tela do FlowSara existe para responder uma pergunta
-              específica sobre o seu funil — não para acumular gráfico.
+              Nada de gráfico decorativo. Cada painel do FlowSara existe para
+              tirar uma dúvida específica sobre o seu dinheiro.
             </Lead>
           </div>
 
@@ -503,7 +560,7 @@ export default function LandingSections() {
         <div className="pointer-events-none absolute -top-40 left-1/2 h-[600px] w-[600px] -translate-x-1/2 rounded-full bg-sky-500/10 blur-3xl" />
 
         <div className="relative mx-auto max-w-6xl">
-          <div className="text-center">
+          <div className="text-center" data-reveal>
             <Eyebrow>
               <Sparkles className="h-3.5 w-3.5" />
               Desenvolvida para o FlowSara
@@ -522,8 +579,8 @@ export default function LandingSections() {
 
           {/* o que ela faz */}
           <div className="mt-16 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {SARA_FEATURES.map((f) => (
-              <div
+            {SARA_FEATURES.map((f, i) => (
+              <div data-reveal style={delay(i * 80)}
                 key={f.title}
                 className="rounded-2xl border border-white/10 bg-white/[0.03] p-7 transition hover:-translate-y-1 hover:border-sky-400/30 hover:bg-white/[0.05]"
               >
@@ -538,7 +595,7 @@ export default function LandingSections() {
 
           {/* insights reais */}
           <div className="mt-24">
-            <div className="text-center">
+            <div className="text-center" data-reveal>
               <h3
                 className="text-[clamp(24px,2.2vw,34px)] font-extrabold tracking-[-0.03em] text-white"
                 style={display}
@@ -551,8 +608,8 @@ export default function LandingSections() {
             </div>
 
             <div className="mx-auto mt-10 max-w-3xl space-y-3">
-              {SARA_INSIGHTS.map((i) => (
-                <div
+              {SARA_INSIGHTS.map((i, idx) => (
+                <div data-reveal style={delay(idx * 110)}
                   key={i.titulo}
                   className={[
                     'rounded-xl border px-6 py-5',
@@ -643,20 +700,20 @@ export default function LandingSections() {
       {/* ── COMO FUNCIONA ───────────────────────────────────────────────── */}
       <section className="bg-black px-6 py-24 sm:py-28">
         <div className="mx-auto max-w-6xl">
-          <div className="text-center">
+          <div className="text-center" data-reveal>
             <Eyebrow>Simples e rápido</Eyebrow>
             <SectionTitle>
-              Do zero ao funil rodando{' '}
+              Comece com uma{' '}
               <span className="bg-gradient-to-r from-sky-400 to-cyan-300 bg-clip-text text-transparent">
-                em 5 minutos
+                configuração simples e guiada
               </span>
             </SectionTitle>
             <Lead>Sem instalar nada, sem precisar de técnico. Só conectar e ver os dados chegarem.</Lead>
           </div>
 
           <div className="mt-14 grid gap-5 md:grid-cols-3">
-            {PASSOS.map((p) => (
-              <div
+            {PASSOS.map((p, i) => (
+              <div data-reveal style={delay(i * 110)}
                 key={p.n}
                 className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] p-8 transition hover:border-white/20"
               >
@@ -731,75 +788,37 @@ export default function LandingSections() {
         </div>
       </section>
 
-      {/* ── TRUST METRICS ───────────────────────────────────────────────── */}
-      <section className="border-t border-white/10 bg-slate-950/50 px-6 py-16 sm:py-20">
-        <div className="mx-auto max-w-6xl">
-          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="text-center">
-              <div className="text-[clamp(32px,4vw,48px)] font-extrabold text-sky-400" style={display}>1.200+</div>
-              <div className="mt-2 text-[13.5px] font-bold uppercase tracking-[0.1em] text-white">Clientes Ativos</div>
-              <div className="mt-1.5 text-[12px] leading-[1.4] text-slate-400">desde 2023, crescimento 25% mensal</div>
-            </div>
-            <div className="text-center">
-              <div className="text-[clamp(32px,4vw,48px)] font-extrabold text-sky-400" style={display}>2.8x</div>
-              <div className="mt-2 text-[13.5px] font-bold uppercase tracking-[0.1em] text-white">ROI Medio</div>
-              <div className="mt-1.5 text-[12px] leading-[1.4] text-slate-400">em 30 dias de uso</div>
-            </div>
-            <div className="text-center">
-              <div className="text-[clamp(32px,4vw,48px)] font-extrabold text-sky-400" style={display}>99.9%</div>
-              <div className="mt-2 text-[13.5px] font-bold uppercase tracking-[0.1em] text-white">Uptime</div>
-              <div className="mt-1.5 text-[12px] leading-[1.4] text-slate-400">LGPD compliant, dados protegidos</div>
-            </div>
-            <div className="text-center">
-              <div className="text-[clamp(32px,4vw,48px)] font-extrabold text-emerald-400" style={display}>7 dias</div>
-              <div className="mt-2 text-[13.5px] font-bold uppercase tracking-[0.1em] text-white">Garantia</div>
-              <div className="mt-1.5 text-[12px] leading-[1.4] text-slate-400">teste gratis, sem cartao</div>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* ── DEPOIMENTOS ─────────────────────────────────────────────────── */}
       <section className="bg-black px-6 py-24 sm:py-28">
         <div className="mx-auto max-w-6xl">
-          <div className="text-center">
-            <Eyebrow>Resultados de quem ja usa</Eyebrow>
+          <div className="text-center" data-reveal>
+            <Eyebrow>Experiências reais</Eyebrow>
             <SectionTitle>O que dizem nossos clientes</SectionTitle>
-            <Lead>Clientes reais com resultados verificaveis e quantificados.</Lead>
+            <Lead>Depoimentos de produtores digitais, gestores de tráfego e agências que usam FlowSara.</Lead>
           </div>
 
-          <div className=”mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3”>
-            {DEPOIMENTOS.map((d) => (
-              <div
+          <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {DEPOIMENTOS.map((d, i) => (
+              <div data-reveal style={delay(i * 70)}
                 key={d.name}
-                className=”relative rounded-2xl border border-white/10 bg-white/[0.03] p-7 pt-8 transition hover:border-white/20”
+                className="relative rounded-2xl border border-white/10 bg-white/[0.03] p-7 pt-8 transition hover:border-white/20"
               >
-                <span className=”absolute -top-2.5 left-7 rounded-full border border-sky-400/30 bg-[#0b1220] px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-sky-300”>
+                <span className="absolute -top-2.5 left-7 rounded-full border border-sky-400/30 bg-[#0b1220] px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-sky-300">
                   {d.metric}
                 </span>
-                {d.verified && (
-                  <span className=”absolute -top-2.5 right-7 inline-flex items-center gap-1 rounded-full border border-emerald-400/40 bg-emerald-400/10 px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-emerald-400”>
-                    OK Verificado
-                  </span>
-                )}
-                <div className=”mb-4 flex gap-0.5 text-sky-400”>
+                <div className="mb-4 flex gap-0.5 text-sky-400">
                   {[1, 2, 3, 4, 5].map((i) => (
                     <span key={i}>★</span>
                   ))}
                 </div>
-                <p className=”text-[14.5px] leading-[1.6] text-slate-200/90”>”{d.text}”</p>
-                {d.resultado && (
-                  <div className=”mt-3 rounded-lg bg-sky-400/[0.08] border border-sky-400/20 p-2.5 text-[12px] font-semibold text-sky-300”>
-                    {d.resultado}
-                  </div>
-                )}
-                <div className=”mt-6 flex items-center gap-3 border-t border-white/10 pt-5”>
-                  <div className=”grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gradient-to-br from-sky-500 to-cyan-400 text-[13px] font-bold text-white”>
+                <p className="text-[14.5px] leading-[1.6] text-slate-200/90">“{d.text}”</p>
+                <div className="mt-6 flex items-center gap-3 border-t border-white/10 pt-5">
+                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gradient-to-br from-sky-500 to-cyan-400 text-[13px] font-bold text-white">
                     {d.avatar}
                   </div>
                   <div>
-                    <p className=”text-[13.5px] font-bold text-white”>{d.name}</p>
-                    <p className=”text-[12px] text-slate-400”>{d.role}</p>
+                    <p className="text-[13.5px] font-bold text-white">{d.name}</p>
+                    <p className="text-[12px] text-slate-400">{d.role}</p>
                   </div>
                 </div>
               </div>
@@ -811,7 +830,7 @@ export default function LandingSections() {
       {/* ── PLANOS ──────────────────────────────────────────────────────── */}
       <section id="planos" className="border-t border-white/10 bg-[#05070d] px-6 py-24 sm:py-28">
         <div className="mx-auto max-w-6xl">
-          <div className="text-center">
+          <div className="text-center" data-reveal>
             <Eyebrow>Planos</Eyebrow>
             <SectionTitle>
               7 dias grátis{' '}
@@ -825,8 +844,8 @@ export default function LandingSections() {
           </div>
 
           <div className="mt-14 grid items-start gap-5 md:grid-cols-3">
-            {PLANOS.map((p) => (
-              <div
+            {PLANOS.map((p, i) => (
+              <div data-reveal style={delay(i * 110)}
                 key={p.nome}
                 className={[
                   'flex flex-col rounded-2xl border p-8',
@@ -899,34 +918,10 @@ export default function LandingSections() {
         </div>
       </section>
 
-      {/* ── DIFERENCIADORES ────────────────────────────────────────────── */}
-      <section className="border-t border-white/10 bg-slate-950/50 px-6 py-20 sm:py-24">
-        <div className="mx-auto max-w-4xl">
-          <div className="text-center">
-            <Eyebrow>FlowSara vs Concorrentes</Eyebrow>
-            <SectionTitle>O que torna FlowSara unico</SectionTitle>
-          </div>
-          <div className="mt-12 space-y-4">
-            <div className="rounded-xl border border-sky-400/20 bg-sky-400/[0.05] p-5">
-              <p className="font-bold text-white">1. WhatsApp e central, nao um add-on</p>
-              <p className="mt-1 text-[14px] text-slate-300">Outras tools: Ads ao Checkout. FlowSara: Ads ao WhatsApp ao Venda. Funil inteiro.</p>
-            </div>
-            <div className="rounded-xl border border-white/10 bg-white/[0.03] p-5">
-              <p className="font-bold text-white">2. Setup em 5 minutos, nao 2 semanas</p>
-              <p className="mt-1 text-[14px] text-slate-300">Sem codigo. Sem developer. Wizard automático. Dados em tempo real.</p>
-            </div>
-            <div className="rounded-xl border border-white/10 bg-white/[0.03] p-5">
-              <p className="font-bold text-white">3. Preco acessivel: R$ 97/mês vs Mixpanel R$ 1.000+</p>
-              <p className="mt-1 text-[14px] text-slate-300">Sem cartao de credito. 7 dias gratis. 30 dias garantia.</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* ── FAQ ─────────────────────────────────────────────────────────── */}
       <section className="bg-black px-6 py-24 sm:py-28">
         <div className="mx-auto max-w-3xl">
-          <div className="text-center">
+          <div className="text-center" data-reveal>
             <Eyebrow>Dúvidas frequentes</Eyebrow>
             <SectionTitle>Perguntas frequentes</SectionTitle>
             <Lead>Tudo que você precisa saber antes de começar.</Lead>
@@ -934,7 +929,7 @@ export default function LandingSections() {
 
           <div className="mt-14 space-y-3">
             {FAQ.map((f, i) => (
-              <details
+              <details data-reveal style={delay(i * 45)}
                 key={f.q}
                 className="group overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] transition open:border-sky-400/30"
               >
@@ -968,7 +963,7 @@ export default function LandingSections() {
             className="text-[clamp(30px,3vw,48px)] font-extrabold leading-[1] tracking-[-0.03em] text-white"
             style={display}
           >
-            Pronto para descobrir onde seu dinheiro esta indo embora?
+            Pronto para descobrir onde seu dinheiro está indo embora?
           </h2>
           <p className="mx-auto mt-5 max-w-lg text-[16px] leading-relaxed text-slate-300/85 sm:text-[1.0625rem]">
             Crie sua conta gratuitamente e veja seu funil completo em minutos.
@@ -988,12 +983,8 @@ export default function LandingSections() {
               Ver planos
             </Link>
           </div>
-          <div className="mt-8 rounded-2xl border border-emerald-400/20 bg-emerald-400/[0.05] p-5">
-            <p className="text-[12px] font-bold uppercase tracking-wider text-emerald-400">OK GARANTIA DE SATISFACAO</p>
-            <p className="mt-2 text-[13px] text-slate-300">7 dias gratis + 30 dias de garantia. Se nao gostar, devolvemos 100%.</p>
-          </div>
-          <p className="mt-6 text-[12px] text-slate-500">
-            1.200+ clientes | 99.9% uptime | LGPD compliant
+          <p className="mt-5 text-[12.5px] text-slate-500">
+            7 dias grátis · cancele quando quiser · sem cartão de crédito
           </p>
         </div>
       </section>

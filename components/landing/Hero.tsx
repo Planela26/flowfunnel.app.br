@@ -66,7 +66,7 @@ export default function Hero() {
         </div>
 
         <p className="mt-6 text-[13px] text-slate-500">
-          ✓ 1.200+ clientes ativos desde 2023 · 25% crescimento mensal · 99.9% uptime
+          Usado desde 2023. Teste grátis por 7 dias, cancele quando quiser.
         </p>
       </div>
 
