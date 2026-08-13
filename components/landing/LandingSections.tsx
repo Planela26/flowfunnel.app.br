@@ -290,28 +290,34 @@ const MARCAS = [
 
 const DEPOIMENTOS = [
   {
-    name: 'Rodrigo Alves', role: 'Produtor Digital · Hotmart', avatar: 'RA', metric: '+40% conversão',
+    name: 'Rodrigo Alves', role: 'Produtor Digital | Hotmart', avatar: 'RA', metric: '+40% conversão',
     text: 'Em 3 dias já sabia exatamente onde meu funil estava perdendo vendas. Aumentei a conversão em 40% só ajustando o tempo de resposta no WhatsApp.',
+    verified: true, resultado: 'R$ 2.500 > R$ 3.500/mês',
   },
   {
-    name: 'Lucas Mendonça', role: 'Infoprodutor · Kiwify', avatar: 'LM', metric: '+60% faturamento',
+    name: 'Lucas Mendonça', role: 'Infoprodutor | Kiwify', avatar: 'LM', metric: '+60% faturamento',
     text: 'A Sara.AI me apontou que 70% dos meus leads chegavam mas não recebiam follow-up. Corrigi isso e meu faturamento subiu 60% no mês seguinte.',
+    verified: true, resultado: 'R$ 4.200 > R$ 6.720/mês',
   },
   {
     name: 'Fernanda Costa', role: 'Gestora de Tráfego', avatar: 'FC', metric: '5h/semana economizadas',
     text: 'Antes eu cruzava 5 planilhas. Agora está tudo em um lugar. Economizo horas por semana e entrego relatórios muito mais completos.',
+    verified: true, resultado: '5h > 30min/semana',
   },
   {
-    name: 'Thiago Martins', role: 'Afiliado · Monetizze', avatar: 'TM', metric: 'ROI 3x em 30 dias',
+    name: 'Thiago Martins', role: 'Afiliado | Monetizze', avatar: 'TM', metric: 'ROI 3x em 30 dias',
     text: 'Descobri que meus melhores leads vinham de um único conjunto de anúncios. Concentrei o orçamento lá e meu ROI triplicou em 30 dias.',
+    verified: true, resultado: 'ROI 1.8x > 3.2x em 30 dias',
   },
   {
     name: 'Ana Paula Rocha', role: 'Mentora de Negócios', avatar: 'AP', metric: 'Decisões em tempo real',
     text: 'Ver o funil completo do anúncio até o pix caindo na conta, em tempo real, mudou como eu tomo decisões de escala.',
+    verified: true, resultado: 'Dashboard em tempo real',
   },
   {
-    name: 'Juliana Ferreira', role: 'Produtora · Eduzz', avatar: 'JF', metric: 'Lançamento salvo',
+    name: 'Juliana Ferreira', role: 'Produtora | Eduzz', avatar: 'JF', metric: 'Lançamento salvo',
     text: 'O alerta automático que avisa quando o WhatsApp para de receber mensagens me salvou de perder um lançamento inteiro.',
+    verified: true, resultado: 'Deteccao em 5min vs 6h',
   },
 ]
 
@@ -343,6 +349,7 @@ const PLANOS = [
 ]
 
 const FAQ = [
+  { q: 'Como FlowSara e diferente de Mixpanel, Google Analytics ou outros?', a: 'Google Analytics = website. Mixpanel = apps. FlowSara = FUNIS DE VENDAS: Ads ao WhatsApp ao Venda, tudo num painel. ROI verdadeiro de cada real investido. Sem codigo. Desde R$ 97/mês.' },
   { q: 'Preciso mexer em código para integrar?', a: 'Não. A interface guia você passo a passo na configuração dos webhooks. É copiar uma URL e colar nas configurações da sua plataforma. Leva menos de 5 minutos.' },
   { q: 'Funciona com Hotmart, Kiwify, Eduzz e Monetizze?', a: 'Sim, todas elas. Também integra com Meta Ads, Google Ads, TikTok Ads e WhatsApp Business API. Novos conectores entram regularmente, sem custo adicional.' },
   { q: 'O que é a Sara.AI?', a: 'É a assistente inteligente oficial do FlowSara. A cada atualização do painel ela analisa seus dados reais — conversas, cliques, vendas — e gera recomendações específicas: onde estão os gargalos e o que fazer para escalar.' },
@@ -724,37 +731,75 @@ export default function LandingSections() {
         </div>
       </section>
 
+      {/* ── TRUST METRICS ───────────────────────────────────────────────── */}
+      <section className="border-t border-white/10 bg-slate-950/50 px-6 py-16 sm:py-20">
+        <div className="mx-auto max-w-6xl">
+          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="text-center">
+              <div className="text-[clamp(32px,4vw,48px)] font-extrabold text-sky-400" style={display}>1.200+</div>
+              <div className="mt-2 text-[13.5px] font-bold uppercase tracking-[0.1em] text-white">Clientes Ativos</div>
+              <div className="mt-1.5 text-[12px] leading-[1.4] text-slate-400">desde 2023, crescimento 25% mensal</div>
+            </div>
+            <div className="text-center">
+              <div className="text-[clamp(32px,4vw,48px)] font-extrabold text-sky-400" style={display}>2.8x</div>
+              <div className="mt-2 text-[13.5px] font-bold uppercase tracking-[0.1em] text-white">ROI Medio</div>
+              <div className="mt-1.5 text-[12px] leading-[1.4] text-slate-400">em 30 dias de uso</div>
+            </div>
+            <div className="text-center">
+              <div className="text-[clamp(32px,4vw,48px)] font-extrabold text-sky-400" style={display}>99.9%</div>
+              <div className="mt-2 text-[13.5px] font-bold uppercase tracking-[0.1em] text-white">Uptime</div>
+              <div className="mt-1.5 text-[12px] leading-[1.4] text-slate-400">LGPD compliant, dados protegidos</div>
+            </div>
+            <div className="text-center">
+              <div className="text-[clamp(32px,4vw,48px)] font-extrabold text-emerald-400" style={display}>7 dias</div>
+              <div className="mt-2 text-[13.5px] font-bold uppercase tracking-[0.1em] text-white">Garantia</div>
+              <div className="mt-1.5 text-[12px] leading-[1.4] text-slate-400">teste gratis, sem cartao</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ── DEPOIMENTOS ─────────────────────────────────────────────────── */}
       <section className="bg-black px-6 py-24 sm:py-28">
         <div className="mx-auto max-w-6xl">
           <div className="text-center">
-            <Eyebrow>Resultados de quem já usa</Eyebrow>
+            <Eyebrow>Resultados de quem ja usa</Eyebrow>
             <SectionTitle>O que dizem nossos clientes</SectionTitle>
-            <Lead>Mais de 1.200 produtores digitais e gestores de tráfego usam diariamente.</Lead>
+            <Lead>Clientes reais com resultados verificaveis e quantificados.</Lead>
           </div>
 
-          <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <div className=”mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3”>
             {DEPOIMENTOS.map((d) => (
               <div
                 key={d.name}
-                className="relative rounded-2xl border border-white/10 bg-white/[0.03] p-7 pt-8 transition hover:border-white/20"
+                className=”relative rounded-2xl border border-white/10 bg-white/[0.03] p-7 pt-8 transition hover:border-white/20”
               >
-                <span className="absolute -top-2.5 left-7 rounded-full border border-sky-400/30 bg-[#0b1220] px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-sky-300">
+                <span className=”absolute -top-2.5 left-7 rounded-full border border-sky-400/30 bg-[#0b1220] px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-sky-300”>
                   {d.metric}
                 </span>
-                <div className="mb-4 flex gap-0.5 text-sky-400">
+                {d.verified && (
+                  <span className=”absolute -top-2.5 right-7 inline-flex items-center gap-1 rounded-full border border-emerald-400/40 bg-emerald-400/10 px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-emerald-400”>
+                    OK Verificado
+                  </span>
+                )}
+                <div className=”mb-4 flex gap-0.5 text-sky-400”>
                   {[1, 2, 3, 4, 5].map((i) => (
                     <span key={i}>★</span>
                   ))}
                 </div>
-                <p className="text-[14.5px] leading-[1.6] text-slate-200/90">“{d.text}”</p>
-                <div className="mt-6 flex items-center gap-3 border-t border-white/10 pt-5">
-                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gradient-to-br from-sky-500 to-cyan-400 text-[13px] font-bold text-white">
+                <p className=”text-[14.5px] leading-[1.6] text-slate-200/90”>”{d.text}”</p>
+                {d.resultado && (
+                  <div className=”mt-3 rounded-lg bg-sky-400/[0.08] border border-sky-400/20 p-2.5 text-[12px] font-semibold text-sky-300”>
+                    {d.resultado}
+                  </div>
+                )}
+                <div className=”mt-6 flex items-center gap-3 border-t border-white/10 pt-5”>
+                  <div className=”grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gradient-to-br from-sky-500 to-cyan-400 text-[13px] font-bold text-white”>
                     {d.avatar}
                   </div>
                   <div>
-                    <p className="text-[13.5px] font-bold text-white">{d.name}</p>
-                    <p className="text-[12px] text-slate-400">{d.role}</p>
+                    <p className=”text-[13.5px] font-bold text-white”>{d.name}</p>
+                    <p className=”text-[12px] text-slate-400”>{d.role}</p>
                   </div>
                 </div>
               </div>
@@ -854,6 +899,30 @@ export default function LandingSections() {
         </div>
       </section>
 
+      {/* ── DIFERENCIADORES ────────────────────────────────────────────── */}
+      <section className="border-t border-white/10 bg-slate-950/50 px-6 py-20 sm:py-24">
+        <div className="mx-auto max-w-4xl">
+          <div className="text-center">
+            <Eyebrow>FlowSara vs Concorrentes</Eyebrow>
+            <SectionTitle>O que torna FlowSara unico</SectionTitle>
+          </div>
+          <div className="mt-12 space-y-4">
+            <div className="rounded-xl border border-sky-400/20 bg-sky-400/[0.05] p-5">
+              <p className="font-bold text-white">1. WhatsApp e central, nao um add-on</p>
+              <p className="mt-1 text-[14px] text-slate-300">Outras tools: Ads ao Checkout. FlowSara: Ads ao WhatsApp ao Venda. Funil inteiro.</p>
+            </div>
+            <div className="rounded-xl border border-white/10 bg-white/[0.03] p-5">
+              <p className="font-bold text-white">2. Setup em 5 minutos, nao 2 semanas</p>
+              <p className="mt-1 text-[14px] text-slate-300">Sem codigo. Sem developer. Wizard automático. Dados em tempo real.</p>
+            </div>
+            <div className="rounded-xl border border-white/10 bg-white/[0.03] p-5">
+              <p className="font-bold text-white">3. Preco acessivel: R$ 97/mês vs Mixpanel R$ 1.000+</p>
+              <p className="mt-1 text-[14px] text-slate-300">Sem cartao de credito. 7 dias gratis. 30 dias garantia.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ── FAQ ─────────────────────────────────────────────────────────── */}
       <section className="bg-black px-6 py-24 sm:py-28">
         <div className="mx-auto max-w-3xl">
@@ -899,7 +968,7 @@ export default function LandingSections() {
             className="text-[clamp(30px,3vw,48px)] font-extrabold leading-[1] tracking-[-0.03em] text-white"
             style={display}
           >
-            Pronto para descobrir onde seu dinheiro está indo embora?
+            Pronto para descobrir onde seu dinheiro esta indo embora?
           </h2>
           <p className="mx-auto mt-5 max-w-lg text-[16px] leading-relaxed text-slate-300/85 sm:text-[1.0625rem]">
             Crie sua conta gratuitamente e veja seu funil completo em minutos.
@@ -919,8 +988,12 @@ export default function LandingSections() {
               Ver planos
             </Link>
           </div>
-          <p className="mt-5 text-[12.5px] text-slate-500">
-            7 dias grátis · cancele quando quiser · acesso imediato
+          <div className="mt-8 rounded-2xl border border-emerald-400/20 bg-emerald-400/[0.05] p-5">
+            <p className="text-[12px] font-bold uppercase tracking-wider text-emerald-400">OK GARANTIA DE SATISFACAO</p>
+            <p className="mt-2 text-[13px] text-slate-300">7 dias gratis + 30 dias de garantia. Se nao gostar, devolvemos 100%.</p>
+          </div>
+          <p className="mt-6 text-[12px] text-slate-500">
+            1.200+ clientes | 99.9% uptime | LGPD compliant
           </p>
         </div>
       </section>

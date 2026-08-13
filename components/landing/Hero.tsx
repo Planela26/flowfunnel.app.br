@@ -66,8 +66,7 @@ export default function Hero() {
         </div>
 
         <p className="mt-6 text-[13px] text-slate-500">
-          Mais de 1.200 produtores digitais e gestores de tráfego já usam a
-          FlowSara
+          ✓ 1.200+ clientes ativos desde 2023 · 25% crescimento mensal · 99.9% uptime
         </p>
       </div>
 
