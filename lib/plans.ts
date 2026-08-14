@@ -45,13 +45,28 @@ export const PLAN_LABELS: Record<Plan, string> = {
 /** Preço mensal em BRL por plano. Fonte única para cálculos de MRR/receita. */
 export const PLAN_PRICES_BRL: Record<Plan, number> = {
   FREE: 0,
-  START: 97,
-  PRO: 147,
-  SCALE: 297,
+  START: 47.9,
+  PRO: 97.9,
+  SCALE: 147.9,
 }
 
 export function getPlanPriceBRL(plan: string | null | undefined): number {
   return PLAN_PRICES_BRL[normalizePlan(plan)]
+}
+
+/**
+ * Formata um valor em BRL no padrão pt-BR, sem o prefixo: 47.9 → "47,90".
+ *
+ * Os preços passaram a ter centavos. Imprimir o número cru renderiza "47.9" —
+ * separador de outro idioma e centavo faltando.
+ */
+export function formatBRL(value: number): string {
+  return value.toFixed(2).replace('.', ',')
+}
+
+/** Preço do plano já formatado, sem o prefixo "R$": "47,90". */
+export function formatPlanPriceBRL(plan: string | null | undefined): string {
+  return formatBRL(getPlanPriceBRL(plan))
 }
 
 export const PLAN_RANK: Record<Plan, number> = {

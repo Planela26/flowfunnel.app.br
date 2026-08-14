@@ -92,8 +92,10 @@ export async function POST(request: Request) {
       }
     }
 
+    // Arredonda em centavos, não em reais: com preços terminados em ,90 o
+    // Math.round simples devolvia o valor inteiro e engolia os centavos.
     const finalPrice = discountPercent > 0
-      ? Math.round(basePrice * (1 - discountPercent / 100))
+      ? Math.round(basePrice * (1 - discountPercent / 100) * 100) / 100
       : basePrice
 
     const session = await getServerSession(authOptions)

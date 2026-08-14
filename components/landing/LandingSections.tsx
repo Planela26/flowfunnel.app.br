@@ -5,6 +5,7 @@ import {
 } from 'lucide-react'
 import SaraChatDemo from './SaraChatDemo'
 import RevealOnScroll from './RevealOnScroll'
+import { TRIAL_DAYS } from '@/lib/trial'
 
 const display = { fontFamily: 'var(--font-display), Inter, sans-serif' }
 
@@ -337,7 +338,7 @@ const PLANOS = [
   {
     nome: 'START',
     sub: 'Para quem está começando',
-    preco: '97',
+    preco: '47,90',
     destaque: false,
     inclui: ['Análise por IA do funil', 'Até 1.000 conversas/mês', 'Identificação de gargalos', 'Insights básicos', '1 número de WhatsApp', '1 funil ativo'],
     exclui: ['Comparação de períodos', 'Alertas automáticos', 'Multiusuário'],
@@ -345,7 +346,7 @@ const PLANOS = [
   {
     nome: 'PRO',
     sub: 'Para quem anuncia todo dia',
-    preco: '147',
+    preco: '97,90',
     destaque: true,
     inclui: ['Análise completa por IA', 'Até 3.000 conversas/mês', 'Diagnóstico + sugestões', 'Insights avançados', 'Até 3 números de WhatsApp', 'Até 3 funis ativos', 'Comparação de períodos'],
     exclui: ['Alertas automáticos', 'Multiusuário'],
@@ -353,7 +354,7 @@ const PLANOS = [
   {
     nome: 'SCALE',
     sub: 'Para agências e grandes operações',
-    preco: '297',
+    preco: '147,90',
     destaque: false,
     inclui: ['IA avançada: diagnóstico + sugestões', 'Conversas ilimitadas', 'Histórico de até 365 dias', 'WhatsApps ilimitados', 'Funis ilimitados', 'Comparação de períodos', 'Alertas automáticos', 'Multiusuário'],
     exclui: [],
@@ -367,7 +368,7 @@ const FAQ = [
   { q: 'Posso cancelar quando quiser?', a: 'Sim, sem multa e sem burocracia. Você gerencia a assinatura pelo próprio painel, com cancelamento em um clique. O acesso continua até o fim do período pago.' },
   { q: 'O que acontece se eu atingir o limite de conversas?', a: 'Você recebe um alerta por e-mail ao chegar em 80% do limite. Se atingir 100%, novos webhooks do WhatsApp são pausados automaticamente até o mês seguinte ou até você fazer upgrade.' },
   { q: 'Meus dados ficam protegidos?', a: 'Sim. Todo o tráfego é criptografado (HTTPS/TLS). Seguimos as diretrizes da LGPD e não compartilhamos seus dados com terceiros.' },
-  { q: 'Tem período de teste ou garantia?', a: 'São 7 dias de garantia total. Se não ficar satisfeito por qualquer motivo, devolvemos 100% do valor sem perguntas.' },
+  { q: 'Tem período de teste ou garantia?', a: `São duas coisas. Primeiro, ${TRIAL_DAYS} dias de teste grátis para usar a plataforma inteira. Depois de assinar, você ainda tem 7 dias de garantia: se não ficar satisfeito por qualquer motivo, devolvemos 100% do valor sem perguntas.` },
 ]
 
 /* ─────────────────────────────────────────────────────────────────────────
@@ -833,7 +834,7 @@ export default function LandingSections() {
           <div className="text-center" data-reveal>
             <Eyebrow>Planos</Eyebrow>
             <SectionTitle>
-              7 dias grátis{' '}
+              {TRIAL_DAYS} dias grátis{' '}
               <span className="bg-gradient-to-r from-sky-400 to-cyan-300 bg-clip-text text-transparent">
                 em qualquer plano
               </span>
@@ -887,7 +888,7 @@ export default function LandingSections() {
                       : 'border border-white/15 bg-white/[0.06] text-white hover:bg-white/10',
                   ].join(' ')}
                 >
-                  Testar grátis 7 dias
+                  Testar grátis {TRIAL_DAYS} dias
                 </Link>
                 <Link
                   href={`/checkout?plan=${p.nome}`}
@@ -984,7 +985,7 @@ export default function LandingSections() {
             </Link>
           </div>
           <p className="mt-5 text-[12.5px] text-slate-500">
-            7 dias grátis · cancele quando quiser · sem cartão de crédito
+            {TRIAL_DAYS} dias grátis · cancele quando quiser · sem cartão de crédito
           </p>
         </div>
       </section>

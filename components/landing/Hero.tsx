@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react'
 import Link from 'next/link'
 import { Play } from 'lucide-react'
+import { TRIAL_DAYS } from '@/lib/trial'
 
 const display = { fontFamily: 'var(--font-display), Inter, sans-serif' }
 
@@ -66,7 +67,7 @@ export default function Hero() {
         </div>
 
         <p className="mt-6 text-[13px] text-slate-500">
-          Usado desde 2023. Teste grátis por 7 dias, cancele quando quiser.
+          Usado desde 2023. Teste grátis por {TRIAL_DAYS} dias, cancele quando quiser.
         </p>
       </div>
 

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from './auth'
 import { prisma } from './prisma'
-import { hasPaidAccess } from './trial'
+import { hasPaidAccess, TRIAL_DAYS } from './trial'
 
 /**
  * Bloqueia criação de integração quando o usuário está no modo "só explorar"
@@ -51,7 +51,7 @@ export async function assertCanCreateIntegration(
       error: 'card_required',
       code: 'CARD_REQUIRED_TO_LINK_INTEGRATION',
       message:
-        'Você está conhecendo a plataforma. Adicione um cartão de crédito (teste grátis de 7 dias, sem cobrança até o fim do período) ou pague via PIX para liberar a conexão de integrações reais.',
+        `Você está conhecendo a plataforma. Adicione um cartão de crédito (teste grátis de ${TRIAL_DAYS} dias, sem cobrança até o fim do período) ou pague via PIX para liberar a conexão de integrações reais.`,
       upgradeUrl: '/billing',
     },
     { status: 402 },

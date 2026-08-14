@@ -1,6 +1,13 @@
 import { normalizePlan, type Plan } from './plans'
 
-export const TRIAL_DAYS = 7
+/**
+ * Duração do teste grátis, em dias. Fonte única — o texto das telas e dos
+ * e-mails deriva daqui, então mudar o prazo não exige caçar strings.
+ *
+ * Não confundir com a garantia de 7 dias exibida no checkout: aquela é o
+ * direito de arrependimento do CDC (art. 49) e tem prazo próprio, fixo em lei.
+ */
+export const TRIAL_DAYS = 14
 
 export type TrialStatus =
   | 'none'

@@ -5,11 +5,12 @@ import { signOut } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { usePlan } from '@/components/usePlan'
 import { Lock, Zap, TrendingUp, CreditCard, LogOut, ArrowRight } from 'lucide-react'
+import { TRIAL_DAYS } from '@/lib/trial'
 
 const PLAN_INFO: Record<string, { label: string; price: string; color: string }> = {
-  START: { label: 'START', price: 'R$97/mês', color: 'from-blue-500 to-blue-700' },
-  PRO:   { label: 'PRO',   price: 'R$147/mês', color: 'from-blue-600 to-indigo-700' },
-  SCALE: { label: 'SCALE', price: 'R$297/mês', color: 'from-indigo-600 to-purple-700' },
+  START: { label: 'START', price: 'R$47,90/mês', color: 'from-blue-500 to-blue-700' },
+  PRO:   { label: 'PRO',   price: 'R$97,90/mês', color: 'from-blue-600 to-indigo-700' },
+  SCALE: { label: 'SCALE', price: 'R$147,90/mês', color: 'from-indigo-600 to-purple-700' },
 }
 
 function SubscriptionContent() {
@@ -48,7 +49,7 @@ function SubscriptionContent() {
 
             <div className="px-6 py-6 space-y-6">
               <p className="text-sm text-gray-300 leading-relaxed">
-                Os 7 dias do seu teste gratuito do Plano{' '}
+                Os {TRIAL_DAYS} dias do seu teste gratuito do Plano{' '}
                 <strong className="text-white">{planInfo.label}</strong> expiraram.
                 Assine agora para continuar visualizando seus dados, integrações e relatórios.
               </p>

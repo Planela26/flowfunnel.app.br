@@ -2,6 +2,10 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prismaAdmin as prisma } from '@/lib/prisma'
+import { PLAN_PRICES_BRL, getPlanPriceBRL } from '@/lib/plans'
+
+/** Preços com centavos somam com resíduo de ponto flutuante; corta em 2 casas. */
+const round2 = (v: number) => Math.round(v * 100) / 100
 
 export async function GET() {
   try {
@@ -28,16 +32,14 @@ export async function GET() {
     const sixtyDaysAgo = new Date(now)
     sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60)
 
-    const planValues: Record<string, number> = { START: 97, PRO: 147, SCALE: 297 }
-
     const payingUsers = users.filter(u => ['START', 'PRO', 'SCALE'].includes(u.plan))
     const freeUsers = users.filter(u => u.plan === 'FREE')
 
     // MRR = soma dos planos pagos
-    const mrr = payingUsers.reduce((acc, u) => acc + (planValues[u.plan] || 0), 0)
+    const mrr = round2(payingUsers.reduce((acc, u) => acc + getPlanPriceBRL(u.plan), 0))
 
     // ARR
-    const arr = mrr * 12
+    const arr = round2(mrr * 12)
 
     // Churn = usuários que já tiveram assinatura Stripe (pagaram em algum momento)
     // e hoje estão no plano FREE. Quem nunca assinou não conta como churn.
@@ -88,9 +90,9 @@ export async function GET() {
 
     // Monthly revenue by plan
     const revenueByPlan = {
-      START: users.filter(u => u.plan === 'START').length * 97,
-      PRO: users.filter(u => u.plan === 'PRO').length * 147,
-      SCALE: users.filter(u => u.plan === 'SCALE').length * 297,
+      START: round2(users.filter(u => u.plan === 'START').length * PLAN_PRICES_BRL.START),
+      PRO: round2(users.filter(u => u.plan === 'PRO').length * PLAN_PRICES_BRL.PRO),
+      SCALE: round2(users.filter(u => u.plan === 'SCALE').length * PLAN_PRICES_BRL.SCALE),
     }
 
     return NextResponse.json({

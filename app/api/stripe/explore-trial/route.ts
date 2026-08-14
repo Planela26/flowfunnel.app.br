@@ -5,8 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { checkRateLimit, getClientIp } from '@/lib/security-utils'
 import { logAudit } from '@/lib/audit'
 import { TRIAL_DAYS } from '@/lib/trial'
-
-const PLAN_VALUES: Record<string, number> = { START: 97, PRO: 147, SCALE: 297 }
+import { getPlanPriceBRL } from '@/lib/plans'
 
 // Tier do teste SEM cartão é decidido pelo servidor, nunca pelo cliente.
 // Antes, `body.plan` era aceito e `{"plan":"SCALE"}` dava 7 dias do tier mais
@@ -100,7 +99,7 @@ export async function POST(request: Request) {
       success: true,
       trialEndsAt: trialEndsAt.toISOString(),
       plan: planKey,
-      value: PLAN_VALUES[planKey] ?? 0,
+      value: getPlanPriceBRL(planKey),
     })
   } catch (error: any) {
     console.error('Erro ao iniciar trial exploratório:', error?.message ?? error)

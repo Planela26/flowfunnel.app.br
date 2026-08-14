@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { usePlan } from './usePlan'
+import { TRIAL_DAYS } from '@/lib/trial'
 
 const PLAN_LABELS: Record<string, string> = {
   START: 'START', PRO: 'PRO', SCALE: 'SCALE',
@@ -59,14 +60,14 @@ export default function TrialSetupWall() {
           Para acessar o plano{' '}
           <strong className="text-gray-900 dark:text-white">{planLabel}</strong>,
           adicione um cartão de crédito. Você{' '}
-          <strong>não será cobrado</strong> durante os 7 dias de teste.
+          <strong>não será cobrado</strong> durante os {TRIAL_DAYS} dias de teste.
         </p>
 
         <div className="space-y-3 mb-8 text-left">
           {[
-            { icon: Clock, text: `7 dias grátis com acesso completo ao plano ${planLabel}` },
+            { icon: Clock, text: `${TRIAL_DAYS} dias grátis com acesso completo ao plano ${planLabel}` },
             { icon: Shield, text: 'Sem cobrança durante o teste — cancele a qualquer momento' },
-            { icon: CreditCard, text: `Após os 7 dias: ${price}/mês (pode cancelar antes)` },
+            { icon: CreditCard, text: `Após os ${TRIAL_DAYS} dias: ${price}/mês (pode cancelar antes)` },
           ].map(({ icon: Icon, text }, i) => (
             <div key={i} className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400">
               <div className="w-5 h-5 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0">

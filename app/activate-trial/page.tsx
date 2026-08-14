@@ -11,13 +11,14 @@ import {
   useElements,
 } from '@stripe/react-stripe-js'
 import { Shield, CreditCard, Lock, Clock, CheckCircle, Loader2, AlertCircle, Eye, QrCode } from 'lucide-react'
+import { TRIAL_DAYS } from '@/lib/trial'
 import Link from 'next/link'
 
 const PLAN_LABELS: Record<string, string> = {
   START: 'START', PRO: 'PRO', SCALE: 'SCALE',
 }
 const PLAN_PRICES: Record<string, string> = {
-  START: 'R$ 97', PRO: 'R$ 147', SCALE: 'R$ 297',
+  START: 'R$ 47,90', PRO: 'R$ 97,90', SCALE: 'R$ 147,90',
 }
 
 function BillingIcon({ className = 'w-4 h-4' }: { className?: string }) {
@@ -144,7 +145,7 @@ function TrialSetupForm({
         ) : (
           <>
             <CreditCard className="w-4 h-4" />
-            Ativar 7 dias grátis — {PLAN_LABELS[plan] ?? plan}
+            Ativar {TRIAL_DAYS} dias grátis — {PLAN_LABELS[plan] ?? plan}
           </>
         )}
       </button>
@@ -177,7 +178,7 @@ function SuccessScreen({ plan }: { plan: string }) {
         Teste ativado com sucesso!
       </h2>
       <p className="text-gray-500 dark:text-gray-400 mb-2">
-        Seu plano <strong>{PLAN_LABELS[plan] ?? plan}</strong> está ativo por 7 dias.
+        Seu plano <strong>{PLAN_LABELS[plan] ?? plan}</strong> está ativo por {TRIAL_DAYS} dias.
       </p>
       <p className="text-sm text-gray-400 dark:text-gray-600">
         Redirecionando para o dashboard...
@@ -384,16 +385,16 @@ function ActivateTrialInner() {
                 Para acessar o plano <strong className="text-gray-700 dark:text-gray-200">{planLabel}</strong>,
                 adicione um cartão de crédito. Você{' '}
                 <strong className="text-gray-700 dark:text-gray-200">não será cobrado</strong>{' '}
-                durante os 7 dias de teste. Ou pague à vista com Pix.
+                durante os {TRIAL_DAYS} dias de teste. Ou pague à vista com Pix.
               </p>
             </div>
 
             {/* Benefits list */}
             <ul className="space-y-3 mb-6 bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 p-5">
               {[
-                { icon: <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />, label: '7 dias grátis com acesso completo ao plano ' + planLabel },
+                { icon: <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />, label: `${TRIAL_DAYS} dias grátis com acesso completo ao plano ` + planLabel },
                 { icon: <Shield className="w-4 h-4 text-green-600 dark:text-green-400" />, label: 'Sem cobrança durante o teste — cancele a qualquer momento' },
-                { icon: <Clock className="w-4 h-4 text-blue-600 dark:text-blue-400" />, label: `Após os 7 dias: ${PLAN_PRICES[plan] ?? ''}/mês (pode cancelar antes)` },
+                { icon: <Clock className="w-4 h-4 text-blue-600 dark:text-blue-400" />, label: `Após os ${TRIAL_DAYS} dias: ${PLAN_PRICES[plan] ?? ''}/mês (pode cancelar antes)` },
               ].map((b, i) => (
                 <li key={i} className="flex items-start gap-3">
                   <span className="mt-0.5 flex-shrink-0 w-6 h-6 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
@@ -468,7 +469,7 @@ function ActivateTrialInner() {
             <div className="text-center mb-8">
               <div className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-1.5 rounded-full text-sm font-medium mb-4">
                 <Clock className="w-4 h-4" />
-                7 dias grátis — Plano {planLabel}
+                {TRIAL_DAYS} dias grátis — Plano {planLabel}
               </div>
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
                 Adicione seu cartão
@@ -482,7 +483,7 @@ function ActivateTrialInner() {
             <div className="grid grid-cols-3 gap-3 mb-6">
               {[
                 { icon: <Shield className="w-4 h-4" />, label: 'Sem cobrança agora' },
-                { icon: <Clock className="w-4 h-4" />, label: '7 dias completos' },
+                { icon: <Clock className="w-4 h-4" />, label: `${TRIAL_DAYS} dias completos` },
                 { icon: <CheckCircle className="w-4 h-4" />, label: 'Cancele quando quiser' },
               ].map((b, i) => (
                 <div key={i} className="flex flex-col items-center gap-2 bg-white dark:bg-gray-900 rounded-xl p-3 shadow-sm border border-gray-100 dark:border-gray-800 text-center">

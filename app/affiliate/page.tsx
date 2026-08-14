@@ -56,7 +56,7 @@ interface BreakdownData {
   avgCommission: number
 }
 
-const PLAN_LABELS: Record<string, string> = { START: 'START R$97', PRO: 'PRO R$147', SCALE: 'SCALE R$297' }
+const PLAN_LABELS: Record<string, string> = { START: 'START R$47,90', PRO: 'PRO R$97,90', SCALE: 'SCALE R$147,90' }
 const PLAN_COLORS: Record<string, string> = {
   START: 'bg-blue-500',
   PRO: 'bg-purple-500',

@@ -1,4 +1,5 @@
 import { Resend } from 'resend'
+import { TRIAL_DAYS } from './trial'
 
 let resend: Resend | null = null
 
@@ -137,7 +138,7 @@ const divider = `<table width="100%" cellpadding="0" cellspacing="0" style="marg
 
 // ─── Plan labels & prices ─────────────────────────────────────────────────────
 const PLAN_LABELS: Record<string, string> = { START: 'START', PRO: 'PRO', SCALE: 'SCALE' }
-const PLAN_PRICES: Record<string, string> = { START: 'R$ 97', PRO: 'R$ 147', SCALE: 'R$ 297' }
+const PLAN_PRICES: Record<string, string> = { START: 'R$ 47,90', PRO: 'R$ 97,90', SCALE: 'R$ 147,90' }
 
 // ══════════════════════════════════════════════════════════════════════════════
 // 1. VERIFICAÇÃO DE EMAIL
@@ -519,25 +520,25 @@ export async function sendTrialCardReminderEmail(to: string, name: string, plan:
   const activateUrl = `${APP_URL}/activate-trial?plan=${plan}`
   return sendEmail(
     to,
-    `⏳ Só falta um passo — ative seu teste grátis de 7 dias no FlowSara`,
+    `⏳ Só falta um passo — ative seu teste grátis de ${TRIAL_DAYS} dias no FlowSara`,
     base({
       headerBg: 'linear-gradient(135deg, #1e40af 0%, #7c3aed 100%)',
       headerEmoji: '🎯',
       headerTitle: 'Seu teste grátis está esperando',
-      headerSubtitle: `Plano ${planLabel} — 7 dias completamente grátis`,
+      headerSubtitle: `Plano ${planLabel} — ${TRIAL_DAYS} dias completamente grátis`,
       body: `
         <h2 style="color:#111827;font-size:20px;font-weight:700;margin:0 0 16px;">
           Olá, ${name || 'usuário'}!
         </h2>
         <p style="color:#4b5563;font-size:16px;line-height:1.7;margin:0 0 24px;">
           Seu email foi confirmado! Falta apenas adicionar um cartão de crédito para
-          ativar os <strong>7 dias grátis</strong> do plano <strong>${planLabel}</strong>.
+          ativar os <strong>${TRIAL_DAYS} dias grátis</strong> do plano <strong>${planLabel}</strong>.
           Não será feita nenhuma cobrança agora.
         </p>
 
         ${infoBox(`
           <strong style="display:block;margin-bottom:12px;">✅ O que está incluído no plano ${planLabel}:</strong>
-          ✅ Nenhuma cobrança durante os 7 dias de teste<br/>
+          ✅ Nenhuma cobrança durante os ${TRIAL_DAYS} dias de teste<br/>
           ✅ Acesso completo a todos os recursos do plano ${planLabel}<br/>
           ✅ Integração com WhatsApp, Hotmart, Kiwify, Eduzz e mais<br/>
           ✅ Cancele a qualquer momento, sem multa e sem burocracia
@@ -550,7 +551,7 @@ export async function sendTrialCardReminderEmail(to: string, name: string, plan:
         ${infoBox(`
           <strong>💳 Como funciona:</strong><br/>
           Você adiciona o cartão para garantir que não há bots — mas a cobrança de
-          ${PLAN_PRICES[plan] ?? ''}/mês só acontece após os 7 dias, e somente se você
+          ${PLAN_PRICES[plan] ?? ''}/mês só acontece após os ${TRIAL_DAYS} dias, e somente se você
           não cancelar antes. Transparência total, sem surpresas.
         `, '#f0fdf4', '#86efac', '#065f46')}
 
@@ -572,7 +573,7 @@ export async function sendTrialActivatedEmail(to: string, name: string, plan: st
   const endsStr = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' }).format(trialEndsAt)
   return sendEmail(
     to,
-    `🚀 Teste grátis ativado! Plano ${planLabel} liberado por 7 dias — FlowSara`,
+    `🚀 Teste grátis ativado! Plano ${planLabel} liberado por ${TRIAL_DAYS} dias — FlowSara`,
     base({
       headerBg: 'linear-gradient(135deg, #065f46 0%, #1e40af 100%)',
       headerEmoji: '🚀',
@@ -584,7 +585,7 @@ export async function sendTrialActivatedEmail(to: string, name: string, plan: st
         </h2>
         <p style="color:#4b5563;font-size:16px;line-height:1.7;margin:0 0 24px;">
           Seu teste gratuito está ativo. Você tem acesso completo ao plano
-          <strong>${planLabel}</strong> — explore tudo sem pressa durante os próximos 7 dias.
+          <strong>${planLabel}</strong> — explore tudo sem pressa durante os próximos ${TRIAL_DAYS} dias.
         </p>
 
         ${infoBox(`

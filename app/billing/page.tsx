@@ -37,7 +37,7 @@ const PLANS = [
   {
     key: 'START',
     name: 'START',
-    price: 'R$ 97',
+    price: 'R$ 47,90',
     period: '/mês',
     icon: Star,
     color: 'text-blue-600',
@@ -57,7 +57,7 @@ const PLANS = [
   {
     key: 'PRO',
     name: 'PRO',
-    price: 'R$ 147',
+    price: 'R$ 97,90',
     period: '/mês',
     icon: Star,
     color: 'text-indigo-600',
@@ -78,7 +78,7 @@ const PLANS = [
   {
     key: 'SCALE',
     name: 'SCALE',
-    price: 'R$ 297',
+    price: 'R$ 147,90',
     period: '/mês',
     icon: Rocket,
     color: 'text-purple-600',

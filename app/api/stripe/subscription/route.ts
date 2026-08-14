@@ -100,7 +100,8 @@ const buildSub = (status: string) => ({
       cancelAtPeriodEnd: subscription.cancel_at_period_end,
       currentPeriodEnd: periodEnd,
       priceId,
-      amountBrl: amount ? (amount / 100).toFixed(2) : null,
+      // Vírgula: o valor é exibido direto em SubscriptionCard, em pt-BR.
+      amountBrl: amount ? (amount / 100).toFixed(2).replace('.', ',') : null,
     })
 
     if (user.subscriptionStatus === 'active') {

@@ -1,4 +1,4 @@
-import { Plan } from './plans'
+import { Plan, PLAN_PRICES_BRL } from './plans'
 
 const ACCESS_TOKEN = process.env.MERCADOPAGO_ACCESS_TOKEN
 const API_BASE = 'https://api.mercadopago.com'
@@ -156,13 +156,12 @@ export async function getPayment(paymentId: number): Promise<MercadoPagoPayment>
   return response.json()
 }
 
+/**
+ * Valor cobrado pelo Mercado Pago. Lê de PLAN_PRICES_BRL para não divergir do
+ * que a vitrine anuncia — antes esta tabela era uma segunda cópia dos preços.
+ */
 export function getPlanPrice(plan: Plan): number {
-  switch (plan) {
-    case 'START': return 97.00
-    case 'PRO': return 147.00
-    case 'SCALE': return 297.00
-    default: return 0
-  }
+  return PLAN_PRICES_BRL[plan] ?? 0
 }
 
 export function getPlanName(plan: Plan): string {

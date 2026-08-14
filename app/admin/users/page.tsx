@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+import { PLAN_PRICES_BRL, getPlanPriceBRL } from '@/lib/plans'
 import {
   Users, DollarSign, TrendingUp, Crown, Search, RefreshCw,
   UserCheck, UserX, BarChart2, ArrowUpRight, Calendar, Zap,
@@ -83,9 +84,9 @@ const PLAN_BAR_COLORS: Record<string, string> = {
   SCALE: 'bg-orange-500',
 }
 
-const PLAN_VALUES: Record<string, number> = {
-  FREE: 0, START: 97, PRO: 147, SCALE: 297,
-}
+/** Moeda com centavos: sem as opções, 143.7 sairia como "143,7". */
+const brl = (v: number) =>
+  v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
 const TRIAL_STATUS_LABELS: Record<string, string> = {
   none: 'Sem trial',
@@ -281,7 +282,7 @@ export default function AdminUsersPage() {
                     {(['SCALE', 'PRO', 'START', 'FREE'] as const).map(plan => {
                       const count = stats.byPlan[plan]
                       const pct = stats.total > 0 ? Math.round((count / stats.total) * 100) : 0
-                      const rev = count * PLAN_VALUES[plan]
+                      const rev = count * PLAN_PRICES_BRL[plan]
                       return (
                         <div key={plan}>
                           <div className="flex items-center justify-between mb-1.5">
@@ -292,7 +293,7 @@ export default function AdminUsersPage() {
                             <div className="flex items-center gap-3">
                               {rev > 0 && (
                                 <span className="text-xs text-green-600 dark:text-green-400 font-medium">
-                                  R$ {rev.toLocaleString('pt-BR')}/mês
+                                  R$ {brl(rev)}/mês
                                 </span>
                               )}
                               <span className="text-xs text-gray-400 dark:text-gray-500">{pct}%</span>
@@ -698,9 +699,9 @@ export default function AdminUsersPage() {
                         )}
                       </td>
                       <td className="px-4 py-3 text-right">
-                        {PLAN_VALUES[user.plan] > 0 ? (
+                        {getPlanPriceBRL(user.plan) > 0 ? (
                           <span className="text-sm font-semibold text-green-600 dark:text-green-400">
-                            R$ {PLAN_VALUES[user.plan]}
+                            R$ {brl(getPlanPriceBRL(user.plan))}
                           </span>
                         ) : (
                           <span className="text-gray-300 dark:text-gray-600">—</span>

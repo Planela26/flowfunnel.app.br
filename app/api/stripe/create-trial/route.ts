@@ -5,6 +5,7 @@ import { getUncachableStripeClient } from '@/lib/stripeClient'
 import { prisma } from '@/lib/prisma'
 import { checkRateLimit, getClientIp } from '@/lib/security-utils'
 import { logAudit } from '@/lib/audit'
+import { TRIAL_DAYS } from '@/lib/trial'
 
 const PLAN_PRICES: Record<string, string> = {
   START: process.env.STRIPE_PRICE_START || '',
@@ -123,11 +124,13 @@ export async function POST(request: Request) {
       })
     }
 
-    // Create a new subscription with 7-day trial period
+    // Assinatura com o período de teste. Passar explicitamente sobrepõe
+    // qualquer trial padrão configurado no Price dentro da Stripe — o prazo
+    // vale o que está em TRIAL_DAYS, não o que estiver no painel.
     const subscription = await stripe.subscriptions.create({
       customer: customerId,
       items: [{ price: priceId }],
-      trial_period_days: 7,
+      trial_period_days: TRIAL_DAYS,
       payment_settings: {
         save_default_payment_method: 'on_subscription',
       },

@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { MessageCircle, Mail, Lock, User, Loader2, Check, Eye, EyeOff } from 'lucide-react'
 import { signIn } from 'next-auth/react'
 import { authPatternUrl, authPatternSize } from '@/lib/authPattern'
+import { TRIAL_DAYS } from '@/lib/trial'
 
 export default function RegisterPage() {
   return (
@@ -168,7 +169,7 @@ function RegisterPageContent() {
           {planParam && ['START', 'PRO', 'SCALE'].includes(planParam.toUpperCase()) ? (
             <div className="inline-flex items-center gap-2 bg-green-500/20 border border-green-400/40 text-green-200 text-sm font-semibold px-4 py-2 rounded-full">
               <Check className="w-4 h-4" />
-              7 dias grátis do Plano {planParam.toUpperCase()} — sem cobrança durante o teste
+              {TRIAL_DAYS} dias grátis do Plano {planParam.toUpperCase()} — sem cobrança durante o teste
             </div>
           ) : (
             <p className="text-blue-200">Crie sua conta gratuitamente</p>

@@ -7,8 +7,7 @@ import { checkRateLimit, getClientIp } from '@/lib/security-utils'
 import { logAudit } from '@/lib/audit'
 import { sendTrialActivatedEmail } from '@/lib/email'
 import { sendMetaCapiEvent, readFbCookies } from '@/lib/meta-capi'
-
-const PLAN_VALUES: Record<string, number> = { START: 97, PRO: 147, SCALE: 297 }
+import { getPlanPriceBRL } from '@/lib/plans'
 
 function getPlanFromPriceId(priceId: string): string | null {
   const map: Record<string, string> = {}
@@ -200,7 +199,7 @@ export async function POST(request: Request) {
         fbp,
         fbc,
       },
-      customData: { value: PLAN_VALUES[effectivePlan] ?? 0, currency: 'BRL', predicted_ltv: PLAN_VALUES[effectivePlan] ?? 0 },
+      customData: { value: getPlanPriceBRL(effectivePlan), currency: 'BRL', predicted_ltv: getPlanPriceBRL(effectivePlan) },
     }).catch(() => {})
 
     return NextResponse.json({
@@ -208,7 +207,7 @@ export async function POST(request: Request) {
       trialEndsAt: trialEndsAt.toISOString(),
       plan: planKey,
       meta: {
-        startTrial: { eventId: startTrialEventId, value: PLAN_VALUES[effectivePlan] ?? 0, currency: 'BRL' },
+        startTrial: { eventId: startTrialEventId, value: getPlanPriceBRL(effectivePlan), currency: 'BRL' },
       },
     })
   } catch (error: any) {

@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { Clock, Zap, X, Compass } from 'lucide-react'
 import { useState } from 'react'
 import { usePlan } from './usePlan'
+import { TRIAL_DAYS } from '@/lib/trial'
 
 const PLAN_LABELS: Record<string, string> = {
   START: 'START', PRO: 'PRO', SCALE: 'SCALE',
@@ -103,7 +104,7 @@ export default function TrialBanner() {
           <span className="truncate">
             {days === 0
               ? `Você está explorando a Plataforma. Adicione um cartão ou pague via PIX para liberar integrações.`
-              : `Você está conhecendo a plataforma. Adicione cartão (7 dias grátis) ou pague via PIX.`}
+              : `Você está conhecendo a plataforma. Adicione cartão (${TRIAL_DAYS} dias grátis) ou pague via PIX.`}
           </span>
         </div>
         <div className="flex items-center gap-2 shrink-0">

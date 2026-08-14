@@ -8,12 +8,13 @@ import {
   CheckCircle2, QrCode,
 } from 'lucide-react'
 import Link from 'next/link'
+import { formatBRL } from '@/lib/plans'
 
 // ─── Plan Info ───────────────────────────────────────────────────────
 const PLAN_INFO: Record<string, { name: string; desc: string; features: string[]; badge?: string; price: string; conversations: string }> = {
   START: {
     name: 'START', desc: 'Ideal para quem está começando',
-    price: 'R$97/mês', conversations: '1.000 conversas/mês',
+    price: 'R$47,90/mês', conversations: '1.000 conversas/mês',
     features: [
       'Até 1.000 conversas rastreadas/mês', 'Análise por IA do funil de vendas',
       'Rastreamento WhatsApp + Hotmart/Kiwify', '1 número de WhatsApp e 1 funil ativo',
@@ -22,7 +23,7 @@ const PLAN_INFO: Record<string, { name: string; desc: string; features: string[]
   },
   PRO: {
     name: 'PRO', desc: 'Para quem anuncia todo dia', badge: 'Mais popular',
-    price: 'R$147/mês', conversations: '3.000 conversas/mês',
+    price: 'R$97,90/mês', conversations: '3.000 conversas/mês',
     features: [
       'Até 3.000 conversas rastreadas/mês', 'IA com diagnóstico e sugestões avançadas',
       'Até 3 números de WhatsApp', 'Comparação de períodos',
@@ -31,7 +32,7 @@ const PLAN_INFO: Record<string, { name: string; desc: string; features: string[]
   },
   SCALE: {
     name: 'SCALE', desc: 'Para agências e grandes operações',
-    price: 'R$297/mês', conversations: 'Conversas ilimitadas',
+    price: 'R$147,90/mês', conversations: 'Conversas ilimitadas',
     features: [
       'Conversas ilimitadas', 'IA avançada com alertas automáticos',
       'WhatsApps e funis ilimitados', 'Histórico estendido', 'Suporte prioritário',
@@ -654,8 +655,11 @@ function CheckoutInner({ planKey }: { planKey: string }) {
     setDiscountPercent(0)
   }
 
+  // Precisa arredondar igual ao servidor (create-preference/process-payment),
+  // em centavos: arredondar em reais aqui mostraria um total diferente do
+  // que o Mercado Pago cobra.
   const discountedPrice = discountPercent > 0
-    ? Math.round(price * (1 - discountPercent / 100))
+    ? Math.round(price * (1 - discountPercent / 100) * 100) / 100
     : price
 
   return (
@@ -682,23 +686,23 @@ function CheckoutInner({ planKey }: { planKey: string }) {
               <div className="flex justify-between items-center text-sm mb-2.5">
                 <span style={{ color: '#475569' }} className="font-medium">Plano {planInfo.name}</span>
                 <span style={{ color: '#1e293b' }} className="font-semibold">
-                  {pricesLoading ? '...' : `R$${price}/mês`}
+                  {pricesLoading ? '...' : `R$${formatBRL(price)}/mês`}
                 </span>
               </div>
               {discountPercent > 0 && (
                 <div className="flex justify-between items-center text-sm mb-2.5">
                   <span className="text-green-700 font-medium">Desconto ({discountPercent}%)</span>
-                  <span className="text-green-700 font-semibold">- R${((price * discountPercent) / 100).toFixed(2)}</span>
+                  <span className="text-green-700 font-semibold">- R${formatBRL((price * discountPercent) / 100)}</span>
                 </div>
               )}
               <div className="border-t border-blue-100 pt-2.5 flex justify-between items-end">
                 <span style={{ color: '#64748b' }} className="text-xs font-medium">Total hoje</span>
                 <div className="text-right">
                   {discountPercent > 0 && (
-                    <div className="text-sm text-gray-400 line-through leading-none mb-0.5">R${price}</div>
+                    <div className="text-sm text-gray-400 line-through leading-none mb-0.5">R${formatBRL(price)}</div>
                   )}
                   <div className="text-3xl font-black text-blue-700 leading-none">
-                    {pricesLoading ? '...' : `R$${discountedPrice}`}
+                    {pricesLoading ? '...' : `R$${formatBRL(discountedPrice)}`}
                   </div>
                   <div className="text-xs mt-0.5" style={{ color: '#94a3b8' }}>renovação automática mensal</div>
                 </div>

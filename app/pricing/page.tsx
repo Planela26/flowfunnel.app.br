@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { Check, X, Zap, TrendingUp, Crown, ArrowLeft } from 'lucide-react'
 import { authPatternUrl, authPatternSize } from '@/lib/authPattern'
+import { PLAN_PRICES_BRL, formatBRL } from '@/lib/plans'
+import { TRIAL_DAYS } from '@/lib/trial'
 
 const plans = [
   {
@@ -14,13 +16,13 @@ const plans = [
     tagline: 'Para quem está começando',
     badge: 'Essencial',
     badgeColor: 'bg-white/20 text-white',
-    price: 97,
+    price: PLAN_PRICES_BRL.START,
     icon: <Zap className="w-6 h-6" />,
     iconBg: 'bg-white/20 text-white',
     borderClass: 'border border-white/20',
     cardClass: 'bg-white/10 backdrop-blur-md',
     buttonClass: 'bg-white text-blue-700 hover:bg-blue-50 font-bold',
-    buttonText: 'Testar grátis 7 dias',
+    buttonText: `Testar grátis ${TRIAL_DAYS} dias`,
     popular: false,
     features: [
       { text: 'Análise por IA do funil', included: true },
@@ -40,13 +42,13 @@ const plans = [
     tagline: 'Para quem anuncia todo dia',
     badge: 'Mais Popular',
     badgeColor: 'bg-white/20 text-white',
-    price: 147,
+    price: PLAN_PRICES_BRL.PRO,
     icon: <TrendingUp className="w-6 h-6" />,
     iconBg: 'bg-white/20 text-white',
     borderClass: 'border-0',
     cardClass: 'bg-gradient-to-b from-blue-600 to-blue-800 text-white',
     buttonClass: 'bg-white text-blue-700 hover:bg-blue-50 font-bold',
-    buttonText: 'Testar grátis 7 dias',
+    buttonText: `Testar grátis ${TRIAL_DAYS} dias`,
     popular: true,
     features: [
       { text: 'Análise completa por IA', included: true },
@@ -67,13 +69,13 @@ const plans = [
     tagline: 'Para agências e grandes operações',
     badge: 'IA Avançada',
     badgeColor: 'bg-white/20 text-white',
-    price: 297,
+    price: PLAN_PRICES_BRL.SCALE,
     icon: <Crown className="w-6 h-6" />,
     iconBg: 'bg-white/20 text-white',
     borderClass: 'border border-white/20',
     cardClass: 'bg-white/10 backdrop-blur-md',
     buttonClass: 'bg-white text-blue-700 hover:bg-blue-50 font-bold',
-    buttonText: 'Testar grátis 7 dias',
+    buttonText: `Testar grátis ${TRIAL_DAYS} dias`,
     popular: false,
     features: [
       { text: 'IA avançada (sugestões + diagnóstico)', included: true },
@@ -105,7 +107,7 @@ export default function PricingPage() {
 
   const currentPlan = consentPlan ? plans.find(p => p.id === consentPlan) || null : null
 
-  // Teste grátis de 7 dias → SEMPRE via Stripe (Mercado Pago não permite trial).
+  // Teste grátis de TRIAL_DAYS dias → SEMPRE via Stripe (Mercado Pago não permite trial).
   // Sem conta: cria conta primeiro (após confirmar o email, segue para /activate-trial).
   // Com conta: vai direto para a ativação do trial via Stripe.
   const startTrial = (planId: string) => {
@@ -216,18 +218,18 @@ export default function PricingPage() {
                   <div className="flex items-baseline gap-1">
                     <span className="text-sm font-medium text-blue-200">R$</span>
                     <span className="text-5xl font-black text-white">
-                      {plan.price}
+                      {formatBRL(plan.price)}
                     </span>
                   </div>
                   <span className="text-xs text-blue-300">/mês</span>
                 </div>
 
-                {/* Botão CTA — teste grátis 7 dias (Stripe) */}
+                {/* Botão CTA — teste grátis TRIAL_DAYS dias (Stripe) */}
                 <button
                   onClick={() => startTrial(plan.id)}
                   className={`w-full py-3 rounded-xl text-sm font-bold text-center transition mb-2 flex items-center justify-center gap-2 ${plan.buttonClass}`}
                 >
-                  Testar grátis 7 dias
+                  {plan.buttonText}
                 </button>
                 {/* Pagar agora (Mercado Pago — PIX/Boleto/Cartão) */}
                 <button
@@ -238,7 +240,7 @@ export default function PricingPage() {
                   Pagar agora (PIX/Boleto/Cartão)
                 </button>
                 <p className="text-center text-[11px] text-blue-200/70 mb-6">
-                  7 dias grátis · cancele quando quiser
+                  {TRIAL_DAYS} dias grátis · cancele quando quiser
                 </p>
 
                 {/* Divider */}

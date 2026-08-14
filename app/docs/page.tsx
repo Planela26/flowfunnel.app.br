@@ -237,11 +237,11 @@ export default function DocsPage() {
         <table>
           <thead><tr><th>Segmento</th><th>Perfil</th><th>Plano Ideal</th><th>Ticket Médio</th></tr></thead>
           <tbody>
-            <tr><td>Infoprodutor Iniciante</td><td>Lança 1–2 produtos por ano, gasta R$2–5k/mês em tráfego</td><td>START</td><td>R$97/mês</td></tr>
-            <tr><td>Infoprodutor Intermediário</td><td>3–5 lançamentos/ano, time de 2–5 pessoas, R$10–30k/mês</td><td>PRO</td><td>R$147/mês</td></tr>
-            <tr><td>Produtor de Alto Volume</td><td>Perpétuo ou alta escala, R$50k+/mês em tráfego, time grande</td><td>SCALE</td><td>R$297/mês</td></tr>
-            <tr><td>Gestor de Tráfego</td><td>Gerencia contas de vários clientes, precisa de relatórios</td><td>PRO/SCALE</td><td>R$147–297/mês</td></tr>
-            <tr><td>Agência Digital</td><td>Multi-conta, relatórios white-label para clientes</td><td>SCALE + Equipe</td><td>R$297+/mês</td></tr>
+            <tr><td>Infoprodutor Iniciante</td><td>Lança 1–2 produtos por ano, gasta R$2–5k/mês em tráfego</td><td>START</td><td>R$47,90/mês</td></tr>
+            <tr><td>Infoprodutor Intermediário</td><td>3–5 lançamentos/ano, time de 2–5 pessoas, R$10–30k/mês</td><td>PRO</td><td>R$97,90/mês</td></tr>
+            <tr><td>Produtor de Alto Volume</td><td>Perpétuo ou alta escala, R$50k+/mês em tráfego, time grande</td><td>SCALE</td><td>R$147,90/mês</td></tr>
+            <tr><td>Gestor de Tráfego</td><td>Gerencia contas de vários clientes, precisa de relatórios</td><td>PRO/SCALE</td><td>R$97,90–147,90/mês</td></tr>
+            <tr><td>Agência Digital</td><td>Multi-conta, relatórios white-label para clientes</td><td>SCALE + Equipe</td><td>R$147,90+/mês</td></tr>
           </tbody>
         </table>
 
@@ -575,12 +575,12 @@ export default function DocsPage() {
           },
           {
             mod: '💳 Sistema de Pagamentos', files: ['app/api/stripe/webhook/route.ts', 'app/api/stripe/checkout/route.ts', 'app/api/stripe/portal/route.ts', 'lib/stripe-dedup.ts', 'app/api/mercadopago/process-payment/route.ts', 'lib/mercadopago-dedup.ts'],
-            desc: 'Stripe: subscription billing com trial de 7 dias, embedded checkout, portal self-service. Webhook com dedup persistido em DB (StripeProcessedEvent). Mercado Pago: Payment Brick embedded (PIX, boleto, cartão), dedup em MercadoPagoProcessedEvent, rate limiting 10 req/min por IP.',
+            desc: 'Stripe: subscription billing com trial de 14 dias, embedded checkout, portal self-service. Webhook com dedup persistido em DB (StripeProcessedEvent). Mercado Pago: Payment Brick embedded (PIX, boleto, cartão), dedup em MercadoPagoProcessedEvent, rate limiting 10 req/min por IP.',
             importance: 'CRÍTICO',
           },
           {
             mod: '🎯 Sistema de Planos e Feature Gating', files: ['lib/plans.ts', 'lib/trial.ts', 'lib/withPlan.ts', 'app/api/plan/route.ts', 'components/PlanGate.tsx', 'components/usePlan.ts'],
-            desc: 'Lógica centralizada de planos em lib/plans.ts. getEffectivePlan() leva em conta trial ativo. withPlan.ts HOF para feature gating nos endpoints (retorna 402 com upgradeUrl). PlanGate component aplica blur + lock no frontend. Trial de 7 dias sem cartão.',
+            desc: 'Lógica centralizada de planos em lib/plans.ts. getEffectivePlan() leva em conta trial ativo. withPlan.ts HOF para feature gating nos endpoints (retorna 402 com upgradeUrl). PlanGate component aplica blur + lock no frontend. Trial de 14 dias sem cartão.',
             importance: 'ALTO',
           },
           {
@@ -852,9 +852,9 @@ export default function DocsPage() {
         <div className="two-col" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr', display: 'grid', gap: 12 }}>
           {[
             { name: 'FREE', price: 'R$0', conv: '0 conv.', color: '#64748B', featured: false, features: ['Dashboard básico', 'Sem conversas', 'Trial disponível'] },
-            { name: 'START', price: 'R$97/mês', conv: '1.000 conv.', color: '#2563EB', featured: false, features: ['1 funil ativo', '1 número WhatsApp', '7 dias histórico', 'Export CSV'] },
-            { name: 'PRO', price: 'R$147/mês', conv: '3.000 conv.', color: '#7C3AED', featured: true, features: ['3 funis ativos', '3 números WhatsApp', '365 dias histórico', 'Lead scoring IA', 'Comparativo período'] },
-            { name: 'SCALE', price: 'R$297/mês', conv: 'Ilimitado', color: '#059669', featured: false, features: ['Funis ilimitados', 'WhatsApp ilimitado', 'Alertas automáticos', 'IA avançada', 'Equipe'] },
+            { name: 'START', price: 'R$47,90/mês', conv: '1.000 conv.', color: '#2563EB', featured: false, features: ['1 funil ativo', '1 número WhatsApp', '7 dias histórico', 'Export CSV'] },
+            { name: 'PRO', price: 'R$97,90/mês', conv: '3.000 conv.', color: '#7C3AED', featured: true, features: ['3 funis ativos', '3 números WhatsApp', '365 dias histórico', 'Lead scoring IA', 'Comparativo período'] },
+            { name: 'SCALE', price: 'R$147,90/mês', conv: 'Ilimitado', color: '#059669', featured: false, features: ['Funis ilimitados', 'WhatsApp ilimitado', 'Alertas automáticos', 'IA avançada', 'Equipe'] },
           ].map(p => (
             <div key={p.name} style={{ border: `2px solid ${p.featured ? '#7C3AED' : '#E2E8F0'}`, borderRadius: 12, padding: 14, background: p.featured ? '#F5F3FF' : '#F8FAFC' }}>
               <div style={{ fontSize: '0.82rem', fontWeight: 700, color: p.color, marginBottom: 4 }}>{p.name}</div>
@@ -876,7 +876,7 @@ export default function DocsPage() {
             <tr><td>Churn Mensal Estimado</td><td><strong>6–10%</strong></td><td>Média SaaS B2B Brasil pequenas empresas</td></tr>
             <tr><td>MRR Break-even</td><td><strong>~R$ 8.000/mês</strong></td><td>Custo infra + operação mínima</td></tr>
             <tr><td>Payback Period</td><td><strong>1–2 meses</strong></td><td>CAC R$160 / ARPU R$174</td></tr>
-            <tr><td>Trial Conversion Rate (Est.)</td><td><strong>20–35%</strong></td><td>Trial 7 dias sem cartão</td></tr>
+            <tr><td>Trial Conversion Rate (Est.)</td><td><strong>20–35%</strong></td><td>Trial 14 dias sem cartão</td></tr>
           </tbody>
         </table>
 
@@ -885,7 +885,7 @@ export default function DocsPage() {
           <div className="flow-num">1</div>
           <div className="flow-content">
             <h4>Assinaturas Mensais (Principal)</h4>
-            <p style={{ fontSize: '0.84rem', margin: 0 }}>START R$97 · PRO R$147 · SCALE R$297 via Stripe (cartão internacional) ou Mercado Pago (PIX, boleto, cartão nacional).</p>
+            <p style={{ fontSize: '0.84rem', margin: 0 }}>START R$47,90 · PRO R$97,90 · SCALE R$147,90 via Stripe (cartão internacional) ou Mercado Pago (PIX, boleto, cartão nacional).</p>
           </div>
         </div>
         <div className="flow-step">
@@ -914,7 +914,7 @@ export default function DocsPage() {
         <div style={{ background: '#F8FAFC', borderRadius: 10, padding: 16 }}>
           {[
             { stage: 'Visita à Landing Page', val: '100%', n: '10.000 visitas/mês' },
-            { stage: 'Clica em "7 dias grátis"', val: '12%', n: '1.200 registros' },
+            { stage: 'Clica em "14 dias grátis"', val: '12%', n: '1.200 registros' },
             { stage: 'Ativa Trial (com plano)', val: '60%', n: '720 trials ativos' },
             { stage: 'Converte para pago', val: '28%', n: '202 pagantes novos/mês' },
             { stage: 'Retém no mês 3', val: '72%', n: '145 retidos' },
@@ -1103,9 +1103,9 @@ export default function DocsPage() {
               ['Integração PIX/Boleto BR', '✅ Mercado Pago', '❌', '❌', '❌', '❌'],
               ['Hotmart/Kiwify/Eduzz', '✅ Nativo', '⚠️ Via Zapier', '⚠️ Via Zapier', '❌', '✅ Via fluxo'],
               ['Relatório PDF automático', '✅ Incluído', '⚠️ Limitado', '💰 Pago extra', '❌', '❌'],
-              ['Trial sem cartão', '✅ 7 dias', '✅', '✅', '✅', '✅'],
+              ['Trial sem cartão', '✅ 14 dias', '✅', '✅', '✅', '✅'],
               ['Pixel de rastreamento próprio', '✅ Incluso', '✅', '✅', '❌', '❌'],
-              ['Preço mínimo BR', '✅ R$97/mês', 'R$149/mês', 'US$15/mês', 'US$15/mês', 'US$20/mês'],
+              ['Preço mínimo BR', '✅ R$47,90/mês', 'R$149/mês', 'US$15/mês', 'US$15/mês', 'US$20/mês'],
               ['Suporte em português', '✅', '✅', '⚠️ Básico', '⚠️ Básico', '❌'],
               ['Alertas automáticos IA', '✅ SCALE', '❌', '💰 Extra', '❌', '❌'],
               ['Programa de afiliados', '✅ Nativo', '❌', '❌', '❌', '❌'],
@@ -1123,7 +1123,7 @@ export default function DocsPage() {
         <div className="two-col">
           <div className="arch-box">
             <h4>Oceano Azul — Sem Concorrente Direto</h4>
-            <p style={{ fontSize: '0.84rem', margin: 0 }}>Nenhuma plataforma do mercado brasileiro oferece a combinação específica de: rastreamento WhatsApp Business API + atribuição multi-fonte de tráfego pago + integração nativa com infoprodutos BR (Hotmart, Kiwify, Eduzz) + IA de lead scoring, tudo em um único produto por R$97–297/mês.</p>
+            <p style={{ fontSize: '0.84rem', margin: 0 }}>Nenhuma plataforma do mercado brasileiro oferece a combinação específica de: rastreamento WhatsApp Business API + atribuição multi-fonte de tráfego pago + integração nativa com infoprodutos BR (Hotmart, Kiwify, Eduzz) + IA de lead scoring, tudo em um único produto por R$47,90–147,90/mês.</p>
           </div>
           <div className="arch-box" style={{ borderColor: '#A7F3D0', background: '#ECFDF5' }}>
             <h4>Vantagem Competitiva Sustentável</h4>
@@ -1220,7 +1220,7 @@ export default function DocsPage() {
         <h3>Recursos Implementados (Versão 1.0)</h3>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 20 }}>
           {[
-            'Dashboard com FunnelFlow visual', 'Meta Ads + Google Ads + TikTok Ads', 'WhatsApp Business API', 'Hotmart + Kiwify + Eduzz + Monetizze', 'Lead Scoring com IA', 'Sara.ai', 'Analytics Timeseries', 'Relatórios PDF + CSV', 'CRM Kanban', 'Metas e Progresso', 'Stripe + Mercado Pago', 'Trial 7 dias sem cartão', 'Programa de Afiliados', 'Convite de Equipe (Viewer)', 'Pixel de Rastreamento UTM', 'Alertas Automáticos (SCALE)', 'LGPD + Termos + Privacidade', 'Reset de Senha + Verificação Email', 'Admin Panel', 'Export PDF + CSV', 'CSP + Rate Limiting', 'Webhook Dedup', 'MetricSnapshots Diários',
+            'Dashboard com FunnelFlow visual', 'Meta Ads + Google Ads + TikTok Ads', 'WhatsApp Business API', 'Hotmart + Kiwify + Eduzz + Monetizze', 'Lead Scoring com IA', 'Sara.ai', 'Analytics Timeseries', 'Relatórios PDF + CSV', 'CRM Kanban', 'Metas e Progresso', 'Stripe + Mercado Pago', 'Trial 14 dias sem cartão', 'Programa de Afiliados', 'Convite de Equipe (Viewer)', 'Pixel de Rastreamento UTM', 'Alertas Automáticos (SCALE)', 'LGPD + Termos + Privacidade', 'Reset de Senha + Verificação Email', 'Admin Panel', 'Export PDF + CSV', 'CSP + Rate Limiting', 'Webhook Dedup', 'MetricSnapshots Diários',
           ].map(f => <span key={f} className="badge badge-green">{f}</span>)}
         </div>
 
@@ -1319,7 +1319,7 @@ export default function DocsPage() {
             { num: '1–2 meses', label: 'Payback period' },
             { num: 'R$1,7Bi', label: 'TAM Brasil' },
             { num: '34%/ano', label: 'Crescimento setor' },
-            { num: '7 dias', label: 'Trial sem cartão' },
+            { num: '14 dias', label: 'Trial sem cartão' },
             { num: '80+', label: 'APIs integradas' },
             { num: '12+', label: 'Plataformas BR' },
           ].map(k => <div key={k.label} className="kpi-card" style={{ background: 'linear-gradient(135deg, #1E293B, #334155)' }}><div className="kpi-num" style={{ fontSize: '1.3rem' }}>{k.num}</div><div className="kpi-label">{k.label}</div></div>)}
