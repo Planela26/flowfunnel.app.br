@@ -89,6 +89,7 @@ export type Feature =
   | 'period_comparison'
   | 'automatic_alerts'
   | 'trend_analysis'
+  | 'team_members'
 
 export const FEATURE_MIN_PLAN: Record<Feature, Plan> = {
   lead_scoring: 'START',
@@ -102,6 +103,7 @@ export const FEATURE_MIN_PLAN: Record<Feature, Plan> = {
   period_comparison: 'PRO',
   automatic_alerts: 'SCALE',
   trend_analysis: 'SCALE',
+  team_members: 'SCALE',
 }
 
 export function normalizePlan(plan: string | null | undefined): Plan {

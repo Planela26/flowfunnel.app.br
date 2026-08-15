@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { prismaAdmin as prisma } from '@/lib/prisma'
 import { checkRateLimit, getClientIp } from '@/lib/security-utils'
+import { canAccessFeature } from '@/lib/plans'
+import { getEffectivePlan } from '@/lib/trial'
 
 export async function GET(request: Request) {
   try {
@@ -20,7 +22,11 @@ export async function GET(request: Request) {
 
     const member = await prisma.teamMember.findUnique({
       where: { token },
-      include: { owner: { select: { name: true, email: true } } },
+      include: {
+        owner: {
+          select: { name: true, email: true, plan: true, trialEndsAt: true, trialPlan: true, trialStatus: true },
+        },
+      },
     })
 
     // O convite só dá acesso aos dados depois de aceito. Um convite ainda
@@ -28,6 +34,16 @@ export async function GET(request: Request) {
     // endereço errado ou encaminhado, e o portador nunca confirmou nada.
     if (!member || member.ownerId !== ownerId || member.status !== 'ACTIVE') {
       return NextResponse.json({ error: 'Convite inválido' }, { status: 401 })
+    }
+
+    // Multiusuário é do SCALE. Sem esta checagem o acesso do convidado
+    // sobreviveria a um downgrade do dono — o convite viraria uma porta
+    // permanente para os dados de quem voltou a um plano sem a feature.
+    if (!canAccessFeature(getEffectivePlan(member.owner), 'team_members')) {
+      return NextResponse.json(
+        { error: 'plan_required', message: 'O acesso de equipe requer o plano SCALE.' },
+        { status: 402 },
+      )
     }
 
     const now = new Date()

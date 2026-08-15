@@ -3,6 +3,8 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { cache, generateCacheKey, CacheTTL } from '@/lib/cache'
+import { getPlanLimit } from '@/lib/plans'
+import { getEffectivePlan } from '@/lib/trial'
 
 // Buscar métricas do WhatsApp para o dashboard
 export async function GET(request: Request) {
@@ -155,10 +157,15 @@ export async function GET(request: Request) {
 
     const userRecord = await prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { plan: true },
+      select: { plan: true, trialEndsAt: true, trialPlan: true, trialStatus: true },
     })
-    const plan = userRecord?.plan || 'FREE'
-    const monthlyLimit = plan === 'START' ? 1000 : plan === 'PRO' ? 3000 : null
+    // Era uma cópia à mão dos limites (1000/3000): alterar `PLAN_LIMITS` em
+    // lib/plans não chegava aqui, e a tela de uso passaria a exibir um teto
+    // diferente do que o webhook de fato aplica. Também lia o plano cru,
+    // ignorando trial em andamento.
+    const plan = userRecord ? getEffectivePlan(userRecord) : 'FREE'
+    const planLimit = getPlanLimit(plan)
+    const monthlyLimit = planLimit === -1 ? null : planLimit
 
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
     const conversasEsteMes = await prisma.funnelEvent.count({

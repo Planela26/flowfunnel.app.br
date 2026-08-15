@@ -2,6 +2,7 @@
 
 import { createContext, useContext, ReactNode } from 'react'
 import type { Feature, Plan } from '@/lib/plans'
+import { getSaraCapabilities, type SaraCapabilities } from '@/lib/sara-capabilities'
 import { useCachedJSON } from '@/lib/clientCache'
 
 export type PlanInfo = {
@@ -12,6 +13,8 @@ export type PlanInfo = {
   unlimited: boolean
   historyDays: number
   features: Record<Feature, boolean>
+  /** Capacidades da Sara.AI — apenas para a UI; o backend revalida tudo. */
+  sara: SaraCapabilities
   trialActive: boolean
   trialExpired: boolean
   trialDaysLeft: number
@@ -47,7 +50,11 @@ const DEFAULT: PlanInfo = {
     period_comparison: false,
     automatic_alerts: false,
     trend_analysis: false,
+    team_members: false,
   },
+  // Padrão conservador: enquanto /api/plan não responde, a UI assume o mínimo
+  // e não promete recurso que a conta pode não ter.
+  sara: getSaraCapabilities('FREE'),
   trialActive: false,
   trialExpired: false,
   trialDaysLeft: 0,

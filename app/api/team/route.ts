@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { sendTeamInviteEmail } from '@/lib/email'
+import { requireFeature } from '@/lib/withPlan'
 import crypto from 'crypto'
 
 export async function GET() {
@@ -18,8 +19,12 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const session = await getServerSession(authOptions)
-  if (!session?.user) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+  // Convidar é o que consome a feature — exige SCALE. Listar e remover seguem
+  // liberados abaixo, para que quem faça downgrade ainda enxergue e consiga
+  // desfazer o que criou, em vez de ficar preso com membros que não gerencia.
+  const guard = await requireFeature('team_members')
+  if (guard.response) return guard.response
+  const session = { user: { id: guard.user.id } }
 
   const { email, name, role } = await request.json()
   if (!email) return NextResponse.json({ error: 'E-mail obrigatório' }, { status: 400 })
@@ -49,8 +54,9 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  const session = await getServerSession(authOptions)
-  if (!session?.user) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+  const guard = await requireFeature('team_members')
+  if (guard.response) return guard.response
+  const session = { user: { id: guard.user.id } }
 
   const { id, role } = await request.json()
   if (!id || !role) return NextResponse.json({ error: 'Dados obrigatórios' }, { status: 400 })

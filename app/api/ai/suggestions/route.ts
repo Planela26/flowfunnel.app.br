@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import OpenAI from 'openai'
 import { checkRateLimit } from '@/lib/security-utils'
 import { checkAiAccess, logAI } from '@/lib/ai-guard'
+import { getSaraCapabilities } from '@/lib/sara-capabilities'
 
 /**
  * Coage qualquer entrada do cliente a número finito.
@@ -47,14 +48,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Métricas inválidas' }, { status: 400 })
     }
 
-    const userRecord = await import('@/lib/prisma').then(m => m.prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { plan: true },
-    }))
-    const plan = userRecord?.plan || 'FREE'
-    const isScale = plan === 'SCALE'
-    const isPro = plan === 'PRO' || isScale
-    const suggestionsCount = isScale ? 5 : isPro ? 4 : 3
+    // `checkAiAccess` já resolveu o plano EFETIVO (considera trial). Antes, esta
+    // rota relia `user.plan` cru do banco: quem estava em trial de SCALE recebia
+    // a profundidade de FREE, justamente durante a avaliação do produto.
+    const caps = getSaraCapabilities(access.access.plan)
+    const suggestionsCount = caps.suggestionCount
 
     // Se não houver API key, informar que o recurso não está configurado
     if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === 'demo-mode') {
@@ -105,9 +103,10 @@ export async function POST(request: Request) {
     const hmConversao = num(hm.taxaConversaoCheckout)
     const hmCheckouts = num(hm.checkoutsIniciados)
 
-    const depthInstruction = isScale
+    // Profundidade vem das capacidades, não de `plan === 'SCALE'` escrito aqui.
+    const depthInstruction = caps.strategicRecommendations
       ? 'Faça uma análise profunda com tendências, previsões e sugestões estratégicas avançadas.'
-      : isPro
+      : caps.advancedDiagnostics
         ? 'Forneça análise detalhada com comparações e sugestões táticas específicas.'
         : 'Forneça análise básica focando nos pontos mais críticos.'
 

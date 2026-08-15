@@ -21,7 +21,7 @@ export async function GET() {
 
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { plan: true, email: true, name: true, trialEndsAt: true, trialPlan: true },
+      select: { plan: true, email: true, name: true, trialEndsAt: true, trialPlan: true, trialStatus: true },
     })
 
     const plan = getEffectivePlan(user ?? { plan: 'FREE' })

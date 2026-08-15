@@ -2,7 +2,11 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { usePathname } from 'next/navigation'
-import { Send, Sparkles, ChevronDown, RotateCcw, Loader2, AlertTriangle } from 'lucide-react'
+import { Send, Sparkles, ChevronDown, RotateCcw, Loader2, AlertTriangle, Lock } from 'lucide-react'
+import { usePlanContext } from '@/contexts/PlanContext'
+
+/** Erro cuja mensagem já é o texto destinado ao usuário, vindo do backend. */
+class ChatError extends Error {}
 
 // ── Typing animation — 3 bouncing dots ──────────────────────────────────────
 function TypingDots() {
@@ -96,6 +100,11 @@ export default function SaraAIWidget() {
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [pendingInsights, setPendingInsights] = useState<PendingInsight[]>([])
+  // Marca e recursos vêm do backend (`/api/plan` → `sara`). A UI só reflete a
+  // decisão; quem bloqueia de fato são as rotas.
+  const { info: planInfo } = usePlanContext()
+  const sara = planInfo.sara
+  const [showUpgrade, setShowUpgrade] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const abortRef = useRef<AbortController | null>(null)
@@ -144,7 +153,24 @@ export default function SaraAIWidget() {
         signal: abortRef.current.signal,
       })
 
-      if (!res.ok || !res.body) throw new Error('Falha na requisição')
+      // O servidor manda uma mensagem pronta em 402 (plano) e 429 (cota
+      // diária). Sem ler o corpo aqui, o catch abaixo trocava tudo por
+      // "ocorreu um erro" — o usuário via falha técnica onde a causa era o
+      // plano, e ficava sem saber que bastava fazer upgrade.
+      if (!res.ok) {
+        let msg = 'Desculpe, ocorreu um erro ao processar sua mensagem. Tente novamente.'
+        let upgrade = false
+        try {
+          const corpo = await res.json()
+          if (corpo?.message || corpo?.error) msg = corpo.message || corpo.error
+          upgrade = corpo?.error === 'plan_required'
+        } catch {
+          // Corpo não-JSON: mantém a mensagem genérica.
+        }
+        if (upgrade) setShowUpgrade(true)
+        throw new ChatError(msg)
+      }
+      if (!res.body) throw new ChatError('Falha na requisição')
 
       const reader = res.body.getReader()
       const decoder = new TextDecoder()
@@ -185,7 +211,11 @@ export default function SaraAIWidget() {
           const updated = [...prev]
           updated[updated.length - 1] = {
             role: 'assistant',
-            content: 'Desculpe, ocorreu um erro ao processar sua mensagem. Tente novamente.',
+            // `ChatError` carrega o texto que o backend escreveu para o usuário
+            // (limite do plano, upgrade). Qualquer outra falha continua genérica.
+            content: err instanceof ChatError
+              ? err.message
+              : 'Desculpe, ocorreu um erro ao processar sua mensagem. Tente novamente.',
             streaming: false,
           }
           return updated
@@ -287,11 +317,26 @@ export default function SaraAIWidget() {
               <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-gray-900" />
             </div>
             <div>
-              <p className="text-white font-semibold text-sm leading-none">Sara.ai</p>
-              <p className="text-gray-400 text-[11px] leading-none mt-0.5">Assistente da FlowSara</p>
+              <p className="text-white font-semibold text-sm leading-none">{sara.version}</p>
+              <p className="text-gray-400 text-[11px] leading-none mt-0.5">
+                {sara.versionSuffix || 'Assistente da FlowSara'}
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-1">
+            {/* Quem ainda não tem a versão avançada vê que ela existe. Esconder
+                não protege nada — o backend já bloqueia — e tira do usuário a
+                informação de que há mais produto disponível. */}
+            {!sara.advancedDiagnostics && (
+              <button
+                onClick={() => setShowUpgrade(true)}
+                className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-medium text-blue-300 bg-blue-500/10 hover:bg-blue-500/20 transition"
+                title="Conhecer a SARA.AI+ 2.0"
+              >
+                <Lock className="w-3 h-3" />
+                SARA.AI+ 2.0
+              </button>
+            )}
             {messages.length > 0 && (
               <button
                 onClick={reset}
@@ -310,6 +355,37 @@ export default function SaraAIWidget() {
           </div>
         </div>
 
+        {/* Upgrade — mensagem comercial, nunca erro técnico: o usuário não
+            errou nada, só não contratou este nível ainda. */}
+        {showUpgrade && (
+          <div className="px-4 py-3 border-b border-blue-500/30 bg-blue-500/10 shrink-0">
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <p className="text-white font-semibold text-sm">SARA.AI+ 2.0</p>
+                <p className="text-gray-300 text-xs mt-1 leading-relaxed">
+                  Desbloqueie diagnóstico completo, análise de campanhas, comparação de
+                  períodos e memória persistente no plano <strong>PRO</strong>. No{' '}
+                  <strong>SCALE</strong>, a Sara também interpreta a evolução histórica do
+                  seu negócio e sugere o que fazer a seguir.
+                </p>
+                <a
+                  href="/billing"
+                  className="inline-block mt-2 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition"
+                >
+                  Conhecer o PRO
+                </a>
+              </div>
+              <button
+                onClick={() => setShowUpgrade(false)}
+                className="p-1 rounded-lg text-gray-400 hover:text-gray-200 shrink-0"
+                aria-label="Fechar"
+              >
+                <ChevronDown className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Messages */}
         <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3 min-h-0 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-700">
           {isEmpty ? (
@@ -319,9 +395,13 @@ export default function SaraAIWidget() {
                 <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center mx-auto mb-3 shadow-xl">
                   <Sparkles className="w-7 h-7 text-white" />
                 </div>
-                <h3 className="text-white font-bold text-base">Olá! Sou a Sara.ai</h3>
+                <h3 className="text-white font-bold text-base">Olá! Sou a {sara.version}</h3>
                 <p className="text-gray-400 text-xs mt-1 max-w-[260px]">
-                  Analiso seus dados, diagnostico seu funil e respondo qualquer dúvida sobre a plataforma.
+                  {sara.strategicRecommendations
+                    ? 'Analiso a evolução do seu negócio, cruzo métricas, aponto o que mudou e recomendo o próximo passo.'
+                    : sara.advancedDiagnostics
+                      ? 'Analiso seus dados, diagnostico seu funil e comparo períodos para explicar o que está acontecendo.'
+                      : 'Analiso seus dados, explico suas métricas e respondo qualquer dúvida sobre a plataforma.'}
                 </p>
               </div>
                {pendingInsights.length > 0 && (

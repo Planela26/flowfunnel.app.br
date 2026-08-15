@@ -33,7 +33,7 @@ const plans = [
       { text: '1 funil ativo', included: true },
       { text: 'Comparação de períodos', included: false },
       { text: 'Alertas automáticos', included: false },
-      { text: 'Multiusuário (em breve)', included: false },
+      { text: 'Multiusuário (convite de equipe)', included: false },
     ],
   },
   {
@@ -60,7 +60,7 @@ const plans = [
       { text: 'Comparação de períodos', included: true },
       { text: 'Histórico estendido (até 365 dias)', included: true },
       { text: 'Alertas automáticos', included: false },
-      { text: 'Multiusuário (em breve)', included: false },
+      { text: 'Multiusuário (convite de equipe)', included: false },
     ],
   },
   {
@@ -86,7 +86,7 @@ const plans = [
       { text: 'Comparação de períodos', included: true },
       { text: 'Alertas automáticos', included: true },
       { text: 'Análise de tendências', included: true },
-      { text: 'Multiusuário (em breve)', included: false },
+      { text: 'Multiusuário (convite de equipe)', included: true },
     ],
   },
 ]

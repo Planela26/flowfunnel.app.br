@@ -787,8 +787,30 @@ model SaraMemory {
   context   String?  // página/módulo onde a memória foi criada
   createdAt DateTime @default(now())
 
+  // Relevância: decide o que entra no contexto quando o plano só permite N
+  // memórias. Sem isto, a seleção era puramente cronológica e uma observação
+  // trivial de ontem expulsava o objetivo declarado do negócio.
+  importance String @default("normal") // 'low' | 'normal' | 'high'
+
+  // Origem: 'user' (o usuário afirmou), 'auto' (extraída da conversa) ou
+  // 'system'. Memória auto-extraída por heurística erra mais, então saber a
+  // origem permite priorizar o que o usuário disse de fato.
+  source String @default("auto")
+
+  // Termos para busca. Substitui o `contains` sobre os 30 primeiros caracteres
+  // do tópico, que só acertava quando a pergunta repetia as palavras exatas.
+  // Passo intermediário deliberado: embeddings entram numa entrega futura.
+  keywords String?
+
+  metadata  String?   // JSON livre (ex.: métrica de origem, período referente)
+  expiresAt DateTime? // null = não expira (memória estratégica do SCALE)
+  updatedAt DateTime  @default(now()) @updatedAt
+
   @@index([userId])
   @@index([type])
+  // Seleção por relevância dentro da cota do plano, descartando expiradas.
+  @@index([userId, expiresAt])
+  @@index([userId, importance])
 }
 
 // Insights proativos gerados pela Sara.AI e pelo SaraObserver.

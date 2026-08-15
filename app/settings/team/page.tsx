@@ -64,7 +64,9 @@ export default function TeamPage() {
         body: JSON.stringify({ email, name, role }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error)
+      // `message` traz o texto pronto (ex.: o 402 de plano insuficiente);
+      // `error` é o código interno e não serve para mostrar ao usuário.
+      if (!res.ok) throw new Error(data.message || data.error)
       setSuccess('Membro convidado com sucesso!')
       setEmail(''); setName('')
       fetchMembers()

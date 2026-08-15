@@ -13,6 +13,10 @@
 
 import { prisma } from '@/lib/prisma'
 import { PLATFORM_KNOWLEDGE } from '@/lib/sara-ai-service'
+import { getCachedContext, setCachedContext, invalidateContext } from './sara-context-cache'
+import { SaraMemoryService } from './sara-memory'
+import { getSaraCapabilities, type SaraCapabilities } from './sara-capabilities'
+import { getEffectivePlan } from './trial'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -30,6 +34,8 @@ export interface SaraContext {
   systemContext: string
   /** Memórias relevantes do usuário */
   memories: string
+  /** Capacidades da Sara para o plano efetivo — evita re-derivar na rota. */
+  capabilities: SaraCapabilities
   /** Dados brutos (para debug/logging) */
   raw: {
     userName:    string | null
@@ -42,38 +48,9 @@ export interface SaraContext {
   }
 }
 
-// ── In-memory cache ───────────────────────────────────────────────────────────
-
-const CACHE_TTL_MS = 5 * 60 * 1000 // 5 minutos
-
-interface CacheEntry {
-  context: SaraContext
-  expiresAt: number
-}
-
-const contextCache = new Map<string, CacheEntry>()
-// A chave inclui o pathname (rotas dinâmicas tipo /suporte/<id> geram uma entrada
-// por página visitada), então sem um teto o Map cresce indefinidamente no processo
-// Node de longa duração (PM2). Cap simples: ao ultrapassar o limite, remove primeiro
-// as entradas expiradas e, se ainda necessário, as mais antigas (ordem de inserção).
-const MAX_CACHE_ENTRIES = 500
-
-function evictIfNeeded(): void {
-  if (contextCache.size < MAX_CACHE_ENTRIES) return
-  const now = Date.now()
-  for (const [k, v] of contextCache) {
-    if (v.expiresAt <= now) contextCache.delete(k)
-  }
-  while (contextCache.size >= MAX_CACHE_ENTRIES) {
-    const oldestKey = contextCache.keys().next().value
-    if (oldestKey === undefined) break
-    contextCache.delete(oldestKey)
-  }
-}
-
-function cacheKey(userId: string, pathname?: string): string {
-  return `${userId}::${pathname ?? ''}`
-}
+// O cache vive em `sara-context-cache` para que `sara-memory` possa invalidá-lo
+// sem importar este arquivo — este serviço agora depende do memory service para
+// selecionar memórias por plano, e os dois se importando seria um ciclo.
 
 // ── Service ───────────────────────────────────────────────────────────────────
 
@@ -83,34 +60,33 @@ export const SaraContextService = {
    * Monta e retorna o contexto completo para a Sara.AI.
    * Usa cache de 5 min para evitar consultas repetidas durante uma conversa.
    */
-  async buildContext(userId: string, page?: PageContext): Promise<SaraContext> {
-    const key   = cacheKey(userId, page?.pathname)
-    const entry = contextCache.get(key)
-    if (entry && entry.expiresAt > Date.now()) return entry.context
+  async buildContext(userId: string, page?: PageContext, plan?: string): Promise<SaraContext> {
+    const cached = getCachedContext(userId, page?.pathname, plan)
+    if (cached) return cached
 
     const context = await SaraContextService._fetch(userId, page)
-    evictIfNeeded()
-    contextCache.set(key, { context, expiresAt: Date.now() + CACHE_TTL_MS })
+    setCachedContext(userId, page?.pathname, context, plan)
     return context
   },
 
   /** Invalida o cache de um usuário (chamar após mudanças de estado) */
   invalidate(userId: string): void {
-    for (const key of contextCache.keys()) {
-      if (key.startsWith(userId)) contextCache.delete(key)
-    }
+    invalidateContext(userId)
   },
 
   // ── Internal ───────────────────────────────────────────────────────────────
 
   async _fetch(userId: string, page?: PageContext): Promise<SaraContext> {
     // Parallel fetch — all queries fire at once
-    const [user, snapshot, funnel, recentTickets, insights, memories, kbArticles] = await Promise.all([
+    const [user, snapshot, funnel, recentTickets, insights, kbArticles] = await Promise.all([
       prisma.user.findUnique({
         where: { id: userId },
         select: {
           name: true, plan: true, publicId: true, subscriptionStatus: true,
           createdAt: true, trialStatus: true,
+          // Necessários para o plano EFETIVO: quem está em trial de SCALE tem
+          // as capacidades do SCALE, e `plan` sozinho ainda diz FREE.
+          trialEndsAt: true, trialPlan: true,
           integrations: { select: { platform: true, isActive: true }, take: 20 },
           goals: { select: { title: true, targetValue: true, currentValue: true, metric: true }, take: 5 },
           _count: { select: { trackedLeads: true, supportTickets: true } },
@@ -145,12 +121,6 @@ export const SaraContextService = {
         take: 5,
       }).catch(() => []),
 
-      prisma.saraMemory.findMany({
-        where: { userId },
-        orderBy: { createdAt: 'desc' },
-        take: 10,
-      }).catch(() => []),
-
       prisma.knowledgeArticle.findMany({
         where: { published: true },
         select: { title: true, content: true, category: true },
@@ -162,7 +132,9 @@ export const SaraContextService = {
     // ── Assemble context string ─────────────────────────────────────────────
 
     const userName     = user?.name ?? 'Usuário'
-    const plan         = user?.plan ?? 'FREE'
+    // Plano EFETIVO — considera trial em andamento, igual ao resto do produto.
+    const plan         = user ? getEffectivePlan(user) : 'FREE'
+    const caps         = getSaraCapabilities(plan)
     const publicId     = user?.publicId ?? null
     const integrations = (user?.integrations ?? []).map(i => `${i.platform}${i.isActive ? '' : ' (inativa)'}`)
     const openTickets  = recentTickets.length
@@ -237,6 +209,11 @@ ${kbStr ? `BASE DE CONHECIMENTO RELEVANTE:\n${kbStr}` : ''}
 
     // ── Memories ───────────────────────────────────────────────────────────
 
+    // Buscadas depois do bloco paralelo de propósito: a seleção depende da cota
+    // do plano, e o plano só é conhecido após a consulta do usuário acima.
+    // Antes, 10 memórias iam para o prompt de QUALQUER plano, inclusive FREE.
+    const memories = await SaraMemoryService.getForContext(userId, plan).catch(() => [])
+
     const memoriesStr = memories.length > 0
       ? memories.map(m => `[${m.type.toUpperCase()}] ${m.content}`).join('\n')
       : ''
@@ -249,6 +226,6 @@ ${kbStr ? `BASE DE CONHECIMENTO RELEVANTE:\n${kbStr}` : ''}
       insightCount: insights.length,
     }
 
-    return { systemContext, memories: memoriesStr, raw }
+    return { systemContext, memories: memoriesStr, capabilities: caps, raw }
   },
 }

@@ -4,6 +4,7 @@ import { prismaAdmin as prisma } from '@/lib/prisma'
 import { logWebhook } from '@/lib/webhook-logger'
 import { sanitizeForLog, maskPhone } from '@/lib/sanitize'
 import { getEffectivePlan } from '@/lib/trial'
+import { getPlanLimit } from '@/lib/plans'
 import { isIngestionBlockedForUser } from '@/lib/account-status'
 
 // Verifica a assinatura X-Hub-Signature-256 enviada pela Meta (HMAC-SHA256 do
@@ -39,9 +40,9 @@ async function findIntegrationByPhoneNumberId(phoneNumberId?: string) {
   return null
 }
 
-const PLAN_LIMITS: Record<string, number> = {
-  FREE: 0, START: 1000, PRO: 3000, SCALE: -1,
-}
+// Os limites vêm de `lib/plans`. Havia aqui uma cópia local com os mesmos
+// valores: como esta rota é quem de fato BLOQUEIA o recebimento, uma alteração
+// na fonte central passaria a divergir justo do ponto que aplica a regra.
 
 // Meta webhook verification (GET)
 // Meta sends: ?hub.mode=subscribe&hub.verify_token=TOKEN&hub.challenge=CHALLENGE
@@ -122,10 +123,10 @@ export async function POST(request: Request) {
     if (userId && value.messages?.length > 0) {
       const user = await prisma.user.findUnique({
         where: { id: userId },
-        select: { plan: true, trialEndsAt: true, trialPlan: true },
+        select: { plan: true, trialEndsAt: true, trialPlan: true, trialStatus: true },
       })
       const plan = getEffectivePlan(user ?? { plan: 'FREE' })
-      const limit = PLAN_LIMITS[plan] ?? 0
+      const limit = getPlanLimit(plan)
       if (limit !== -1) {
         const now = new Date()
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)

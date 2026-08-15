@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { getPlanFeatures, getHistoryLimitDays, getPlanLimit, isUnlimited, normalizePlan, PLAN_LABELS } from '@/lib/plans'
 import { getEffectivePlan, hasPaidAccess, isTrialActive, isTrialExpired, isPendingPayment, isPendingEmail, trialDaysLeft } from '@/lib/trial'
+import { getSaraCapabilities } from '@/lib/sara-capabilities'
 
 export async function GET() {
   const session = await getServerSession(authOptions)
@@ -51,6 +52,10 @@ export async function GET() {
       unlimited: isUnlimited(effectivePlan),
       historyDays: getHistoryLimitDays(effectivePlan),
       features: getPlanFeatures(effectivePlan),
+      // Capacidades da Sara para a UI escolher a marca (SARA.AI vs
+      // SARA.AI+ 2.0) e mostrar o que está bloqueado. É espelho da decisão do
+      // backend, nunca a proteção: as rotas revalidam tudo por conta própria.
+      sara: getSaraCapabilities(effectivePlan),
       trialActive: onTrial,
       trialExpired,
       trialDaysLeft: daysLeft,

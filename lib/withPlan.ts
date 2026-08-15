@@ -11,6 +11,13 @@ import {
   type Plan,
 } from './plans'
 import { getEffectivePlan } from './trial'
+import {
+  getSaraCapabilities,
+  minPlanForCapability,
+  upgradeMessageFor,
+  type SaraCapabilities,
+  type SaraCapability,
+} from './sara-capabilities'
 
 export type AuthedUser = {
   id: string
@@ -35,7 +42,14 @@ export async function requireFeature(feature?: Feature): Promise<
 
   const dbUser = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { id: true, email: true, plan: true, role: true, trialEndsAt: true, trialPlan: true },
+    // `trialStatus` é obrigatório: `isTrialActive` só reconhece o trial pelo
+    // caminho `status === 'active'`. Sem o campo, o trial de quem JÁ tem plano
+    // pago era ignorado e TODO gate de feature respondia pelo plano antigo —
+    // enquanto /api/plan, que seleciona o campo, mostrava o plano do trial.
+    select: {
+      id: true, email: true, plan: true, role: true,
+      trialEndsAt: true, trialPlan: true, trialStatus: true,
+    },
   })
 
   if (!dbUser) {
@@ -64,4 +78,39 @@ export async function requireFeature(feature?: Feature): Promise<
   }
 
   return { user }
+}
+
+/**
+ * Mesmo contrato de `requireFeature`, para capacidades da Sara.AI.
+ *
+ * Existe para que nenhuma rota escreva `if (plan === 'SCALE')`: a decisão fica
+ * em `lib/sara-capabilities`, e a resposta de bloqueio sai daqui com a mensagem
+ * comercial pronta — o usuário não errou, ele só não contratou aquilo ainda.
+ */
+export async function requireSaraCapability(capability: SaraCapability): Promise<
+  | { user: AuthedUser; capabilities: SaraCapabilities; response?: undefined }
+  | { user?: undefined; capabilities?: undefined; response: NextResponse }
+> {
+  const guard = await requireFeature()
+  if (guard.response) return { response: guard.response }
+
+  const capabilities = getSaraCapabilities(guard.user.plan)
+  if (!capabilities[capability]) {
+    const requiredPlan = minPlanForCapability(capability)
+    return {
+      response: NextResponse.json(
+        {
+          error: 'plan_required',
+          capability,
+          currentPlan: guard.user.plan,
+          requiredPlan,
+          message: upgradeMessageFor(capability),
+          upgradeUrl: '/billing',
+        },
+        { status: 402 }
+      ),
+    }
+  }
+
+  return { user: guard.user, capabilities }
 }

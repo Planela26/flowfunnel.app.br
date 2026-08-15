@@ -14,6 +14,7 @@
 
 import { prisma } from '@/lib/prisma'
 import { SaraObserver } from './sara-observer'
+import { getSaraCapabilities } from './sara-capabilities'
 
 export interface InsightSummary {
   userId:    string
@@ -28,9 +29,16 @@ export const SaraInsightsService = {
   /**
    * Analisa o estado atual do usuário e gera insights proativos.
    * Chamada idempotente — não duplica insights já gerados hoje.
+   *
+   * `plan` decide a PROFUNDIDADE. Insights operacionais (integração caída,
+   * pico de tickets) valem para todo mundo: avisam que o produto parou de
+   * funcionar, e esconder isso de quem paga menos seria sabotar a conta. Já a
+   * detecção de anomalia em métricas é análise, e é o que o PRO vende como
+   * "insights avançados".
    */
-  async analyzeUser(userId: string): Promise<number> {
+  async analyzeUser(userId: string, plan?: string | null): Promise<number> {
     let generated = 0
+    const caps = getSaraCapabilities(plan ?? 'FREE')
 
     const [metrics, recentTickets, integrations] = await Promise.all([
       // Últimos 2 snapshots para detectar queda
@@ -52,8 +60,8 @@ export const SaraInsightsService = {
       }).catch(() => 0),
     ])
 
-    // ── Detecta queda de métricas ───────────────────────────────────────────
-    if (metrics.length === 2) {
+    // ── Detecta queda de métricas (insight avançado — PRO+) ─────────────────
+    if (caps.advancedInsights && metrics.length === 2) {
       const [latest, prev] = metrics
       const vendasDrop = prev.vendas > 0
         ? ((prev.vendas - latest.vendas) / prev.vendas) * 100

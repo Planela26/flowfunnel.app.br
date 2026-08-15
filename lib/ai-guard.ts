@@ -136,7 +136,9 @@ export async function checkAiAccess(
 ): Promise<{ ok: true; access: AiAccess } | { ok: false; status: number; error: string }> {
   const dbUser = await prisma.user.findUnique({
     where: { id: userId },
-    select: { plan: true, emailVerified: true, trialEndsAt: true, trialPlan: true },
+    // trialStatus entra aqui pelo mesmo motivo de `withPlan`: sem ele o trial
+    // de conta já paga some, e a cota diária cai para a do plano anterior.
+    select: { plan: true, emailVerified: true, trialEndsAt: true, trialPlan: true, trialStatus: true },
   })
   if (!dbUser) return { ok: false, status: 404, error: 'Usuário não encontrado' }
 
