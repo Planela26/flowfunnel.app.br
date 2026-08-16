@@ -63,7 +63,26 @@ export const authOptions: NextAuthOptions = {
           throw new Error('Muitas tentativas. Aguarde um momento e tente novamente.')
         }
 
-        const user = await prisma.user.findUnique({ where: { email } })
+        // Busca sem diferenciar maiúsculas.
+        //
+        // O e-mail digitado já vem em minúsculas, mas o que está GRAVADO pode
+        // ter maiúsculas: contas antigas, criadas pelo Google ou pelo webhook
+        // de pagamento, entraram sem normalização (o /api/auth/register faz
+        // `lower(email)` na checagem de unicidade justamente por causa disso).
+        //
+        // Com `findUnique` a comparação era exata e o Postgres diferencia
+        // caixa, então essas contas simplesmente não eram encontradas e o login
+        // respondia "credenciais inválidas" — mesmo com a senha certa. Pior:
+        // o "esqueci minha senha" SEMPRE achou a conta (usa `insensitive`),
+        // então a redefinição funcionava e a entrada continuava falhando, o que
+        // fazia parecer que a nova senha não tinha sido salva.
+        //
+        // `orderBy` pelo mais antigo dá resultado estável caso existam duas
+        // contas que só diferem na caixa.
+        const user = await prisma.user.findFirst({
+          where: { email: { equals: email, mode: 'insensitive' } },
+          orderBy: { createdAt: 'asc' },
+        })
 
         if (!user || !user.password) {
           // Mantém tempo similar ao bcrypt.compare para não vazar via timing
@@ -199,8 +218,14 @@ export const authOptions: NextAuthOptions = {
         // bypass do segundo fator.
         const email = (profile as any)?.email || user?.email
         if (email) {
-          const dbUser = await prisma.user.findUnique({
-            where: { email },
+          // Sem diferenciar caixa, pelo mesmo motivo do login acima — e aqui o
+          // estrago seria maior: esta consulta é o que impede o Google de virar
+          // um atalho em volta do segundo fator. Com busca exata, um e-mail
+          // gravado com maiúsculas não era encontrado, `dbUser` vinha nulo e a
+          // trava passava batido — ou seja, a checagem falhava ABERTA, o
+          // oposto do que este bloco existe para fazer.
+          const dbUser = await prisma.user.findFirst({
+            where: { email: { equals: email, mode: 'insensitive' } },
             select: { twoFactorEnabled: true },
           })
           if (dbUser?.twoFactorEnabled) {
