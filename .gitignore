@@ -174,3 +174,14 @@ attached_assets/
 # (os scripts em assets-edit/ ficam versionados; os arquivos gerados, não)
 assets-edit/*.jpg
 assets-edit/*.png
+
+# Relatórios de auditoria/diagnóstico gerados localmente.
+# Ficam de fora porque colam saída crua de ambiente — foi assim que uma string
+# de conexão com senha entrou no repositório. Se precisar versionar um relatório,
+# remova a credencial antes e adicione com `git add -f`.
+FASE4_RELATORIO_FINAL.md
+*_RELATORIO_*.md
+test-connection.js
+run-tests.js
+run-integration-tests.js
+*.backup-lp-antiga

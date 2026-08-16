@@ -43,6 +43,7 @@ export async function POST(request: Request) {
       payment_method_id,
       issuer_id,
       installments,
+      payer,
     } = body
 
     // Idempotency key is generated client-side per checkout attempt and reused on
@@ -123,9 +124,25 @@ export async function POST(request: Request) {
       ? `${userId}:${planKey}:${validAffiliateId}`
       : `${userId}:${planKey}`
 
-    // Build payer for the payment
+    // Build payer for the payment.
+    //
+    // O e-mail vem SEMPRE da sessão — nunca de `payer.email` do corpo. Era essa
+    // a brecha: quem enviasse `payer.email` de terceiro gerava cobrança em nome
+    // da vítima. O `payer` do corpo só é lido para a identificação (CPF).
+    //
+    // O CPF, sim, precisa vir do formulário: o Mercado Pago exige
+    // `payer.identification` para boleto e PIX no Brasil, e esse dado não está
+    // no cadastro — quem digita é o titular, no Payment Brick. Não é campo de
+    // identidade aqui (a cobrança já está presa ao userId/e-mail da sessão),
+    // então aceitá-lo do corpo não reabre a brecha.
     const paymentPayer: any = {
       email: payerEmail,
+    }
+    if (payer?.identification?.number) {
+      paymentPayer.identification = {
+        type: payer.identification.type === 'CNPJ' ? 'CNPJ' : 'CPF',
+        number: String(payer.identification.number).replace(/\D/g, ''),
+      }
     }
     if (payerName) {
       const [firstName, ...rest] = payerName.split(' ')

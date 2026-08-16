@@ -117,11 +117,12 @@ export async function middleware(request: NextRequest) {
     '/api/stripe/webhook',
     '/api/stripe/config', // Public: pricing page needs publishable key
     '/api/webhooks/mercadopago',
-    // NOTA: /api/mercadopago/create-preference e /api/mercadopago/process-payment
-    // PROPOSITALMENTE removidos — agora requerem autenticação (user já passou por /checkout que valida).
-    // A verificação de autenticação obrigatória está em cada rota (getServerSession check).
+    // NOTA: create-preference, process-payment e payment-status PROPOSITALMENTE
+    // fora desta lista — cobram/consultam em nome de alguém, então exigem sessão.
+    // Cada uma repete a checagem com getServerSession (defesa em profundidade):
+    // se alguém reintroduzir a rota aqui, o handler ainda barra.
+    // Só a chave pública continua aberta — é pública por definição.
     '/api/mercadopago/public-key',
-    '/api/mercadopago/payment-status',
     '/api/plan-prices',
     '/api/team/accept',
     '/api/team/viewer-dashboard',

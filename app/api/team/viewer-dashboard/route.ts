@@ -170,7 +170,10 @@ export async function GET(request: Request) {
       })),
     })
   } catch (error) {
+    // O detalhe do erro fica só no log do servidor: esta rota responde a quem
+    // porta um token de convite, e String(error) de uma falha do Prisma carrega
+    // nome de tabela/coluna e trecho de conexão.
     console.error('Erro no viewer dashboard:', error)
-    return NextResponse.json({ error: 'Erro interno', detail: String(error) }, { status: 500 })
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
