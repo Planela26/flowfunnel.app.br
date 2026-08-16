@@ -4,9 +4,10 @@ import { checkRateLimit, getClientIp } from '@/lib/security-utils'
 
 export async function GET(request: Request) {
   try {
+    // Rate limit aumentado: 10 req/min por IP (enumeração de IDs é custosa)
     const rl = await checkRateLimit(
       `mp:payment-status:${getClientIp(request.headers)}`,
-      60,
+      10,
       60_000
     )
     if (!rl.ok) {
