@@ -88,6 +88,29 @@ export const authOptions: NextAuthOptions = {
           throw new Error('Credenciais inválidas')
         }
 
+        // Conta desativada pelo admin: recusa a entrada.
+        //
+        // A checagem vem DEPOIS da senha de propósito. Antes dela, responder
+        // "conta desativada" contaria a qualquer um que digitasse o e-mail que
+        // aquela conta existe e em que estado está — é a mesma enumeração que
+        // as mensagens genéricas acima evitam. Depois da senha conferida, quem
+        // pergunta já provou ser o dono, e aí dizer o motivo é o certo: sem
+        // isso ele acha que a senha quebrou e abre chamado.
+        //
+        // Também vem ANTES do 2FA: não faz sentido pedir o código a quem não
+        // vai entrar de qualquer forma.
+        if (user.deactivatedAt) {
+          await logAudit({
+            action: 'auth.login', result: 'failure', userId: user.id, ip, userAgent,
+            metadata: { email, reason: 'account_deactivated' },
+          })
+          throw new Error(
+            user.deactivatedReason
+              ? `Conta desativada: ${user.deactivatedReason}`
+              : 'Esta conta foi desativada. Fale com o suporte.'
+          )
+        }
+
         // SEGUNDO FATOR: se o usuário tem 2FA ativo, a senha sozinha não basta.
         if (user.twoFactorEnabled) {
           const code = (credentials.totp ?? '').trim()
@@ -224,12 +247,24 @@ export const authOptions: NextAuthOptions = {
             sessionVersion: true, emailVerified: true, twoFactorEnabled: true,
             subscriptionStatus: true, gracePeriodEndsAt: true,
             trialEndsAt: true, trialPlan: true, trialStatus: true,
+            deactivatedAt: true,
           },
         })
 
         // Usuário deletado ou sessionVersion diferente → invalida token
         if (!dbUser || dbUser.sessionVersion !== (token.sessionVersion as number ?? 0)) {
           // Retornar null invalida a sessão e força redirect para /login
+          return null as any
+        }
+
+        // Conta desativada → derruba a sessão aberta.
+        //
+        // A rota de desativação já incrementa sessionVersion, o que sozinho
+        // invalidaria o token na linha acima. Esta checagem existe para o caso
+        // de a coluna ser marcada por fora (SQL direto no banco, correção
+        // manual, script): aí não há bump de versão, e sem isto o usuário
+        // seguiria navegando com o token que já tinha.
+        if (dbUser.deactivatedAt) {
           return null as any
         }
 

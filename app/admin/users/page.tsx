@@ -8,7 +8,7 @@ import {
   Users, DollarSign, TrendingUp, Crown, Search, RefreshCw,
   UserCheck, UserX, BarChart2, ArrowUpRight, Calendar, Zap,
   Clock, Mail, CreditCard, Gift, AlertTriangle, CheckCircle,
-  Filter, ChevronDown, Clock as ClockIcon
+  Filter, ChevronDown, Clock as ClockIcon, Ban, Trash2, RotateCcw, X
 } from 'lucide-react'
 
 interface User {
@@ -25,6 +25,10 @@ interface User {
   trialStartedAt: string | null
   trialEndsAt: string | null
   trialPlan: string | null
+  subscriptionStatus: string | null
+  gracePeriodEndsAt: string | null
+  deactivatedAt: string | null
+  deactivatedReason: string | null
   _count: { integrations: number; webhookLogs: number }
 }
 
@@ -119,6 +123,29 @@ export default function AdminUsersPage() {
   const [trialFilter, setTrialFilter] = useState('all')
   const [activeSection, setActiveSection] = useState<'overview' | 'trials' | 'churn'>('overview')
 
+  // Ações destrutivas sobre uma conta. `modal` guarda qual ação está sendo
+  // confirmada e sobre quem — nada acontece direto do clique na linha.
+  const [modal, setModal] = useState<{ kind: 'delete' | 'deactivate'; user: User } | null>(null)
+  const [confirmText, setConfirmText] = useState('')
+  const [reason, setReason] = useState('')
+  const [acting, setActing] = useState(false)
+  const [actionError, setActionError] = useState('')
+
+  const meuId = (session?.user as any)?.id as string | undefined
+
+  const abrirModal = (kind: 'delete' | 'deactivate', user: User) => {
+    setModal({ kind, user })
+    setConfirmText('')
+    setReason('')
+    setActionError('')
+  }
+
+  const fecharModal = () => {
+    if (acting) return
+    setModal(null)
+    setActionError('')
+  }
+
   useEffect(() => {
     if (status === 'unauthenticated') { router.push('/login'); return }
     if (status === 'authenticated') {
@@ -148,6 +175,65 @@ export default function AdminUsersPage() {
       console.error('Erro ao carregar dados:', e)
     }
     setLoading(false)
+  }
+
+  /** Lê a mensagem do backend antes de decidir o que mostrar — o 409 de conta
+   *  ativa traz o motivo exato (assinatura, carência ou teste), e engolir isso
+   *  em um "erro ao apagar" genérico esconderia justamente o que o admin
+   *  precisa saber para agir. */
+  const chamar = async (url: string, init: RequestInit) => {
+    const res = await fetch(url, init)
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) throw new Error(data.message || data.error || 'Não foi possível concluir a operação.')
+    return data
+  }
+
+  const desativar = async (user: User, motivo: string) => {
+    setActing(true); setActionError('')
+    try {
+      await chamar(`/api/admin/users/${user.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'deactivate', reason: motivo }),
+      })
+      setModal(null)
+      await fetchData()
+    } catch (e: any) {
+      setActionError(e.message)
+    }
+    setActing(false)
+  }
+
+  const reativar = async (user: User) => {
+    setActing(true); setActionError('')
+    try {
+      await chamar(`/api/admin/users/${user.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'reactivate' }),
+      })
+      await fetchData()
+    } catch (e: any) {
+      alert(e.message)
+    }
+    setActing(false)
+  }
+
+  const apagar = async (user: User, confirmacao: string) => {
+    setActing(true); setActionError('')
+    try {
+      // O e-mail digitado vai na URL porque o servidor o exige para concluir —
+      // a rota recusa qualquer DELETE cuja confirmação não bata exatamente.
+      await chamar(
+        `/api/admin/users/${user.id}?confirm=${encodeURIComponent(confirmacao)}`,
+        { method: 'DELETE' },
+      )
+      setModal(null)
+      await fetchData()
+    } catch (e: any) {
+      setActionError(e.message)
+    }
+    setActing(false)
   }
 
   const filtered = users.filter(u => {
@@ -647,11 +733,12 @@ export default function AdminUsersPage() {
                     <th className="text-left text-xs font-semibold text-gray-500 dark:text-gray-400 px-4 py-3 uppercase tracking-wide">Webhooks</th>
                     <th className="text-left text-xs font-semibold text-gray-500 dark:text-gray-400 px-4 py-3 uppercase tracking-wide">Cadastro</th>
                     <th className="text-left text-xs font-semibold text-gray-500 dark:text-gray-400 px-4 py-3 uppercase tracking-wide">Assinatura</th>
+                    <th className="text-right text-xs font-semibold text-gray-500 dark:text-gray-400 px-4 py-3 uppercase tracking-wide">Ações</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filtered.map((user, i) => (
-                    <tr key={user.id} className={`border-b border-gray-50 dark:border-gray-800/50 hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors ${i % 2 === 0 ? '' : 'bg-gray-50/30 dark:bg-gray-800/10'}`}>
+                    <tr key={user.id} className={`border-b border-gray-50 dark:border-gray-800/50 hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors ${user.deactivatedAt ? 'bg-red-50/40 dark:bg-red-900/10' : i % 2 === 0 ? '' : 'bg-gray-50/30 dark:bg-gray-800/10'}`}>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
                           <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
@@ -660,7 +747,17 @@ export default function AdminUsersPage() {
                             </span>
                           </div>
                           <div>
-                            <p className="text-sm font-medium text-gray-900 dark:text-white">{user.name || '—'}</p>
+                            <p className="text-sm font-medium text-gray-900 dark:text-white">
+                              {user.name || '—'}
+                              {user.deactivatedAt && (
+                                <span
+                                  title={user.deactivatedReason || 'Conta desativada'}
+                                  className="ml-2 inline-flex items-center gap-1 rounded-full bg-red-100 dark:bg-red-900/40 px-2 py-0.5 text-[10px] font-semibold text-red-700 dark:text-red-300 align-middle"
+                                >
+                                  <Ban className="w-2.5 h-2.5" /> Desativada
+                                </span>
+                              )}
+                            </p>
                             <p className="text-xs text-gray-400">{user.email}</p>
                           </div>
                         </div>
@@ -733,11 +830,48 @@ export default function AdminUsersPage() {
                           <span className="text-xs text-gray-300 dark:text-gray-600">—</span>
                         )}
                       </td>
+                      <td className="px-4 py-3">
+                        {user.id === meuId ? (
+                          <span className="block text-right text-[11px] text-gray-300 dark:text-gray-600">
+                            você
+                          </span>
+                        ) : (
+                          <div className="flex items-center justify-end gap-1">
+                            {user.deactivatedAt ? (
+                              <button
+                                onClick={() => reativar(user)}
+                                disabled={acting}
+                                title="Reativar esta conta"
+                                className="inline-flex items-center gap-1 rounded-md border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20 px-2 py-1 text-xs font-medium text-green-700 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-900/40 disabled:opacity-50"
+                              >
+                                <RotateCcw className="w-3 h-3" /> Reativar
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => abrirModal('deactivate', user)}
+                                disabled={acting}
+                                title="Bloquear o acesso sem apagar nada"
+                                className="inline-flex items-center gap-1 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-2 py-1 text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
+                              >
+                                <Ban className="w-3 h-3" /> Desativar
+                              </button>
+                            )}
+                            <button
+                              onClick={() => abrirModal('delete', user)}
+                              disabled={acting}
+                              title="Apagar definitivamente"
+                              className="inline-flex items-center gap-1 rounded-md border border-red-200 dark:border-red-900 bg-white dark:bg-gray-800 px-2 py-1 text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 disabled:opacity-50"
+                            >
+                              <Trash2 className="w-3 h-3" /> Apagar
+                            </button>
+                          </div>
+                        )}
+                      </td>
                     </tr>
                   ))}
                   {filtered.length === 0 && (
                     <tr>
-                      <td colSpan={9} className="text-center py-12 text-gray-400 text-sm">
+                      <td colSpan={11} className="text-center py-12 text-gray-400 text-sm">
                         Nenhum usuário encontrado
                       </td>
                     </tr>
@@ -748,6 +882,126 @@ export default function AdminUsersPage() {
           )}
         </div>
       </div>
+
+      {/* ── Confirmação das ações destrutivas ─────────────────────────────────
+          Apagar e desativar não acontecem no clique da linha. Desativar pede um
+          motivo (que o próprio usuário lê na tela de login, para não achar que
+          a senha quebrou); apagar exige digitar o e-mail exato, porque é
+          irreversível e as linhas da tabela ficam coladas umas nas outras. */}
+      {modal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={fecharModal}
+        >
+          <div
+            className="w-full max-w-md rounded-xl bg-white dark:bg-gray-900 shadow-2xl border border-gray-200 dark:border-gray-700"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-4 border-b border-gray-100 dark:border-gray-800 p-5">
+              <div className="flex items-start gap-3">
+                <div className={`mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full ${modal.kind === 'delete' ? 'bg-red-100 dark:bg-red-900/40' : 'bg-yellow-100 dark:bg-yellow-900/40'}`}>
+                  {modal.kind === 'delete'
+                    ? <Trash2 className="h-4 w-4 text-red-600 dark:text-red-400" />
+                    : <Ban className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />}
+                </div>
+                <div>
+                  <h3 className="text-base font-semibold text-gray-900 dark:text-white">
+                    {modal.kind === 'delete' ? 'Apagar conta definitivamente' : 'Desativar conta'}
+                  </h3>
+                  <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                    {modal.user.name || 'Sem nome'} · {modal.user.email}
+                  </p>
+                </div>
+              </div>
+              <button onClick={fecharModal} disabled={acting} className="text-gray-400 hover:text-gray-600 disabled:opacity-50">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="space-y-4 p-5">
+              {modal.kind === 'delete' ? (
+                <>
+                  <div className="rounded-lg border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20 p-3">
+                    <p className="flex items-start gap-2 text-xs text-red-700 dark:text-red-300">
+                      <AlertTriangle className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />
+                      <span>
+                        Isto apaga a conta e tudo ligado a ela — funis, leads, eventos, memórias da SARA,
+                        integrações e equipe. <strong>Não há como desfazer.</strong> O histórico financeiro
+                        (comissões e vendas de afiliado) é preservado.
+                      </span>
+                    </p>
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-xs font-medium text-gray-700 dark:text-gray-300">
+                      Digite <span className="font-mono text-red-600 dark:text-red-400">{modal.user.email}</span> para confirmar
+                    </label>
+                    <input
+                      autoFocus
+                      value={confirmText}
+                      onChange={e => setConfirmText(e.target.value)}
+                      placeholder={modal.user.email || ''}
+                      className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:border-red-500 focus:outline-none"
+                    />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">
+                    O acesso é bloqueado na hora e as sessões abertas caem. Nenhum dado é apagado —
+                    dá para reativar quando quiser.
+                  </p>
+                  <div>
+                    <label className="mb-1.5 block text-xs font-medium text-gray-700 dark:text-gray-300">
+                      Motivo <span className="font-normal text-gray-400">(opcional — aparece para o usuário no login)</span>
+                    </label>
+                    <input
+                      autoFocus
+                      value={reason}
+                      onChange={e => setReason(e.target.value)}
+                      maxLength={300}
+                      placeholder="Ex.: uso indevido da plataforma"
+                      className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:border-blue-500 focus:outline-none"
+                    />
+                  </div>
+                </>
+              )}
+
+              {actionError && (
+                <div className="rounded-lg border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20 p-3">
+                  <p className="text-xs text-red-700 dark:text-red-300">{actionError}</p>
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-2 border-t border-gray-100 dark:border-gray-800 p-4">
+              <button
+                onClick={fecharModal}
+                disabled={acting}
+                className="rounded-lg border border-gray-300 dark:border-gray-600 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              {modal.kind === 'delete' ? (
+                <button
+                  onClick={() => apagar(modal.user, confirmText)}
+                  disabled={acting || confirmText.trim().toLowerCase() !== (modal.user.email || '').toLowerCase()}
+                  className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  {acting ? 'Apagando…' : 'Apagar definitivamente'}
+                </button>
+              ) : (
+                <button
+                  onClick={() => desativar(modal.user, reason)}
+                  disabled={acting}
+                  className="rounded-lg bg-yellow-600 px-4 py-2 text-sm font-semibold text-white hover:bg-yellow-700 disabled:opacity-50"
+                >
+                  {acting ? 'Desativando…' : 'Desativar'}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

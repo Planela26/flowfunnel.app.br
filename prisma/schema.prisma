@@ -38,6 +38,13 @@ model User {
   subscriptionStatus     String?   // 'active' | 'past_due' | 'cancelled' | 'expired' | null
   gracePeriodEndsAt      DateTime? // 3 dias após primeira falha de pagamento
   sessionVersion         Int       @default(0) // incrementado ao trocar email/senha → invalida todos os JWTs anteriores
+  // Desativação administrativa (reversível). Difere da exclusão: os dados
+  // permanecem no banco e a conta volta ao normal ao ser reativada. Quem é
+  // desativado tem o login recusado e as sessões abertas derrubadas (bump de
+  // sessionVersion). `null` = conta normal.
+  deactivatedAt          DateTime?
+  deactivatedReason      String?   // texto livre do admin, exibido ao próprio usuário na tela de login
+  deactivatedById        String?   // id do admin que desativou; não é FK para sobreviver à exclusão do admin
   createdAt              DateTime  @default(now())
   updatedAt              DateTime  @updatedAt
   

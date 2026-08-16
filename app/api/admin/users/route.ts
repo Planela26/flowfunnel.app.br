@@ -27,6 +27,10 @@ export async function GET() {
         trialStartedAt: true,
         trialEndsAt: true,
         trialPlan: true,
+        subscriptionStatus: true,
+        gracePeriodEndsAt: true,
+        deactivatedAt: true,
+        deactivatedReason: true,
         _count: {
           select: {
             integrations: true,
