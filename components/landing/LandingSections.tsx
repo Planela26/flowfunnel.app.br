@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import {
   Sparkles, TrendingUp, AlertTriangle, BarChart2, Target, Brain, Zap,
-  Bot, Check, X, ArrowRight, CheckCircle2,
+  Check, X, ArrowRight,
 } from 'lucide-react'
 import SaraChatDemo from './SaraChatDemo'
 import RevealOnScroll from './RevealOnScroll'
@@ -197,22 +197,6 @@ const TOUR: {
     ],
     note: 'Números da demonstração exibida — cada operação tem os seus.',
   },
-  {
-    eyebrow: 'Sara.AI',
-    question: 'O que precisa da minha atenção agora?',
-    title: 'A Sara.AI encontra o que precisa da sua atenção — antes que vire prejuízo.',
-    body: 'Ela lê seus dados a cada atualização do painel e escreve, em português, o que está travando: o problema, o número que comprova e o que fazer a respeito.',
-    image: '/showcase/sara-insights.jpg',
-    bullets: [
-      'Queda de conversão, ROI acima da média, CPC subindo — ela avisa primeiro',
-      'Cada alerta vem com a data, o número e a ação recomendada',
-    ],
-    stats: [
-      { value: '−38%', label: 'Conversão no checkout mobile', tone: 'red' },
-      { value: '378%', label: 'Melhor ROI identificado', tone: 'green' },
-    ],
-    note: 'Números da demonstração exibida — cada operação tem os seus.',
-  },
 ]
 
 const SARA_FEATURES = [
@@ -272,13 +256,6 @@ const SARA_INSIGHTS = [
   },
 ]
 
-const SARA_KNOWS = [
-  'Funis', 'WhatsApp', 'Campanhas', 'Leads', 'Conversões', 'Produtos',
-  'Vendas', 'Assinaturas', 'Cobranças', 'Dashboards', 'Integrações',
-  'Automações', 'APIs', 'Webhooks', 'Eventos', 'Histórico',
-  'Clientes', 'Performance', 'Relatórios',
-]
-
 const PASSOS = [
   {
     n: '01',
@@ -305,33 +282,6 @@ const MARCAS = [
   { name: 'Monetizze', src: '/logos/monetizze.jpg' },
   { name: 'Kiwify', src: '/logos/kiwify.jpg' },
   { name: 'Instagram', src: '/logos/instagram.jpg' },
-]
-
-const DEPOIMENTOS = [
-  {
-    name: 'Rodrigo Alves', role: 'Produtor Digital · Hotmart', avatar: 'RA', metric: '+40% conversão',
-    text: 'Em 3 dias já sabia exatamente onde meu funil estava perdendo vendas. Aumentei a conversão em 40% só ajustando o tempo de resposta no WhatsApp.',
-  },
-  {
-    name: 'Lucas Mendonça', role: 'Infoprodutor · Kiwify', avatar: 'LM', metric: '+60% faturamento',
-    text: 'A Sara.AI me apontou que 70% dos meus leads chegavam mas não recebiam follow-up. Corrigi isso e meu faturamento subiu 60% no mês seguinte.',
-  },
-  {
-    name: 'Fernanda Costa', role: 'Gestora de Tráfego', avatar: 'FC', metric: '5h/semana economizadas',
-    text: 'Antes eu cruzava 5 planilhas. Agora está tudo em um lugar. Economizo horas por semana e entrego relatórios muito mais completos.',
-  },
-  {
-    name: 'Thiago Martins', role: 'Afiliado · Monetizze', avatar: 'TM', metric: 'ROI 3x em 30 dias',
-    text: 'Descobri que meus melhores leads vinham de um único conjunto de anúncios. Concentrei o orçamento lá e meu ROI triplicou em 30 dias.',
-  },
-  {
-    name: 'Ana Paula Rocha', role: 'Mentora de Negócios', avatar: 'AP', metric: 'Decisões em tempo real',
-    text: 'Ver o funil completo do anúncio até o pix caindo na conta, em tempo real, mudou como eu tomo decisões de escala.',
-  },
-  {
-    name: 'Juliana Ferreira', role: 'Produtora · Eduzz', avatar: 'JF', metric: 'Lançamento salvo',
-    text: 'O alerta automático que avisa quando o WhatsApp para de receber mensagens me salvou de perder um lançamento inteiro.',
-  },
 ]
 
 const PLANOS = [
@@ -474,6 +424,114 @@ function TourBlockView({ item, index }: { item: (typeof TOUR)[number]; index: nu
   )
 }
 
+/**
+ * Bloco de planos — aparece DUAS vezes na página: uma logo após a seção do
+ * problema (para quem decide cedo) e outra na seção dedicada, mais abaixo.
+ *
+ * É um componente, e não JSX duplicado, porque preço, feature e texto de botão
+ * mudam com frequência: duas cópias divergiriam na primeira alteração e a
+ * página passaria a anunciar dois conjuntos de planos diferentes.
+ *
+ * `âncora` controla o `id="planos"`: um id repetido é HTML inválido e faria o
+ * link "Ver planos" do topo apontar para um destino ambíguo.
+ */
+function PlanosBlock({ ancora = false }: { ancora?: boolean }) {
+  return (
+    <section
+      {...(ancora ? { id: 'planos' } : {})}
+      className="border-t border-white/10 bg-[#05070d] px-6 py-24 sm:py-28"
+    >
+      <div className="mx-auto max-w-6xl">
+        <div className="text-center" data-reveal>
+          <Eyebrow>Planos</Eyebrow>
+          <SectionTitle>
+            {TRIAL_DAYS} dias grátis{' '}
+            <span className="bg-gradient-to-r from-sky-400 to-cyan-300 bg-clip-text text-transparent">
+              em qualquer plano
+            </span>
+          </SectionTitle>
+          <Lead>
+            Teste sem custo e cancele quando quiser — ou pague na hora com PIX, boleto ou cartão.
+          </Lead>
+        </div>
+
+        <div className="mt-14 grid items-start gap-5 md:grid-cols-3">
+          {PLANOS.map((p, i) => (
+            <div data-reveal style={delay(i * 110)}
+              key={p.nome}
+              className={[
+                'flex flex-col rounded-2xl border p-8',
+                p.destaque
+                  ? 'border-sky-400/40 bg-gradient-to-b from-sky-500/15 to-sky-500/[0.02] md:-mt-4'
+                  : 'border-white/10 bg-white/[0.03]',
+              ].join(' ')}
+            >
+              {p.destaque && (
+                <span className="mb-5 self-start rounded-full bg-sky-400 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-black">
+                  Mais popular
+                </span>
+              )}
+              <h3
+                className="text-[1.6rem] font-extrabold tracking-[-0.02em] text-white"
+                style={display}
+              >
+                {p.nome}
+              </h3>
+              <p className="mt-1 text-[13.5px] text-slate-400">{p.sub}</p>
+
+              <div className="mt-6 flex items-baseline gap-1.5">
+                <span className="text-sm text-slate-400">R$</span>
+                <span
+                  className="text-[3rem] font-extrabold leading-none tracking-[-0.04em] text-white"
+                  style={display}
+                >
+                  {p.preco}
+                </span>
+                <span className="text-sm text-slate-400">/mês</span>
+              </div>
+
+              <Link
+                href={`/register?plan=${p.nome}`}
+                className={[
+                  'mt-7 rounded-xl py-3 text-center text-sm font-semibold transition',
+                  p.destaque
+                    ? 'bg-white text-black hover:bg-white/90'
+                    : 'border border-white/15 bg-white/[0.06] text-white hover:bg-white/10',
+                ].join(' ')}
+              >
+                Testar grátis {TRIAL_DAYS} dias
+              </Link>
+              <Link
+                href={`/checkout?plan=${p.nome}`}
+                className="mt-2 rounded-xl py-2.5 text-center text-[12.5px] font-medium text-slate-400 transition hover:text-white"
+              >
+                Pagar agora (PIX / boleto / cartão)
+              </Link>
+
+              <div className="mt-7 space-y-2.5 border-t border-white/10 pt-6">
+                {p.inclui.map((f) => (
+                  <div key={f} className="flex items-start gap-2.5">
+                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
+                    <span className="text-[13.5px] leading-snug text-slate-300">{f}</span>
+                  </div>
+                ))}
+                {p.exclui.map((f) => (
+                  <div key={f} className="flex items-start gap-2.5">
+                    <X className="mt-0.5 h-4 w-4 shrink-0 text-slate-600" />
+                    <span className="text-[13.5px] leading-snug text-slate-600 line-through">
+                      {f}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
 export default function LandingSections() {
   return (
     <>
@@ -536,6 +594,11 @@ export default function LandingSections() {
         </div>
       </section>
 
+      {/* ── PLANOS (1ª aparição) ────────────────────────────────────────────
+          Logo depois do problema: quem já se reconheceu nos três cartões
+          acima não precisa percorrer a página inteira para ver preço.      */}
+      <PlanosBlock />
+
       {/* ── TOUR DO PRODUTO ─────────────────────────────────────────────── */}
       <section className="bg-black px-6 py-24 sm:py-28">
         <div className="mx-auto max-w-6xl">
@@ -552,6 +615,37 @@ export default function LandingSections() {
             {TOUR.map((item, i) => (
               <TourBlockView key={item.eyebrow} item={item} index={i} />
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── CTA DO TOUR ─────────────────────────────────────────────────────
+          Faixa curta fechando o tour: quem acabou de ver as telas com números
+          de demonstração recebe aqui o convite para ver as próprias. Só título
+          e botões de propósito — a página já carrega informação demais, e um
+          bloco de planos inteiro neste ponto repetiria o que vem logo acima. */}
+      <section className="border-t border-white/10 bg-black px-6 py-16 text-center sm:py-20">
+        <div className="mx-auto max-w-2xl" data-reveal>
+          <h2
+            className="text-balance text-[clamp(24px,2.4vw,38px)] font-extrabold leading-[1.1] tracking-[-0.03em] text-white"
+            style={display}
+          >
+            Agora veja essas telas com os seus próprios números.
+          </h2>
+          <div className="mt-8 flex flex-wrap justify-center gap-3">
+            <Link
+              href="/register"
+              className="inline-flex items-center gap-2 rounded-xl bg-white px-8 py-3.5 text-sm font-semibold text-black transition hover:bg-white/90"
+            >
+              Começar agora
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+            <Link
+              href="#planos"
+              className="rounded-xl border border-white/20 bg-white/5 px-8 py-3.5 text-sm font-medium text-white transition hover:bg-white/10"
+            >
+              Ver planos
+            </Link>
           </div>
         </div>
       </section>
@@ -662,39 +756,6 @@ export default function LandingSections() {
             <SaraChatDemo />
           </div>
 
-          {/* conhece tudo */}
-          <div className="mt-24 text-center">
-            <h3
-              className="text-[clamp(24px,2.2vw,34px)] font-extrabold tracking-[-0.03em] text-white"
-              style={display}
-            >
-              A Sara conhece toda a sua operação
-            </h3>
-            <p className="mx-auto mt-3 max-w-xl text-[15px] leading-relaxed text-slate-400">
-              Ela acessa todas as partes do FlowSara para responder com precisão.
-            </p>
-            <div className="mx-auto mt-9 flex max-w-3xl flex-wrap justify-center gap-2.5">
-              {SARA_KNOWS.map((k) => (
-                <span
-                  key={k}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-[13.5px] text-slate-300 transition hover:border-sky-400/40 hover:text-white"
-                >
-                  <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-sky-400" />
-                  {k}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          {/* citação */}
-          <blockquote className="mx-auto mt-20 max-w-3xl rounded-2xl border border-sky-400/20 bg-sky-400/[0.05] px-8 py-9 text-center">
-            <Bot className="mx-auto mb-5 h-7 w-7 text-sky-400" />
-            <p className="text-[17px] font-semibold leading-[1.6] text-slate-100 sm:text-[19px]">
-              Enquanto outras IAs apenas respondem perguntas, a Sara.AI entende o funcionamento
-              completo do FlowSara, analisa seus dados em tempo real e transforma informação em
-              decisão de crescimento.
-            </p>
-          </blockquote>
         </div>
       </section>
 
@@ -789,135 +850,8 @@ export default function LandingSections() {
         </div>
       </section>
 
-      {/* ── DEPOIMENTOS ─────────────────────────────────────────────────── */}
-      <section className="bg-black px-6 py-24 sm:py-28">
-        <div className="mx-auto max-w-6xl">
-          <div className="text-center" data-reveal>
-            <Eyebrow>Experiências reais</Eyebrow>
-            <SectionTitle>O que dizem nossos clientes</SectionTitle>
-            <Lead>Depoimentos de produtores digitais, gestores de tráfego e agências que usam FlowSara.</Lead>
-          </div>
-
-          <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {DEPOIMENTOS.map((d, i) => (
-              <div data-reveal style={delay(i * 70)}
-                key={d.name}
-                className="relative rounded-2xl border border-white/10 bg-white/[0.03] p-7 pt-8 transition hover:border-white/20"
-              >
-                <span className="absolute -top-2.5 left-7 rounded-full border border-sky-400/30 bg-[#0b1220] px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-sky-300">
-                  {d.metric}
-                </span>
-                <div className="mb-4 flex gap-0.5 text-sky-400">
-                  {[1, 2, 3, 4, 5].map((i) => (
-                    <span key={i}>★</span>
-                  ))}
-                </div>
-                <p className="text-[14.5px] leading-[1.6] text-slate-200/90">“{d.text}”</p>
-                <div className="mt-6 flex items-center gap-3 border-t border-white/10 pt-5">
-                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gradient-to-br from-sky-500 to-cyan-400 text-[13px] font-bold text-white">
-                    {d.avatar}
-                  </div>
-                  <div>
-                    <p className="text-[13.5px] font-bold text-white">{d.name}</p>
-                    <p className="text-[12px] text-slate-400">{d.role}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── PLANOS ──────────────────────────────────────────────────────── */}
-      <section id="planos" className="border-t border-white/10 bg-[#05070d] px-6 py-24 sm:py-28">
-        <div className="mx-auto max-w-6xl">
-          <div className="text-center" data-reveal>
-            <Eyebrow>Planos</Eyebrow>
-            <SectionTitle>
-              {TRIAL_DAYS} dias grátis{' '}
-              <span className="bg-gradient-to-r from-sky-400 to-cyan-300 bg-clip-text text-transparent">
-                em qualquer plano
-              </span>
-            </SectionTitle>
-            <Lead>
-              Teste sem custo e cancele quando quiser — ou pague na hora com PIX, boleto ou cartão.
-            </Lead>
-          </div>
-
-          <div className="mt-14 grid items-start gap-5 md:grid-cols-3">
-            {PLANOS.map((p, i) => (
-              <div data-reveal style={delay(i * 110)}
-                key={p.nome}
-                className={[
-                  'flex flex-col rounded-2xl border p-8',
-                  p.destaque
-                    ? 'border-sky-400/40 bg-gradient-to-b from-sky-500/15 to-sky-500/[0.02] md:-mt-4'
-                    : 'border-white/10 bg-white/[0.03]',
-                ].join(' ')}
-              >
-                {p.destaque && (
-                  <span className="mb-5 self-start rounded-full bg-sky-400 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-black">
-                    Mais popular
-                  </span>
-                )}
-                <h3
-                  className="text-[1.6rem] font-extrabold tracking-[-0.02em] text-white"
-                  style={display}
-                >
-                  {p.nome}
-                </h3>
-                <p className="mt-1 text-[13.5px] text-slate-400">{p.sub}</p>
-
-                <div className="mt-6 flex items-baseline gap-1.5">
-                  <span className="text-sm text-slate-400">R$</span>
-                  <span
-                    className="text-[3rem] font-extrabold leading-none tracking-[-0.04em] text-white"
-                    style={display}
-                  >
-                    {p.preco}
-                  </span>
-                  <span className="text-sm text-slate-400">/mês</span>
-                </div>
-
-                <Link
-                  href={`/register?plan=${p.nome}`}
-                  className={[
-                    'mt-7 rounded-xl py-3 text-center text-sm font-semibold transition',
-                    p.destaque
-                      ? 'bg-white text-black hover:bg-white/90'
-                      : 'border border-white/15 bg-white/[0.06] text-white hover:bg-white/10',
-                  ].join(' ')}
-                >
-                  Testar grátis {TRIAL_DAYS} dias
-                </Link>
-                <Link
-                  href={`/checkout?plan=${p.nome}`}
-                  className="mt-2 rounded-xl py-2.5 text-center text-[12.5px] font-medium text-slate-400 transition hover:text-white"
-                >
-                  Pagar agora (PIX / boleto / cartão)
-                </Link>
-
-                <div className="mt-7 space-y-2.5 border-t border-white/10 pt-6">
-                  {p.inclui.map((f) => (
-                    <div key={f} className="flex items-start gap-2.5">
-                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
-                      <span className="text-[13.5px] leading-snug text-slate-300">{f}</span>
-                    </div>
-                  ))}
-                  {p.exclui.map((f) => (
-                    <div key={f} className="flex items-start gap-2.5">
-                      <X className="mt-0.5 h-4 w-4 shrink-0 text-slate-600" />
-                      <span className="text-[13.5px] leading-snug text-slate-600 line-through">
-                        {f}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* ── PLANOS (2ª aparição — seção dedicada, alvo do link "Ver planos") ─ */}
+      <PlanosBlock ancora />
 
       {/* ── FAQ ─────────────────────────────────────────────────────────── */}
       <section className="bg-black px-6 py-24 sm:py-28">

@@ -18,6 +18,7 @@ const DIR = path.join(process.cwd(), 'public')
 const TYPES: Record<string, string> = {
   'demo-video-web.mp4': 'video/mp4',
   'demo-poster.jpg': 'image/jpeg',
+  'hero-painel.jpg': 'image/jpeg',
 }
 
 /**
