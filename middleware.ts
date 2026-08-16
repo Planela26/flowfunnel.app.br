@@ -117,8 +117,9 @@ export async function middleware(request: NextRequest) {
     '/api/stripe/webhook',
     '/api/stripe/config', // Public: pricing page needs publishable key
     '/api/webhooks/mercadopago',
-    '/api/mercadopago/create-preference',
-    '/api/mercadopago/process-payment',
+    // NOTA: /api/mercadopago/create-preference e /api/mercadopago/process-payment
+    // PROPOSITALMENTE removidos — agora requerem autenticação (user já passou por /checkout que valida).
+    // A verificação de autenticação obrigatória está em cada rota (getServerSession check).
     '/api/mercadopago/public-key',
     '/api/mercadopago/payment-status',
     '/api/plan-prices',

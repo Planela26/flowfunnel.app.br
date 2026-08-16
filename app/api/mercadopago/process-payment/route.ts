@@ -28,6 +28,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Muitas tentativas' }, { status: 429 })
     }
 
+    const session = await getServerSession(authOptions)
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+    }
+
     const body = await request.json()
     const {
       plan,
@@ -38,7 +43,6 @@ export async function POST(request: Request) {
       payment_method_id,
       issuer_id,
       installments,
-      payer,
     } = body
 
     // Idempotency key is generated client-side per checkout attempt and reused on
@@ -98,58 +102,30 @@ export async function POST(request: Request) {
       ? Math.round(basePrice * (1 - discountPercent / 100) * 100) / 100
       : basePrice
 
-    const session = await getServerSession(authOptions)
-    let userId: string | null = session?.user?.id || null
-    let payerEmail: string | null = session?.user?.email || payer?.email || null
-    let payerName: string | undefined = session?.user?.name || undefined
+    // Autenticado via middleware + getServerSession check acima — sempre tem user
+    const userId = session.user.id
+    const payerEmail = session.user.email!
+    const payerName = session.user.name || undefined
 
     // Atribuição de comissão — Fase 3 (§18/§24.4). Prioridade:
     // User.referredByAffiliateId já congelado > cookie ff_attr > null.
-    let validAffiliateId: string | null = null
-
-    if (!userId) {
-      if (!payerEmail) {
-        return NextResponse.json({ error: 'E-mail é obrigatório para realizar o pagamento' }, { status: 400 })
-      }
-      const existingUser = await prisma.user.findUnique({
-        where: { email: payerEmail },
-        select: { id: true, name: true, referredByAffiliateId: true },
-      })
-      if (existingUser) {
-        userId = existingUser.id
-        payerName = existingUser.name || payerName
-        validAffiliateId = existingUser.referredByAffiliateId
-      }
-    } else {
-      const existingUser = await prisma.user.findUnique({
-        where: { id: userId },
-        select: { referredByAffiliateId: true },
-      })
-      validAffiliateId = existingUser?.referredByAffiliateId ?? null
-    }
+    const existingUser = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { referredByAffiliateId: true },
+    })
+    let validAffiliateId: string | null = existingUser?.referredByAffiliateId ?? null
 
     if (!validAffiliateId) validAffiliateId = cookieAffiliateId
 
-    if (!payerEmail) {
-      return NextResponse.json({ error: 'E-mail é obrigatório' }, { status: 400 })
-    }
-
     const webhookBase = getBaseUrl()
 
-    const userRef = userId || payerEmail
     const externalRef = validAffiliateId
-      ? `${userRef}:${planKey}:${validAffiliateId}`
-      : `${userRef}:${planKey}`
+      ? `${userId}:${planKey}:${validAffiliateId}`
+      : `${userId}:${planKey}`
 
     // Build payer for the payment
     const paymentPayer: any = {
       email: payerEmail,
-    }
-    if (payer?.identification?.number) {
-      paymentPayer.identification = {
-        type: payer.identification.type || 'CPF',
-        number: String(payer.identification.number).replace(/\D/g, ''),
-      }
     }
     if (payerName) {
       const [firstName, ...rest] = payerName.split(' ')
