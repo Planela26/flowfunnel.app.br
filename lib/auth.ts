@@ -107,27 +107,25 @@ export const authOptions: NextAuthOptions = {
           throw new Error('Credenciais inválidas')
         }
 
-        // Conta desativada pelo admin: recusa a entrada.
+        // Conta desativada NÃO é recusada aqui — de propósito.
         //
-        // A checagem vem DEPOIS da senha de propósito. Antes dela, responder
-        // "conta desativada" contaria a qualquer um que digitasse o e-mail que
-        // aquela conta existe e em que estado está — é a mesma enumeração que
-        // as mensagens genéricas acima evitam. Depois da senha conferida, quem
-        // pergunta já provou ser o dono, e aí dizer o motivo é o certo: sem
-        // isso ele acha que a senha quebrou e abre chamado.
+        // Barrar no authorize parecia o certo, mas o erro lançado daqui não
+        // chega ao usuário: a tela de login transforma qualquer falha que não
+        // seja 2FA_REQUIRED em "Email ou senha incorretos" (app/login/page.tsx).
+        // O resultado era alguém com a senha certa lendo que a senha estava
+        // errada — o mesmo mal-entendido que o bug de caixa no e-mail causava.
         //
-        // Também vem ANTES do 2FA: não faz sentido pedir o código a quem não
-        // vai entrar de qualquer forma.
+        // Então a entrada é permitida e o bloqueio acontece um passo adiante: o
+        // token carrega a marca de desativada (callback jwt, abaixo) e o
+        // middleware manda para /conta-desativada, onde o motivo aparece
+        // escrito. A sessão criada é inerte — o middleware não deixa ela
+        // alcançar nenhuma página nem nenhuma API além do próprio aviso e do
+        // logout.
         if (user.deactivatedAt) {
           await logAudit({
             action: 'auth.login', result: 'failure', userId: user.id, ip, userAgent,
             metadata: { email, reason: 'account_deactivated' },
           })
-          throw new Error(
-            user.deactivatedReason
-              ? `Conta desativada: ${user.deactivatedReason}`
-              : 'Esta conta foi desativada. Fale com o suporte.'
-          )
         }
 
         // SEGUNDO FATOR: se o usuário tem 2FA ativo, a senha sozinha não basta.
@@ -251,13 +249,19 @@ export const authOptions: NextAuthOptions = {
         // Busca emailVerified do banco no momento do login
         const dbUser = await prisma.user.findUnique({
           where: { id: user.id },
-          select: { emailVerified: true, twoFactorEnabled: true, subscriptionStatus: true, gracePeriodEndsAt: true, trialEndsAt: true, trialPlan: true, trialStatus: true, sessionVersion: true },
+          select: { emailVerified: true, twoFactorEnabled: true, subscriptionStatus: true, gracePeriodEndsAt: true, trialEndsAt: true, trialPlan: true, trialStatus: true, sessionVersion: true, deactivatedAt: true, deactivatedReason: true },
         })
         token.emailVerified = dbUser?.emailVerified ?? null
         token.twoFactorEnabled = dbUser?.twoFactorEnabled ?? false
         token.subscriptionStatus = dbUser?.subscriptionStatus ?? null
         token.gracePeriodEndsAt = dbUser?.gracePeriodEndsAt ?? null
         token.sessionVersion = dbUser?.sessionVersion ?? 0
+        // Marca de conta desativada: o middleware lê daqui para desviar a
+        // navegação inteira para /conta-desativada. O motivo viaja junto para a
+        // página conseguir exibi-lo sem precisar de uma rota liberada só para
+        // buscá-lo (o admin limita o texto a 300 caracteres).
+        token.deactivated = Boolean(dbUser?.deactivatedAt)
+        token.deactivatedReason = dbUser?.deactivatedReason ?? null
         // Trial expiration check for JWT
         token.trialExpired = isTrialExpiredForToken(dbUser)
       }
@@ -272,7 +276,7 @@ export const authOptions: NextAuthOptions = {
             sessionVersion: true, emailVerified: true, twoFactorEnabled: true,
             subscriptionStatus: true, gracePeriodEndsAt: true,
             trialEndsAt: true, trialPlan: true, trialStatus: true,
-            deactivatedAt: true,
+            deactivatedAt: true, deactivatedReason: true,
           },
         })
 
@@ -282,16 +286,16 @@ export const authOptions: NextAuthOptions = {
           return null as any
         }
 
-        // Conta desativada → derruba a sessão aberta.
+        // Conta desativada: em vez de derrubar a sessão, marca o token.
         //
-        // A rota de desativação já incrementa sessionVersion, o que sozinho
-        // invalidaria o token na linha acima. Esta checagem existe para o caso
-        // de a coluna ser marcada por fora (SQL direto no banco, correção
-        // manual, script): aí não há bump de versão, e sem isto o usuário
-        // seguiria navegando com o token que já tinha.
-        if (dbUser.deactivatedAt) {
-          return null as any
-        }
+        // Derrubar mandava a pessoa de volta ao login sem explicação nenhuma —
+        // e o login, por sua vez, só sabe dizer "email ou senha incorretos".
+        // Marcando, o middleware desvia para /conta-desativada e ela lê o
+        // motivo. A leitura é do banco a cada renovação, então desativar ou
+        // reativar por fora (SQL direto, script) reflete sozinho, sem depender
+        // do bump de sessionVersion que a rota de admin faz.
+        token.deactivated = Boolean(dbUser.deactivatedAt)
+        token.deactivatedReason = dbUser.deactivatedReason ?? null
 
         // Atualiza campos que podem ter mudado (emailVerified, 2FA, plano…)
         token.emailVerified = dbUser.emailVerified

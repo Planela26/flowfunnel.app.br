@@ -48,6 +48,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     pathname === '/login' ||
     pathname === '/register' ||
     pathname === '/verify-email' ||
+    // Conta desativada não vê a casca do app: o menu levaria só a páginas que o
+    // middleware devolve para cá, e o widget da Sara bateria numa API que agora
+    // responde 403. Mostrar a navegação sugeriria um acesso que não existe.
+    pathname === '/conta-desativada' ||
     pathname === '/forgot-password' ||
     pathname === '/reset-password' ||
     pathname === '/privacidade' ||

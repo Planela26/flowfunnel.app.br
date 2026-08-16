@@ -172,6 +172,38 @@ export async function middleware(request: NextRequest) {
     return withCsp(NextResponse.redirect(loginUrl));
   }
 
+  // ── Conta desativada ──────────────────────────────────────────────────────
+  // A entrada é permitida (ver lib/auth.ts) para que a pessoa receba uma
+  // explicação em vez do "email ou senha incorretos" que a tela de login dá
+  // para qualquer falha. O bloqueio é aqui, e a sessão criada é inerte: nada
+  // além do aviso e do logout é alcançável.
+  //
+  // A checagem vem antes de tudo que é protegido — inclusive antes do gate de
+  // e-mail verificado — porque desativada é o estado mais forte: quem está
+  // nesse estado não deve nem ser mandado para /verify-email.
+  if (token?.deactivated) {
+    const permitido =
+      pathname === '/conta-desativada' ||
+      pathname.startsWith('/api/auth/'); // necessário para conseguir sair
+
+    if (!permitido) {
+      if (pathname.startsWith('/api/')) {
+        // 403, não 401: a credencial é válida: o que falta é permissão.
+        return withCsp(
+          NextResponse.json({ error: 'account_deactivated' }, { status: 403 })
+        );
+      }
+      const dest = new URL('/conta-desativada', request.url);
+      // Mesmo cuidado do redirect de /verify-email: sem remover _rsc e sem
+      // no-store, uma navegação RSC exibe o payload cru em vez da página.
+      dest.searchParams.delete('_rsc');
+      const res = NextResponse.redirect(dest);
+      res.headers.set('Cache-Control', 'no-store');
+      return withCsp(res);
+    }
+    return next();
+  }
+
   if (token && (pathname === '/login' || pathname === '/register')) {
     return withCsp(NextResponse.redirect(new URL('/dashboard', request.url)));
   }
