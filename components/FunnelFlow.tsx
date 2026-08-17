@@ -156,6 +156,7 @@ function IntegrationCardNode({ data }: NodeProps) {
   const d = data as any
   const card = d.card as IntegrationCard
   const isTraffic = card.type === 'traffic'
+  const isTracking = card.type === 'tracking'
   const isCheckout = card.type === 'checkout'
   const isPayment = card.type === 'payment'
   const isCrm = card.type === 'crm'
@@ -168,7 +169,14 @@ function IntegrationCardNode({ data }: NodeProps) {
   const labelColor = { color: c }
   const dotColor = { backgroundColor: c }
 
-  const metrics = d.data?.connected ? d.data?.metrics || [] : null
+  // Lê `d.metrics` — o array montado por buildMetrics() e injetado no node por
+  // buildNodes(). Antes lia `d.data?.metrics`, ou seja, um campo `metrics`
+  // DENTRO da resposta da API — que nenhuma rota devolve. O resultado era
+  // sempre `undefined || []`, um array vazio (e portanto truthy): a grade
+  // renderizava sem nenhuma célula e o rodapé aparecia como se houvesse dados.
+  // Na prática, NENHUM card mostrava números, e buildMetrics() — 70 linhas —
+  // nunca teve efeito.
+  const metrics = (d.metrics as any[] | null) ?? null
   const connected = !!d.data?.connected
   const loading = d.loading
 
@@ -203,7 +211,7 @@ function IntegrationCardNode({ data }: NodeProps) {
         </div>
         <div>
           <div className="text-[9px] text-gray-500 uppercase tracking-widest">
-            {isTraffic ? 'Tráfego' : isCheckout ? 'Checkout' : isPayment ? 'Pagamento' : isCrm ? 'CRM' : 'Integração'}
+            {isTraffic ? 'Tráfego' : isTracking ? 'Rastreamento' : isCheckout ? 'Checkout' : isPayment ? 'Pagamento' : isCrm ? 'CRM' : 'Integração'}
           </div>
           <div className="text-xs font-bold text-white">{card.label}</div>
         </div>
@@ -246,11 +254,13 @@ function IntegrationCardNode({ data }: NodeProps) {
             {/* Context-aware message */}
             <div className="text-center space-y-0.5">
               <p className="text-[11px] font-semibold text-gray-300">
-                {isTraffic ? 'Nenhuma conta conectada' : 'Integração não ativa'}
+                {isTraffic ? 'Nenhuma conta conectada' : isTracking ? 'Sem dados disponíveis' : 'Integração não ativa'}
               </p>
               <p className="text-[9px] text-gray-500 leading-tight">
                 {isTraffic
                   ? 'Conecte para ver cliques, leads e gastos no funil'
+                  : isTracking
+                  ? 'Gere um link rastreável para ver visitantes e origem'
                   : card.type === 'funnel'
                   ? 'Conecte para ver conversas e qualificação'
                   : 'Conecte para ver checkouts e faturamento'}
@@ -267,6 +277,8 @@ function IntegrationCardNode({ data }: NodeProps) {
                 <Plus className="w-3 h-3" />
                 {isTraffic
                   ? 'Adicionar conta'
+                  : isTracking
+                  ? 'Configurar rastreamento'
                   : card.type === 'payment'
                   ? 'Configurar pagamento'
                   : 'Adicionar integração'}
@@ -286,8 +298,9 @@ function IntegrationCardNode({ data }: NodeProps) {
         </div>
       )}
 
-      {/* Right handle for traffic and funnel cards */}
-      {(isTraffic || card.type === 'funnel') && (
+      {/* Saída: tráfego, rastreamento e funil. A Landing Page tem as DUAS
+          pontas — recebe do anúncio e entrega ao WhatsApp ou ao checkout. */}
+      {(isTraffic || isTracking || card.type === 'funnel') && (
         <Handle type="source" position={Position.Right} className="!w-3 !h-3" style={{ backgroundColor: c, borderColor: c }} />
       )}
     </div>
@@ -311,12 +324,16 @@ const inactiveEdge = (id: string, source: string, target: string): Edge => ({
 })
 
 /* ─── Position calculator ───────────────────────────────────────────── */
+// A Landing Page entra numa coluna própria entre o tráfego e o funil — é a
+// ordem real da jornada (anúncio → página → WhatsApp → checkout). As colunas
+// seguintes deslocam para abrir espaço.
 const COL_X = {
   traffic: 20,
-  funnel: 360,
-  checkout: 720,
-  payment: 720,
-  crm: 1080,
+  tracking: 360,
+  funnel: 700,
+  checkout: 1040,
+  payment: 1040,
+  crm: 1380,
 }
 
 const COL_GAP_Y = 260
@@ -463,6 +480,17 @@ function buildMetrics(id: string, data: any): any[] | null {
         { label: 'Reembolsos', value: data.refunds || 0 },
         { label: 'Taxa Reemb.', value: data.refundRate || '—' },
       ]
+    case 'landing':
+      // Compacto de propósito: seis números que respondem "está funcionando?".
+      // O detalhe (origem por canal, cliques por tipo) aparece ao clicar.
+      return [
+        { label: 'Visitantes', value: (data.visitantes ?? 0).toLocaleString('pt-BR') },
+        { label: 'Sessões', value: (data.sessoes ?? 0).toLocaleString('pt-BR') },
+        { label: 'Leads', value: (data.leads ?? 0).toLocaleString('pt-BR') },
+        { label: 'Conversões', value: (data.conversoes ?? 0).toLocaleString('pt-BR') },
+        { label: 'Taxa Conv.', value: data.taxaConversao || '—' },
+        { label: 'Origem', value: data.origemPrincipal || '—' },
+      ]
     case 'crm':
       return [
         { label: 'Leads', value: data.leads || 0 },
@@ -521,21 +549,41 @@ function FunnelCanvas({
     const edges: Edge[] = []
     const hasData = (id: string) => !!dataMap[id]?.connected
 
-    // Traffic → WhatsApp
     const trafficIds = visibleIds.filter(id => {
       const card = AVAILABLE_INTEGRATIONS.find(i => i.id === id)
       return card?.type === 'traffic'
     })
-    if (visibleIds.includes('whatsapp')) {
+
+    // A Landing Page, quando presente, ENTRA NO MEIO da cadeia: o anúncio leva
+    // à página, e é a página que leva ao WhatsApp ou direto ao checkout. É a
+    // ordem real da jornada — antes o tráfego apontava direto para o WhatsApp,
+    // como se ninguém passasse por uma página.
+    const temLanding = visibleIds.includes('landing')
+    const temWhats = visibleIds.includes('whatsapp')
+
+    // Tráfego → (Landing Page | WhatsApp)
+    const alvoDoTrafego = temLanding ? 'landing' : temWhats ? 'whatsapp' : null
+    if (alvoDoTrafego) {
       for (const src of trafficIds) {
         const card = AVAILABLE_INTEGRATIONS.find(i => i.id === src)
         const color = card?.color || '#60a5fa'
+        const id = `${src}-${alvoDoTrafego}`
         edges.push(
           hasData(src)
-            ? activeEdge(`${src}-wa`, src, 'whatsapp', color)
-            : inactiveEdge(`${src}-wa`, src, 'whatsapp')
+            ? activeEdge(id, src, alvoDoTrafego, color)
+            : inactiveEdge(id, src, alvoDoTrafego)
         )
       }
+    }
+
+    // Landing Page → WhatsApp
+    if (temLanding && temWhats) {
+      const cor = AVAILABLE_INTEGRATIONS.find(i => i.id === 'landing')?.color || '#06b6d4'
+      edges.push(
+        hasData('landing')
+          ? activeEdge('landing-wa', 'landing', 'whatsapp', cor)
+          : inactiveEdge('landing-wa', 'landing', 'whatsapp')
+      )
     }
 
     // WhatsApp → Checkouts
@@ -543,7 +591,7 @@ function FunnelCanvas({
       const card = AVAILABLE_INTEGRATIONS.find(i => i.id === id)
       return card?.type === 'checkout'
     })
-    if (visibleIds.includes('whatsapp')) {
+    if (temWhats) {
       for (const tgt of checkoutIds) {
         const card = AVAILABLE_INTEGRATIONS.find(i => i.id === tgt)
         const color = card?.color || '#f97316'
@@ -551,6 +599,18 @@ function FunnelCanvas({
           hasData(tgt) || hasData('whatsapp')
             ? activeEdge(`wa-${tgt}`, 'whatsapp', tgt, color)
             : inactiveEdge(`wa-${tgt}`, 'whatsapp', tgt)
+        )
+      }
+    } else if (temLanding) {
+      // Sem WhatsApp na jornada, a página entrega direto ao checkout:
+      // Meta Ads → Landing Page → Hotmart.
+      for (const tgt of checkoutIds) {
+        const card = AVAILABLE_INTEGRATIONS.find(i => i.id === tgt)
+        const color = card?.color || '#f97316'
+        edges.push(
+          hasData(tgt) || hasData('landing')
+            ? activeEdge(`landing-${tgt}`, 'landing', tgt, color)
+            : inactiveEdge(`landing-${tgt}`, 'landing', tgt)
         )
       }
     }

@@ -14,6 +14,72 @@ const CARD_LABELS: Record<string, { name: string; icon: string; color: string }>
   monetizze: { name: 'Monetizze',    icon: '💳', color: 'text-blue-500' },
   stripe:    { name: 'Stripe',       icon: '💜', color: 'text-indigo-600' },
   crm:       { name: 'CRM',          icon: '🎯', color: 'text-cyan-600' },
+  landing:   { name: 'Landing Page', icon: '🌐', color: 'text-cyan-600' },
+}
+
+/**
+ * Detalhe da Landing Page, mostrado acima da análise da Sara.
+ *
+ * Os números vêm de /api/landing/metrics, que agrega o rastreamento existente
+ * (tracker.js e link rastreável). Sem dado, nada é inventado: a seção
+ * simplesmente não aparece e o card já mostra "Sem dados disponíveis".
+ */
+function DetalheLandingPage({ d }: { d: any }) {
+  if (!d || d.connected === false) return null
+
+  const linhas: Array<[string, string | number]> = [
+    ['Visitantes', (d.visitantes ?? 0).toLocaleString('pt-BR')],
+    ['Sessões', (d.sessoes ?? 0).toLocaleString('pt-BR')],
+    ['Leads', (d.leads ?? 0).toLocaleString('pt-BR')],
+    ['PageViews', (d.pageViews ?? 0).toLocaleString('pt-BR')],
+    ['Cliques', (d.cliques ?? 0).toLocaleString('pt-BR')],
+    ['Conversões', (d.conversoes ?? 0).toLocaleString('pt-BR')],
+    ['Taxa de conversão', d.taxaConversao || '—'],
+    ['Receita atribuída', d.receitaFormatada || '—'],
+  ]
+
+  const origens: Array<{ nome: string; total: number }> = Array.isArray(d.origens) ? d.origens : []
+  const totalOrigens = origens.reduce((a, o) => a + o.total, 0)
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-gray-500">Visão geral</p>
+        <div className="grid grid-cols-2 gap-2">
+          {linhas.map(([rotulo, valor]) => (
+            <div key={rotulo} className="rounded-lg bg-gray-50 px-3 py-2 dark:bg-gray-800">
+              <div className="text-[10px] uppercase tracking-wide text-gray-500">{rotulo}</div>
+              <div className="text-sm font-bold text-gray-900 dark:text-white">{valor}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {origens.length > 0 && (
+        <div>
+          <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-gray-500">
+            Origem dos visitantes
+          </p>
+          <div className="space-y-1.5">
+            {origens.map(o => {
+              const pct = totalOrigens > 0 ? Math.round((o.total / totalOrigens) * 100) : 0
+              return (
+                <div key={o.nome} className="flex items-center gap-2">
+                  <span className="w-28 shrink-0 truncate text-xs text-gray-700 dark:text-gray-300">{o.nome}</span>
+                  <div className="h-2 flex-1 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
+                    <div className="h-full rounded-full bg-cyan-500" style={{ width: `${pct}%` }} />
+                  </div>
+                  <span className="w-16 shrink-0 text-right text-xs font-semibold text-gray-600 dark:text-gray-300">
+                    {o.total} · {pct}%
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  )
 }
 
 interface InsightData {
@@ -143,6 +209,10 @@ export default function CardInsightModal({ cardType, cardData, onClose }: CardIn
 
         {/* Body */}
         <div className="px-6 py-5 space-y-5">
+          {/* Números da Landing Page antes da análise: o cliente vê o fato
+              primeiro e a leitura da Sara depois. */}
+          {cardType === 'landing' && <DetalheLandingPage d={cardData} />}
+
           {!dataReady && !loading && (
             <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5 text-center">
               <AlertTriangle className="w-8 h-8 text-gray-500 mx-auto mb-3" />

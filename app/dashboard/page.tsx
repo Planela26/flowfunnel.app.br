@@ -53,6 +53,7 @@ export default function Dashboard() {
   const [facebookData, setFacebookData] = useState<any>(null)
   const [googleData, setGoogleData] = useState<any>(null)
   const [tiktokData, setTiktokData] = useState<any>(null)
+  const [landingData, setLandingData] = useState<any>(null)
   const [hotmartData, setHotmartData] = useState<any>(null)
   const [kiwifyData, setKiwifyData] = useState<any>(null)
   const [eduzzData, setEduzzData] = useState<any>(null)
@@ -64,6 +65,7 @@ export default function Dashboard() {
   const [loadingFacebook, setLoadingFacebook] = useState(true)
   const [loadingGoogle, setLoadingGoogle] = useState(true)
   const [loadingTiktok, setLoadingTiktok] = useState(true)
+  const [loadingLanding, setLoadingLanding] = useState(true)
   const [loadingHotmart, setLoadingHotmart] = useState(true)
   const [loadingKiwify, setLoadingKiwify] = useState(true)
   const [loadingEduzz, setLoadingEduzz] = useState(true)
@@ -170,6 +172,27 @@ export default function Dashboard() {
   }
   const period = periodMap[selectedPeriod] || 'last_30d'
   const campaignParam = selectedCampaign ? `&campaignId=${selectedCampaign}` : ''
+
+  // Landing Page — lê o rastreamento que já existe (tracker.js + link
+  // rastreável). Mesma cadência dos demais cards.
+  useEffect(() => {
+    const fetchLandingMetrics = async () => {
+      try {
+        setLoadingLanding(true)
+        const response = await fetch('/api/landing/metrics')
+        setLandingData(response.ok ? await response.json() : null)
+      } catch (error) {
+        console.error('Erro ao buscar métricas da Landing Page:', error)
+        setLandingData(null)
+      } finally {
+        setLoadingLanding(false)
+      }
+    }
+
+    fetchLandingMetrics()
+    const interval = setInterval(fetchLandingMetrics, 300000)
+    return () => clearInterval(interval)
+  }, [])
 
   // Buscar dados reais do Hotmart
   useEffect(() => {
@@ -434,6 +457,7 @@ export default function Dashboard() {
               facebook: facebookData,
               google: googleData,
               tiktok: tiktokData,
+              landing: landingData,
               whatsapp: whatsappData,
               hotmart: hotmartData,
               kiwify: kiwifyData,
@@ -447,6 +471,7 @@ export default function Dashboard() {
               facebook: loadingFacebook,
               google: loadingGoogle,
               tiktok: loadingTiktok,
+              landing: loadingLanding,
               whatsapp: loadingWhatsApp,
               hotmart: loadingHotmart,
               kiwify: loadingKiwify,

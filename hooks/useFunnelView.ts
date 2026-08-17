@@ -5,7 +5,10 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 export type IntegrationCard = {
   id: string
   label: string
-  type: 'traffic' | 'funnel' | 'checkout' | 'payment' | 'crm'
+  // 'tracking' é a Landing Page: uma ETAPA da jornada, não uma integração.
+  // Fica entre o tráfego e o funil, e por isso tem entrada e saída — dá para
+  // montar Meta Ads → Landing Page → WhatsApp → Hotmart.
+  type: 'traffic' | 'tracking' | 'funnel' | 'checkout' | 'payment' | 'crm'
   icon: string
   color: string
   borderColor: string
@@ -17,6 +20,9 @@ export const AVAILABLE_INTEGRATIONS: IntegrationCard[] = [
   { id: 'facebook', label: 'Meta Ads', type: 'traffic', icon: 'f', color: '#1877f2', borderColor: 'border-blue-500/50', connectHref: '/facebook-connect' },
   { id: 'google', label: 'Google Ads', type: 'traffic', icon: 'G', color: '#ea4335', borderColor: 'border-red-500/50', connectHref: '/settings', connectLabel: 'Configurar Google Ads' },
   { id: 'tiktok', label: 'TikTok Ads', type: 'traffic', icon: '\u266A', color: '#ff0050', borderColor: 'border-pink-500/50', connectHref: '/settings', connectLabel: 'Configurar TikTok Ads' },
+  // Ciano: distinto dos demais (azul Meta, vermelho Google, verde WhatsApp,
+  // laranja Hotmart) sem sair da paleta do sistema.
+  { id: 'landing', label: 'Landing Page', type: 'tracking', icon: '□', color: '#06b6d4', borderColor: 'border-cyan-500/50', connectHref: '/rastreamento', connectLabel: 'Configurar rastreamento' },
   { id: 'whatsapp', label: 'WhatsApp', type: 'funnel', icon: 'W', color: '#25d366', borderColor: 'border-green-500/50' },
   { id: 'hotmart', label: 'Hotmart', type: 'checkout', icon: 'H', color: '#f97316', borderColor: 'border-orange-500/50', connectHref: '/hotmart-connect' },
   { id: 'kiwify', label: 'Kiwify', type: 'checkout', icon: 'K', color: '#10b981', borderColor: 'border-emerald-500/50', connectHref: '/kiwify-connect' },

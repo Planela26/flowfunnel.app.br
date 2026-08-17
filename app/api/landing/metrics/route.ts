@@ -1,0 +1,139 @@
+import { NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
+import { prisma } from '@/lib/prisma'
+import { getHistoryLimitDays, normalizePlan } from '@/lib/plans'
+
+/**
+ * Métricas da Landing Page para o node do funil visual.
+ *
+ * NÃO cria rastreamento novo: lê exatamente as tabelas que o tracker.js e o
+ * link rastreável já alimentam — TrackedLead, TrackedSession, TrackedEvent,
+ * TrackedConversion — preservando a estrutura visitante → sessão → lead →
+ * eventos.
+ *
+ * Isolamento: todas as consultas filtram por `userId` da sessão, no mesmo
+ * padrão das demais rotas de métrica. Nenhum parâmetro do cliente escolhe de
+ * quem são os dados.
+ */
+export async function GET(request: Request) {
+  try {
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+    }
+    const userId = session.user.id
+
+    const u = await prisma.user.findUnique({ where: { id: userId }, select: { plan: true } })
+    const maxDias = getHistoryLimitDays(normalizePlan(u?.plan))
+
+    const { searchParams } = new URL(request.url)
+    const pedido = parseInt(searchParams.get('days') || '30', 10)
+    const dias = Math.min(Number.isFinite(pedido) && pedido > 0 ? pedido : 30, maxDias)
+    const desde = new Date(Date.now() - dias * 24 * 60 * 60 * 1000)
+
+    const [
+      sites,
+      visitantes,
+      sessoes,
+      leads,
+      eventosPorNome,
+      conversoes,
+      porOrigem,
+    ] = await Promise.all([
+      prisma.trackedSite.count({ where: { userId } }),
+      // Visitante = navegador distinto. `visitorId` só passou a ser gravado
+      // depois da migration de alinhamento, então contamos leads distintos
+      // como piso quando ele não existe.
+      prisma.trackedLead.findMany({
+        where: { userId, createdAt: { gte: desde } },
+        select: { visitorId: true, leadId: true },
+      }),
+      prisma.trackedSession.count({ where: { userId, startedAt: { gte: desde } } }),
+      prisma.trackedLead.count({ where: { userId, createdAt: { gte: desde } } }),
+      prisma.trackedEvent.groupBy({
+        by: ['eventName'],
+        where: { userId, createdAt: { gte: desde } },
+        _count: { _all: true },
+      }),
+      prisma.trackedConversion.aggregate({
+        where: { userId, createdAt: { gte: desde } },
+        _count: { _all: true },
+        _sum: { value: true },
+      }),
+      prisma.trackedLead.groupBy({
+        by: ['utmSource'],
+        where: { userId, createdAt: { gte: desde } },
+        _count: { _all: true },
+      }),
+    ])
+
+    const eventos: Record<string, number> = {}
+    for (const e of eventosPorNome) eventos[e.eventName] = e._count._all
+
+    const visitantesUnicos = new Set(
+      visitantes.map(v => v.visitorId || v.leadId),
+    ).size
+
+    const pageViews = eventos['page_view'] || 0
+    const cliquesLink = eventos['link_click'] || 0
+    const cliquesWhats = eventos['click_whatsapp'] || 0
+    const cliquesCheckout = eventos['click_checkout'] || 0
+    const scroll = eventos['scroll_60'] || 0
+    const totalConversoes = conversoes._count._all || 0
+    const receita = conversoes._sum.value || 0
+
+    const taxa = visitantesUnicos > 0
+      ? `${((totalConversoes / visitantesUnicos) * 100).toFixed(1)}%`
+      : '—'
+
+    // Origem legível a partir do utm_source cru, com os nomes que o cliente
+    // reconhece nos anúncios. `null` vira "Direto": chegou sem parâmetro.
+    const NOMES: Record<string, string> = {
+      facebook: 'Meta Ads', fb: 'Meta Ads', meta: 'Meta Ads', instagram: 'Meta Ads',
+      google: 'Google Ads', adwords: 'Google Ads',
+      tiktok: 'TikTok Ads', bing: 'Microsoft Ads', microsoft: 'Microsoft Ads',
+      organic: 'Orgânico', direct: 'Direto',
+    }
+    const origensAgrupadas: Record<string, number> = {}
+    for (const o of porOrigem) {
+      const bruto = (o.utmSource || '').toLowerCase().trim()
+      const nome = !bruto ? 'Direto' : (NOMES[bruto] || o.utmSource || 'Outros')
+      origensAgrupadas[nome] = (origensAgrupadas[nome] || 0) + o._count._all
+    }
+    const origens = Object.entries(origensAgrupadas)
+      .map(([nome, total]) => ({ nome, total }))
+      .sort((a, b) => b.total - a.total)
+
+    // `connected` decide se o card mostra números ou o estado vazio. Só é
+    // verdadeiro quando existe rastreamento configurado E dado registrado —
+    // sem isso o card mostraria zeros como se fossem resultado real.
+    const connected = sites > 0 || leads > 0
+
+    return NextResponse.json({
+      connected,
+      periodoDias: dias,
+      sitesCadastrados: sites,
+      visitantes: visitantesUnicos,
+      sessoes,
+      leads,
+      pageViews,
+      cliques: cliquesLink + cliquesWhats + cliquesCheckout,
+      cliquesLink,
+      cliquesWhatsapp: cliquesWhats,
+      cliquesCheckout,
+      scroll60: scroll,
+      conversoes: totalConversoes,
+      taxaConversao: taxa,
+      receita,
+      receitaFormatada: receita > 0
+        ? receita.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+        : '—',
+      origemPrincipal: origens[0]?.nome ?? '—',
+      origens,
+    })
+  } catch (error) {
+    console.error('[landing/metrics]', error)
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
+  }
+}

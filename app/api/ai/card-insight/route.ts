@@ -256,6 +256,39 @@ Responda em JSON com exatamente este formato:
   "dicas": ["estratégia 1", "estratégia 2", "estratégia 3"],
   "estimativa": "impacto esperado"
 }`,
+
+  landing: (data) => `
+Você é um especialista em landing pages, tráfego pago e otimização de conversão. Analise os dados abaixo e forneça insights em português brasileiro.
+
+Dados atuais:
+- Visitantes únicos: ${data.visitantes ?? 'N/A'}
+- Sessões: ${data.sessoes ?? 'N/A'}
+- PageViews: ${data.pageViews ?? 'N/A'}
+- Leads rastreados: ${data.leads ?? 'N/A'}
+- Cliques em WhatsApp: ${data.cliquesWhatsapp ?? 'N/A'}
+- Cliques em checkout: ${data.cliquesCheckout ?? 'N/A'}
+- Scroll até 60% da página: ${data.scroll60 ?? 'N/A'}
+- Conversões: ${data.conversoes ?? 'N/A'}
+- Taxa de conversão: ${data.taxaConversao ?? 'N/A'}
+- Receita atribuída: ${data.receitaFormatada ?? 'N/A'}
+- Origem principal: ${data.origemPrincipal ?? 'N/A'}
+- Distribuição por origem: ${Array.isArray(data.origens) ? data.origens.map((o: any) => `${o.nome}: ${o.total}`).join(', ') : 'N/A'}
+
+Considere que o scroll e os cliques só existem quando o cliente instalou o tracker na página; se estiverem zerados, isso pode significar ausência de instalação e não falta de engajamento — mencione isso se for o caso.
+
+Forneça:
+1. Uma análise do desempenho da página (2-3 frases diretas)
+2. O maior ponto de perda entre visita e conversão
+3. 3 ações práticas para aumentar a conversão
+4. Estimativa de impacto se a taxa de conversão melhorar 20%
+
+Responda em JSON com exatamente este formato:
+{
+  "resumo": "análise geral em 2-3 frases",
+  "atencao": "maior ponto de perda identificado",
+  "dicas": ["ação 1", "ação 2", "ação 3"],
+  "estimativa": "impacto esperado"
+}`,
 }
 
 export async function POST(request: Request) {
