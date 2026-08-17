@@ -145,6 +145,9 @@ export async function middleware(request: NextRequest) {
     // Public tracker endpoints (chamadas a partir das landing pages dos clientes)
     '/api/track/event',
     '/api/track/conversion',
+    // Funil próprio: quem navega na nossa landing é visitante anônimo. A conta
+    // dona é resolvida no servidor, então nada identifica o Owner no navegador.
+    '/api/track/self',
     '/api/admin/seed-demo', // Bearer CRON_SECRET enforced in handler
     // /api/webhooks/logs is intentionally excluded — it requires auth
   ];

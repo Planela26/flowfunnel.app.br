@@ -7,6 +7,7 @@ import { Providers } from './providers'
 import { Suspense } from 'react'
 import { AffiliateTracker } from '@/components/AffiliateTracker'
 import { MetaPixelTracker } from '@/components/MetaPixelTracker'
+import LabTracker from '@/components/LabTracker'
 import { MetaAdvancedMatching } from '@/components/MetaAdvancedMatching'
 import AppShell from '@/components/AppShell'
 import ChunkErrorReloader from '@/components/ChunkErrorReloader'
@@ -164,6 +165,12 @@ export default function RootLayout({
             <ChunkErrorReloader />
             <Suspense fallback={null}><AffiliateTracker /></Suspense>
             <Suspense fallback={null}><MetaPixelTracker /></Suspense>
+            {/* Funil próprio: registra a jornada no NOSSO site (anúncio →
+                landing → checkout) sob a conta Owner. Complementa o Pixel da
+                Meta em vez de substituí-lo — o Pixel é a visão deles, este é a
+                nossa fonte de verdade, e a diferença entre os dois é
+                exatamente o que se quer medir. */}
+            <Suspense fallback={null}><LabTracker /></Suspense>
             <MetaAdvancedMatching />
             <AppShell>{children}</AppShell>
             <CookieConsent />

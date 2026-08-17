@@ -681,6 +681,12 @@ model TrackedLead {
   gclid       String?  // Google click ID
   ttclid      String?  // TikTok click ID
   msclkid     String?  // Microsoft click ID
+  // Identificadores do criativo. O fbclid prova que o clique veio da Meta, mas
+  // não diz de QUAL anúncio — e "qual criativo vendeu" é a pergunta que decide
+  // onde colocar dinheiro. Preenchidos pelas macros da Meta na URL do anúncio.
+  campaignId  String?
+  adsetId     String?
+  adId        String?
   firstUrl    String?
   referrer    String?
   ipAddress   String?

@@ -395,6 +395,12 @@ function PaymentBrickCheckout({
                   issuer_id: formData.issuer_id || null,
                   installments: formData.installments || null,
                   payer: formData.payer || null,
+                  // Identificador da jornada, para o pagamento voltar ligado ao
+                  // anúncio que o gerou. Sem isto a cadeia se rompe exatamente
+                  // aqui: o webhook confirma a compra sem saber de onde veio.
+                  lead_id: (function () {
+                    try { return localStorage.getItem('fs_lab_lead') } catch { return null }
+                  })(),
                 }),
               })
                 .then(async (res) => {

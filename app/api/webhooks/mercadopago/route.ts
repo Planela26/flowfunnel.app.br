@@ -7,6 +7,7 @@ import { claimMercadoPagoEvent, releaseMercadoPagoEvent } from '@/lib/mercadopag
 import { sendMetaCapiEvent } from '@/lib/meta-capi'
 import { createCommissionFromSale, reverseCommission } from '@/lib/affiliate-ledger'
 import { computePlanExpiry } from '@/lib/plan-expiry'
+import { registrarEventoProprio, registrarCompraDoFunilProprio, EVENTOS } from '@/lib/owner-funnel'
 
 /**
  * Verify Mercado Pago webhook signature.
@@ -213,6 +214,10 @@ async function processPayment(request: Request, payment: any) {
     const userRef = refParts[0]
     const planKey = refParts[1]
     const affiliateId = refParts[2] || null
+    // Quarto segmento: identificador da jornada que começou no anúncio. É o
+    // que fecha a cadeia — sem ele a compra é confirmada sem se saber de onde
+    // veio. Ausente nas referências antigas (2 ou 3 partes), o que é esperado.
+    const jornadaLeadId = refParts[3] || null
     if (!userRef || !planKey) {
       return NextResponse.json({ error: 'Invalid external reference' }, { status: 400 })
     }
@@ -277,6 +282,35 @@ async function processPayment(request: Request, payment: any) {
           planExpiresAt: computePlanExpiry(),
         },
       })
+
+      // ── Fecho da atribuição do funil próprio ──────────────────────────────
+      //
+      // ESTE é o único lugar que registra compra. Chegar ao checkout, clicar
+      // em pagar ou gerar PIX não são venda — só a confirmação do Mercado Pago
+      // é. A idempotência vem do claim feito antes de processPayment: um mesmo
+      // evento reenviado não chega aqui duas vezes, então a receita não dobra.
+      if (jornadaLeadId) {
+        await registrarEventoProprio({
+          leadId: jornadaLeadId,
+          evento: EVENTOS.paymentApproved,
+          url: null,
+          metadata: {
+            paymentId: String(payment.id),
+            plano: planKey,
+            valor: payment.transaction_amount,
+            metodo: payment.payment_method_id,
+            tipo: payment.payment_type_id,
+          },
+        }).catch(() => {})
+
+        await registrarCompraDoFunilProprio({
+          leadId: jornadaLeadId,
+          paymentId: String(payment.id),
+          plano: planKey,
+          valor: payment.transaction_amount || 0,
+          metodo: payment.payment_method_id || null,
+        }).catch(e => console.error('[webhook MP] falha ao atribuir compra do funil próprio:', e))
+      }
 
       // ── Fase 4: Comissão de afiliado — integração de Fase 3 (atribuição segura) com Fase 2 (engine)
       // Mercado Pago: cada payment.approved é INITIAL (sem renovação automática — Seção 4.0.3).

@@ -9,6 +9,7 @@ import { Plan } from '@/lib/plans'
 import { randomUUID } from 'crypto'
 import { getAttributionAffiliateId } from '@/lib/affiliate-attribution'
 import { canStartNewPayment } from '@/lib/plan-expiry'
+import { registrarEventoProprio, EVENTOS } from '@/lib/owner-funnel'
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -45,7 +46,14 @@ export async function POST(request: Request) {
       issuer_id,
       installments,
       payer,
+      lead_id,
     } = body
+
+    // Identificador da jornada vindo da landing. Só formato é validado — o
+    // valor é opaco e serve apenas para reencontrar a visita depois.
+    const leadId = typeof lead_id === 'string' && /^[A-Za-z0-9_-]{1,80}$/.test(lead_id)
+      ? lead_id
+      : null
 
     // Idempotency key is generated client-side per checkout attempt and reused on
     // retries/double-submits so Mercado Pago dedups them. Fall back to a fresh UUID
@@ -140,7 +148,19 @@ export async function POST(request: Request) {
 
     const webhookBase = getBaseUrl()
 
-    const externalRef = validAffiliateId
+    // Referência externa: `userId:plano:afiliado:jornada`.
+    //
+    // O lead_id entra como QUARTO segmento, sempre na mesma posição (vazio
+    // quando não há), porque é o que sobrevive à volta pelo webhook. Guardar
+    // numa tabela nossa não resolveria o pagamento com cartão, que não gera
+    // registro intermediário — a referência externa é o único campo que o
+    // Mercado Pago devolve intacto em todos os métodos.
+    //
+    // O parser do webhook lê por índice e trata segmento vazio como ausente,
+    // então referências antigas de 2 ou 3 partes continuam funcionando.
+    const externalRef = leadId
+      ? `${userId}:${planKey}:${validAffiliateId ?? ''}:${leadId}`
+      : validAffiliateId
       ? `${userId}:${planKey}:${validAffiliateId}`
       : `${userId}:${planKey}`
 
@@ -205,6 +225,29 @@ export async function POST(request: Request) {
     // Falhar aqui não pode derrubar a resposta — a cobrança já existe no
     // Mercado Pago e o cliente precisa ver o QR; perder o lembrete é o dano
     // menor. Por isso o catch silencioso (com log).
+    // Eventos da jornada própria — separando o que costuma ser confundido.
+    //
+    // `payment_started` significa que a cobrança foi CRIADA, e `pix_generated`
+    // que o QR existe. Nenhum dos dois é venda: quem gera PIX e não paga fica
+    // exatamente aqui, e é essa distância que revela o gargalo real. A compra
+    // só é registrada pelo webhook, mediante confirmação do Mercado Pago.
+    if (leadId) {
+      const ehPix = !!payment.point_of_interaction?.transaction_data?.qr_code
+      registrarEventoProprio({
+        leadId,
+        evento: ehPix ? EVENTOS.pixGenerated : EVENTOS.paymentStarted,
+        url: `${webhookBase}/checkout?plan=${planKey}`,
+        metadata: {
+          paymentId: String(payment.id),
+          plano: planKey,
+          valor: finalPrice,
+          moeda: 'BRL',
+          metodo: payment_method_id,
+          status: payment.status,
+        },
+      }).catch(() => {})
+    }
+
     const qrCode = payment.point_of_interaction?.transaction_data?.qr_code || null
     if (qrCode) {
       try {
