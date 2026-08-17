@@ -99,34 +99,60 @@
     return out;
   }
 
-  // Visitor ID: identifica o NAVEGADOR — nunca muda depois de criado.
-  var visitorId = safeGet('zf_visitor_id');
-  if (!visitorId) {
-    visitorId = uuid('v_');
-    safeSet('zf_visitor_id', visitorId);
+  // Identidade vinda do link rastreável (/r/<slug>).
+  //
+  // Quando a visita chega pelo link do FlowSara, o servidor JÁ registrou o
+  // clique e gerou lead_id, visitor_id e session_id — e os manda na URL. Adotar
+  // esses valores em vez de gerar outros é o que faz os dois métodos se
+  // somarem: o link garante a origem, e o tracker, usando o MESMO lead_id,
+  // fecha a atribuição da venda mais adiante (o lead_id vai para o link de
+  // checkout, volta no webhook da plataforma e casa com o clique).
+  //
+  // Sem isto, cada método criaria um lead diferente para a mesma pessoa: a
+  // origem ficaria num, a venda no outro, e nenhum dos dois contaria a história
+  // inteira.
+  var linkParams = null;
+  try {
+    linkParams = new URLSearchParams(window.location.search);
+  } catch (e) {}
+  function doLink(nome) {
+    if (!linkParams) return null;
+    var v = linkParams.get(nome);
+    return v && v.length < 128 ? v : null;
   }
 
+  // Visitor ID: identifica o NAVEGADOR — nunca muda depois de criado.
+  var visitorId = doLink('fs_vid') || safeGet('zf_visitor_id');
+  if (!visitorId) {
+    visitorId = uuid('v_');
+  }
+  safeSet('zf_visitor_id', visitorId);
+
   // Lead ID persistente: identifica a jornada de compra atual.
-  var leadId = safeGet('lead_id');
+  // O do link tem prioridade sobre o armazenado — é a visita que está
+  // acontecendo agora, e é ela que o servidor acabou de registrar.
+  var leadId = doLink('lead_id') || safeGet('lead_id');
   if (!leadId) {
     leadId = uuid('l_');
-    safeSet('lead_id', leadId);
   }
+  safeSet('lead_id', leadId);
 
   // Session ID: renova após 30min de inatividade.
   var SESSION_TTL = 30 * 60 * 1000;
-  var sessionId = null;
+  var sessionId = doLink('fs_sid');
   try {
-    var rawSess = safeGet('zf_session');
     var now = Date.now();
-    if (rawSess) {
-      var sess = JSON.parse(rawSess);
-      if (sess && sess.id && now - (sess.t || 0) < SESSION_TTL) sessionId = sess.id;
+    if (!sessionId) {
+      var rawSess = safeGet('zf_session');
+      if (rawSess) {
+        var sess = JSON.parse(rawSess);
+        if (sess && sess.id && now - (sess.t || 0) < SESSION_TTL) sessionId = sess.id;
+      }
     }
     if (!sessionId) sessionId = uuid('s_');
     safeSet('zf_session', JSON.stringify({ id: sessionId, t: now }));
   } catch (e) {
-    sessionId = uuid('s_');
+    if (!sessionId) sessionId = uuid('s_');
   }
   function touchSession() {
     try {

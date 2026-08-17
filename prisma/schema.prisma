@@ -79,6 +79,35 @@ model User {
   twoFactorRecoveryCodes TwoFactorRecoveryCode[]
   supportTickets       SupportTicket[]
   pixCharges           PixCharge[]
+  trackedSites         TrackedSite[]
+}
+
+/// Landing page cadastrada para rastreamento por link.
+///
+/// Existe para que o cliente não precise instalar código: ele registra a URL
+/// aqui, recebe um link do FlowSara e usa esse link nos anúncios. Quem clica
+/// passa por /r/[slug], que registra a visita e redireciona.
+///
+/// O `slug` é a peça de segurança. O identificador do dono NUNCA vai na URL —
+/// se fosse o userId, bastaria trocá-lo para registrar visita na conta alheia.
+/// O slug é opaco, aleatório e resolvido no banco; o destino também vem daqui,
+/// nunca da query, o que fecha a porta para redirecionamento aberto.
+model TrackedSite {
+  id             String   @id @default(cuid())
+  userId         String
+  slug           String   @unique // código curto que aparece em /r/<slug>
+  label          String // nome dado pelo cliente ("Página de vendas do curso")
+  destinationUrl String // para onde redirecionar — validada na criação
+  isActive       Boolean  @default(true)
+  lastVisitAt    DateTime? // alimenta o status "rastreamento ativo" na tela
+  visitCount     Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([slug])
 }
 
 /// Cobrança PIX gerada no checkout, guardada para o lembrete de pagamento.

@@ -8,7 +8,7 @@ import { useNavigation } from './NavigationContext'
 import {
   Settings, LayoutDashboard, Phone,
   Megaphone, Webhook, BarChart2, Users2, UserCog, X,
-  Users, FileText, Target, CreditCard, Gift, Route, Brain, LifeBuoy, Sparkles,
+  Users, FileText, Target, CreditCard, Gift, Route, Brain, LifeBuoy, Sparkles, Link2,
 } from 'lucide-react'
 import PlanBadge from './PlanBadge'
 import UserMenu from './UserMenu'
@@ -52,6 +52,7 @@ const navGroups: NavGroup[] = [
       { href: '/whatsapp-numbers', label: 'Meus Números', icon: Phone },
       { href: '/campaigns', label: 'Campanhas', icon: Megaphone },
       { href: '/leads', label: 'Leads', icon: Users },
+      { href: '/rastreamento', label: 'Rastreamento', icon: Link2 },
       { href: '/webhooks', label: 'Webhooks', icon: Webhook },
     ],
   },

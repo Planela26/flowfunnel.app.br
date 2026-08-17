@@ -100,7 +100,9 @@ export async function middleware(request: NextRequest) {
   const next = () => withCsp(NextResponse.next());
 
   // Rotas públicas que não precisam de autenticação
-  const publicRoutes = ['/', '/login', '/register', '/pricing', '/checkout/success', '/checkout/failure', '/checkout/pending', '/termos', '/privacidade', '/lgpd', '/verify-email', '/forgot-password', '/reset-password', '/activate-trial', '/invite', '/docs'];
+  // `/r` é o link rastreável usado nos anúncios dos clientes: precisa abrir
+  // para visitante anônimo, que é justamente quem ele existe para registrar.
+  const publicRoutes = ['/', '/login', '/register', '/pricing', '/checkout/success', '/checkout/failure', '/checkout/pending', '/termos', '/privacidade', '/lgpd', '/verify-email', '/forgot-password', '/reset-password', '/activate-trial', '/invite', '/docs', '/r'];
   // NOTA: /checkout PROPOSITALMENTE removido das rotas públicas para forçar autenticação
   // antes de chegar ao pagamento. Redirecionamento para /login via middleware se sem token.
   const publicApiRoutes = [
