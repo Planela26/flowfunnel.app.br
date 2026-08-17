@@ -9,8 +9,24 @@ import { createCommissionFromSale, reverseCommission } from '@/lib/affiliate-led
 
 /**
  * Verify Mercado Pago webhook signature.
- * Mercado Pago sends `x-signature` header: `ts=<timestamp>,v1=<signature>`
- * where signature = HMAC_SHA256(secret, `${timestamp}:${rawBody}`)
+ *
+ * O Mercado Pago manda `x-signature: ts=<timestamp>,v1=<assinatura>`, e a
+ * assinatura é o HMAC-SHA256 de um TEMPLATE FIXO — não do corpo da requisição:
+ *
+ *     id:<data.id>;request-id:<x-request-id>;ts:<ts>;
+ *
+ * Esta função assinava `${ts}:${rawBody}`, que não é o que o Mercado Pago
+ * assina. O HMAC jamais batia, todo webhook era recusado com 401 e, como a
+ * liberação do plano acontece só depois desta checagem, NENHUM pagamento
+ * aprovado virava plano ativo: o cliente pagava, via a confirmação do banco, e
+ * continuava no FREE. O segredo configurado estava certo o tempo todo — o
+ * cálculo é que comparava com a string errada.
+ *
+ * Detalhes do template que importam:
+ *  - `data.id` vem da query string da notificação (`?data.id=...`), com
+ *    fallback para o corpo; se for alfanumérico, o Mercado Pago exige minúsculo.
+ *  - partes ausentes saem do template inteiras — se não vier `x-request-id`,
+ *    o trecho `request-id:...;` simplesmente não existe.
  *
  * NOTE: This function is intentionally async because Web Crypto is async-only.
  * We await it in the route handler before doing any plan mutations.
@@ -49,6 +65,48 @@ async function verifyWebhookSignature(request: Request, rawBody: string): Promis
     return false
   }
 
+  // Monta o template exatamente como o Mercado Pago o assinou.
+  //
+  // O `data.id` da query string tem prioridade sobre o do corpo porque é o que
+  // o Mercado Pago usou para assinar: a notificação chega em
+  // `.../webhooks/mercadopago?data.id=123&type=payment`.
+  let dataId: string | null = null
+  try {
+    dataId = new URL(request.url).searchParams.get('data.id')
+  } catch {
+    dataId = null
+  }
+  if (!dataId) {
+    try {
+      const parsed = JSON.parse(rawBody)
+      const fromBody = parsed?.data?.id ?? parsed?.id
+      if (fromBody !== undefined && fromBody !== null) dataId = String(fromBody)
+    } catch {
+      // corpo ilegível: segue sem o trecho de id, o HMAC não vai bater e o
+      // webhook é recusado — que é o comportamento correto aqui.
+    }
+  }
+  // Regra do Mercado Pago: id alfanumérico entra em minúsculo no template.
+  if (dataId && /[a-zA-Z]/.test(dataId)) dataId = dataId.toLowerCase()
+
+  const requestId = request.headers.get('x-request-id')
+
+  // Dois candidatos, com e sem o trecho de request-id.
+  //
+  // Não dá para confiar cegamente no cabeçalho: o middleware deste projeto faz
+  // `request.headers.get('X-Request-ID') || crypto.randomUUID()` e esse valor
+  // chega ao handler, então uma notificação que o Mercado Pago tenha enviado
+  // SEM request-id aparece aqui com um UUID que nós mesmos inventamos —
+  // colocá-lo no template quebraria uma assinatura legítima (medido: o handler
+  // recebeu um UUID numa requisição enviada sem o cabeçalho).
+  //
+  // Testar as duas formas não afrouxa nada: ambas exigem o mesmo segredo, e
+  // são exatamente os dois templates que o Mercado Pago pode ter assinado.
+  const candidatos: string[] = []
+  const base = dataId ? `id:${dataId};` : ''
+  if (requestId) candidatos.push(`${base}request-id:${requestId};ts:${ts};`)
+  candidatos.push(`${base}ts:${ts};`)
+
   try {
     const encoder = new TextEncoder()
     const key = await crypto.subtle.importKey(
@@ -58,16 +116,22 @@ async function verifyWebhookSignature(request: Request, rawBody: string): Promis
       false,
       ['sign']
     )
-    const sig = await crypto.subtle.sign('HMAC', key, encoder.encode(`${ts}:${rawBody}`))
-    const expected = Buffer.from(sig).toString('hex')
 
-    // Use timing-safe comparison to prevent timing attacks
-    if (expected.length !== v1.length) return false
-    let match = 0
-    for (let i = 0; i < expected.length; i++) {
-      match |= expected.charCodeAt(i) ^ v1.charCodeAt(i)
+    for (const manifest of candidatos) {
+      const sig = await crypto.subtle.sign('HMAC', key, encoder.encode(manifest))
+      const expected = Buffer.from(sig).toString('hex')
+
+      // Use timing-safe comparison to prevent timing attacks
+      if (expected.length !== v1.length) continue
+      let match = 0
+      for (let i = 0; i < expected.length; i++) {
+        match |= expected.charCodeAt(i) ^ v1.charCodeAt(i)
+      }
+      if (match === 0) return true
     }
-    return match === 0
+
+    console.warn('⚠️ Assinatura do webhook não confere com nenhum template esperado')
+    return false
   } catch (err) {
     console.error('⚠️ Webhook signature verification error:', err)
     return false
