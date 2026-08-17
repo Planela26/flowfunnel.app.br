@@ -166,7 +166,44 @@ export async function POST(request: Request) {
       if (issuer_id) paymentInput.issuer_id = issuer_id
     }
 
+    // PIX vale por 24h.
+    //
+    // Sem definir, vale o padrão do Mercado Pago — e o lembrete de uma hora
+    // depois poderia entregar um copia-e-cola já expirado, o que piora a
+    // experiência em vez de recuperar a venda. Com 24h, o código do e-mail
+    // certamente ainda funciona, e quem só volta no dia seguinte ainda paga.
+    if (payment_method_id === 'pix') {
+      const expira = new Date(Date.now() + 24 * 60 * 60 * 1000)
+      paymentInput.date_of_expiration = expira.toISOString().replace('Z', '+00:00')
+    }
+
     const payment = await createPayment(paymentInput, idemKey)
+
+    // Registra a cobrança PIX para o lembrete de não pagos (cron/pix-reminder).
+    //
+    // Só PIX: cartão resolve na hora e boleto tem o próprio fluxo do banco.
+    // Falhar aqui não pode derrubar a resposta — a cobrança já existe no
+    // Mercado Pago e o cliente precisa ver o QR; perder o lembrete é o dano
+    // menor. Por isso o catch silencioso (com log).
+    const qrCode = payment.point_of_interaction?.transaction_data?.qr_code || null
+    if (qrCode) {
+      try {
+        await prisma.pixCharge.upsert({
+          where: { paymentId: String(payment.id) },
+          update: {},
+          create: {
+            userId,
+            paymentId: String(payment.id),
+            plan: planKey,
+            amount: finalPrice,
+            qrCode,
+            ticketUrl: payment.point_of_interaction?.transaction_data?.ticket_url || null,
+          },
+        })
+      } catch (e) {
+        console.error('[process-payment] falha ao registrar PixCharge:', e)
+      }
+    }
 
     return NextResponse.json({
       id: payment.id,

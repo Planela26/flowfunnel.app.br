@@ -72,6 +72,33 @@ model User {
   saleAttributions     SaleAttribution[]
   twoFactorRecoveryCodes TwoFactorRecoveryCode[]
   supportTickets       SupportTicket[]
+  pixCharges           PixCharge[]
+}
+
+/// Cobrança PIX gerada no checkout, guardada para o lembrete de pagamento.
+///
+/// O Mercado Pago sabe se a cobrança foi paga, mas não sabe se JÁ AVISAMOS —
+/// e é isso que esta tabela guarda. Sem ela não há como mandar um único
+/// lembrete: ou não se manda nenhum, ou se manda a cada passada do cron.
+///
+/// O código copia-e-cola fica aqui para o e-mail poder levá-lo pronto. Não é
+/// credencial: quem o tem só consegue PAGAR a cobrança, que é o que queremos.
+model PixCharge {
+  id         String    @id @default(cuid())
+  userId     String
+  paymentId  String    @unique // id do pagamento no Mercado Pago
+  plan       String
+  amount     Decimal   @db.Decimal(12, 2)
+  qrCode     String?   @db.Text // copia-e-cola
+  ticketUrl  String?   @db.Text
+  remindedAt DateTime? // nulo = ainda não avisamos
+  createdAt  DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // A varredura do cron é sempre "não avisadas, criadas há mais de 1h".
+  @@index([remindedAt, createdAt])
+  @@index([userId])
 }
 
 model TwoFactorRecoveryCode {

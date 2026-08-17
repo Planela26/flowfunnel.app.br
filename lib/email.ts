@@ -566,6 +566,75 @@ export async function sendTrialCardReminderEmail(to: string, name: string, plan:
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
+// 8b. PIX GERADO E NÃO PAGO
+// ══════════════════════════════════════════════════════════════════════════════
+/**
+ * Enviado UMA vez, uma hora depois de o QR ser gerado, e só se a cobrança
+ * ainda estiver pendente no Mercado Pago (o cron confere antes de enviar).
+ *
+ * Leva o copia-e-cola pronto porque é o caminho mais curto até o pagamento:
+ * quem abandonou por distração resolve no próprio aplicativo do banco, sem
+ * precisar voltar ao site e gerar tudo de novo.
+ */
+export async function sendPixPendingEmail(
+  to: string,
+  name: string,
+  plan: string,
+  qrCode: string,
+  ticketUrl?: string | null,
+) {
+  const planLabel = PLAN_LABELS[plan] ?? plan
+  const preco = PLAN_PRICES[plan] ?? ''
+  return sendEmail(
+    to,
+    `Seu Pix do plano ${planLabel} ainda está aguardando pagamento`,
+    base({
+      headerBg: 'linear-gradient(135deg, #0f766e 0%, #0891b2 100%)',
+      headerEmoji: '⏱️',
+      headerTitle: 'Seu Pix ainda não foi pago',
+      headerSubtitle: `Plano ${planLabel}${preco ? ` — ${preco}/mês` : ''}`,
+      body: `
+        <h2 style="color:#111827;font-size:20px;font-weight:700;margin:0 0 16px;">
+          Olá, ${name || 'tudo bem'}!
+        </h2>
+        <p style="color:#4b5563;font-size:16px;line-height:1.7;margin:0 0 24px;">
+          Você gerou um Pix para assinar o plano <strong>${planLabel}</strong> e ele
+          ainda não foi pago. O código continua válido — é só copiar e colar no
+          aplicativo do seu banco.
+        </p>
+
+        ${infoBox(`
+          <strong style="display:block;margin-bottom:10px;">Pix copia e cola</strong>
+          <span style="display:block;word-break:break-all;font-family:monospace;font-size:12px;
+                       line-height:1.6;background:#ffffff;border:1px solid #cbd5e1;border-radius:8px;
+                       padding:12px;color:#0f172a;">${qrCode}</span>
+        `, '#f0fdfa', '#99f6e4', '#0f766e')}
+
+        ${ticketUrl ? `
+        <div style="text-align:center;margin:28px 0;">
+          ${btn(ticketUrl, 'Abrir o Pix para pagar', '#0891b2')}
+        </div>` : `
+        <div style="text-align:center;margin:28px 0;">
+          ${btn(`${APP_URL}/checkout?plan=${plan}`, 'Voltar ao checkout', '#0891b2')}
+        </div>`}
+
+        <p style="color:#4b5563;font-size:15px;line-height:1.7;margin:0 0 8px;">
+          Assim que o pagamento cair, o acesso é liberado automaticamente — você
+          não precisa avisar ninguém.
+        </p>
+
+        ${divider}
+
+        <p style="color:#9ca3af;font-size:13px;text-align:center;margin:0;">
+          Se você já pagou nos últimos minutos, pode ignorar este email.<br/>
+          Se desistiu, não precisa fazer nada: o código expira sozinho.
+        </p>
+      `,
+    })
+  )
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
 // 9. TRIAL ATIVADO
 // ══════════════════════════════════════════════════════════════════════════════
 export async function sendTrialActivatedEmail(to: string, name: string, plan: string, trialEndsAt: Date) {

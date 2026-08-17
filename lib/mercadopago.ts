@@ -90,6 +90,13 @@ export interface CreatePaymentInput {
   issuer_id?: string
   external_reference: string
   notification_url?: string
+  /**
+   * Validade da cobrança, ISO 8601 com offset (ex.: 2026-08-17T12:00:00.000-03:00).
+   * Usado no PIX: sem definir, vale o padrão do Mercado Pago, e aí não há
+   * garantia de que o copia-e-cola ainda funcione quando o e-mail de lembrete
+   * sair uma hora depois.
+   */
+  date_of_expiration?: string
 }
 
 export interface CreatePaymentResult {

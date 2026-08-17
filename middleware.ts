@@ -107,6 +107,9 @@ export async function middleware(request: NextRequest) {
     '/api/auth',
     '/api/cron/snapshot',
     '/api/cron/alerts', // Bearer CRON_SECRET enforced in handler; machine-called by scheduler
+    // Lembrete de PIX não pago. O handler é fail-closed: sem CRON_SECRET
+    // configurado ele recusa, em vez de virar um disparador público de e-mail.
+    '/api/cron/pix-reminder',
     // External services (Meta, Hotmart, Monetizze, Eduzz, Kiwify) POST without credentials
     '/api/webhooks/whatsapp',
     '/api/webhooks/hotmart',
