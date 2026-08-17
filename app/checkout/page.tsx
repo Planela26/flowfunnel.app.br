@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
+import { useSession } from 'next-auth/react'
 import { authPatternUrl, authPatternSize } from '@/lib/authPattern'
 import {
   ArrowLeft, Check, Shield, RefreshCw, Zap, Copy,
@@ -275,6 +276,13 @@ function PaymentBrickCheckout({
   onPaid: (plan: string) => void
 }) {
   const sdkReady = useMercadoPagoSdk()
+  // E-mail da sessão para pré-preencher o Brick. O servidor cobra SEMPRE no
+  // e-mail da sessão e ignora o que vem no corpo (foi essa a brecha corrigida
+  // em process-payment). Sem preencher aqui, o Brick pedia o e-mail do zero e
+  // aceitava qualquer um — a pessoa digitava um endereço que era descartado,
+  // e o comprovante chegava em outro. Preenchendo, o que ela vê é o que vale.
+  const { data: sessao } = useSession()
+  const emailSessao = sessao?.user?.email ?? null
   const containerRef = useRef<HTMLDivElement>(null)
   const controllerRef = useRef<any>(null)
   const [publicKey, setPublicKey] = useState<string | null>(null)
@@ -352,7 +360,10 @@ function PaymentBrickCheckout({
       }
       try {
         controllerRef.current = await bricksBuilder.create('payment', 'paymentBrick_container', {
-          initialization: { amount },
+          initialization: {
+            amount,
+            ...(emailSessao ? { payer: { email: emailSessao } } : {}),
+          },
           customization: {
             visual: { style: { theme: 'default' } },
             paymentMethods: {
@@ -445,7 +456,11 @@ function PaymentBrickCheckout({
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sdkReady, publicKey, amount])
+    // `emailSessao` entra nas dependências porque a sessão costuma resolver
+    // depois do SDK: sem ele aqui, o Brick montaria com o campo vazio e nunca
+    // seria refeito. A mudança acontece uma vez só (null → e-mail), e o efeito
+    // já desmonta o controller anterior antes de recriar.
+  }, [sdkReady, publicKey, amount, emailSessao])
 
   const copyPix = () => {
     if (!pixData?.qr_code) return
