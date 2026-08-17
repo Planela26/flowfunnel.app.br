@@ -17,7 +17,16 @@ export default function TrialBanner() {
 
   if (loading || dismissed) return null
 
-  const planLabel = PLAN_LABELS[info.trialPlan ?? ''] ?? info.trialPlan ?? info.label
+  // Dois rótulos distintos, porque as duas perguntas são distintas.
+  //
+  // `trialPlan` é o tier que está EM AVALIAÇÃO; `plan` é o que a pessoa
+  // realmente tem. Eles divergem com facilidade: o cadastro grava a intenção de
+  // teste em `trialPlan` (quem clica em "testar o PRO" fica com trialPlan=PRO),
+  // e depois a pessoa pode assinar outro tier. Foi essa mistura que fez o
+  // banner anunciar "Plano PRO ativo" para quem tinha acabado de pagar o START,
+  // contradizendo o resto da tela.
+  const trialLabel = PLAN_LABELS[info.trialPlan ?? ''] ?? info.trialPlan ?? info.label
+  const paidLabel = PLAN_LABELS[info.plan ?? ''] ?? info.plan ?? info.label
 
   // ── Caso 1: plano já pago (mensalidade Stripe ou PIX MercadoPago aprovado) ──
   // Mostra apenas o nome do plano, sem falar em "teste grátis".
@@ -27,7 +36,7 @@ export default function TrialBanner() {
         <div className="flex items-center gap-2 min-w-0">
           <Zap className="w-4 h-4 shrink-0" />
           <span className="truncate">
-            Plano {planLabel} ativo — recursos liberados imediatamente.
+            Plano {paidLabel} ativo — recursos liberados imediatamente.
           </span>
         </div>
         <div className="flex items-center gap-2 shrink-0">
@@ -64,10 +73,10 @@ export default function TrialBanner() {
           <Clock className="w-4 h-4 shrink-0" />
           <span className="truncate">
             {days === 0
-              ? `Seu teste grátis do Plano ${planLabel} expira hoje!`
+              ? `Seu teste grátis do Plano ${trialLabel} expira hoje!`
               : days === 1
-              ? `Último dia do seu teste grátis do Plano ${planLabel}`
-              : `Teste grátis: ${days} dias restantes no Plano ${planLabel}`}
+              ? `Último dia do seu teste grátis do Plano ${trialLabel}`
+              : `Teste grátis: ${days} dias restantes no Plano ${trialLabel}`}
           </span>
         </div>
         <div className="flex items-center gap-2 shrink-0">
