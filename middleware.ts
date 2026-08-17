@@ -127,6 +127,10 @@ export async function middleware(request: NextRequest) {
     // Só a chave pública continua aberta — é pública por definição.
     '/api/mercadopago/public-key',
     '/api/plan-prices',
+    // Identificador do build em execução. Público de propósito: só serve como
+    // verificação externa de deploy se responder sem sessão. Não expõe dado
+    // algum — é um id opaco gerado pelo `next build`.
+    '/api/version',
     '/api/team/accept',
     '/api/team/viewer-dashboard',
     // Rastreamento de afiliado: dispara para visitante ANÔNIMO (?ref=CODIGO no
