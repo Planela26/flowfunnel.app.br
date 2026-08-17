@@ -172,7 +172,24 @@ export async function POST(request: Request) {
     }
 
     try {
-      return await processPayment(request, payment)
+      const res = await processPayment(request, payment)
+
+      // Falha devolvida como RESPOSTA também libera a reserva.
+      //
+      // Só o `catch` abaixo liberava, mas processPayment sinaliza quase todos
+      // os seus problemas retornando 4xx em vez de lançar: referência externa
+      // ausente ou malformada, usuário não encontrado. Nesses casos a reserva
+      // ficava presa e o evento virava lixo permanente — toda retentativa do
+      // Mercado Pago batia no dedup, respondia "duplicado, ignorando" e o
+      // plano nunca era liberado, sem caminho de volta.
+      //
+      // Liberando, a retentativa (automática ou pelo botão de reenviar no
+      // painel) volta a poder processar o mesmo pagamento depois que a causa
+      // for corrigida.
+      if (res.status >= 400) {
+        await releaseMercadoPagoEvent(eventKey)
+      }
+      return res
     } catch (err) {
       // Release the claim so Mercado Pago retries can reprocess after a
       // transient failure (keeps billing at-least-once).
