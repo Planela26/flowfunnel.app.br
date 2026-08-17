@@ -719,7 +719,12 @@ function CheckoutInner({ planKey }: { planKey: string }) {
                   <div className="text-3xl font-black text-blue-700 leading-none">
                     {pricesLoading ? '...' : `R$${formatBRL(discountedPrice)}`}
                   </div>
-                  <div className="text-xs mt-0.5" style={{ color: '#94a3b8' }}>renovação automática mensal</div>
+                  {/* Não prometer renovação automática: o Mercado Pago não
+                      renova sozinho nesta integração, e a regra do negócio
+                      exige um novo pagamento depois que o período vence. Quem
+                      lesse "automática" não faria nada no dia 30 e seria
+                      bloqueado achando que estava em dia. */}
+                  <div className="text-xs mt-0.5" style={{ color: '#94a3b8' }}>30 dias de acesso · sem cobrança recorrente</div>
                 </div>
               </div>
             </div>
@@ -822,7 +827,9 @@ function CheckoutInner({ planKey }: { planKey: string }) {
               <div className="flex items-center justify-center gap-4 text-slate-400 text-xs pt-3 border-t border-gray-100">
                 <span className="flex items-center gap-1.5"><Shield className="w-3 h-3" /> SSL 256-bit</span>
                 <span>·</span>
-                <span className="flex items-center gap-1.5"><RefreshCw className="w-3 h-3" /> Cancele quando quiser</span>
+                {/* "Cancele quando quiser" pressupõe assinatura recorrente para
+                    cancelar — e não há: cada período é um pagamento avulso. */}
+                <span className="flex items-center gap-1.5"><RefreshCw className="w-3 h-3" /> Sem fidelidade</span>
                 <span>·</span>
                 <span className="flex items-center gap-1.5"><Zap className="w-3 h-3" /> Acesso imediato</span>
               </div>

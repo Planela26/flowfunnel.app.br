@@ -60,7 +60,7 @@ function SubscriptionContent() {
                   <span className="text-lg font-bold">Plano {planInfo.label}</span>
                 </div>
                 <div className="text-2xl font-black text-center">{planInfo.price}</div>
-                <div className="text-xs text-white/70 text-center">renovação automática mensal</div>
+                <div className="text-xs text-white/70 text-center">30 dias de acesso · sem cobrança recorrente</div>
               </div>
 
               <div className="space-y-3">
