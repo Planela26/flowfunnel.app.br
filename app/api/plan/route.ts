@@ -5,12 +5,22 @@ import { prisma } from '@/lib/prisma'
 import { getPlanFeatures, getHistoryLimitDays, getPlanLimit, isUnlimited, normalizePlan, PLAN_LABELS } from '@/lib/plans'
 import { getEffectivePlan, hasPaidAccess, isTrialActive, isTrialExpired, isPendingPayment, isPendingEmail, trialDaysLeft } from '@/lib/trial'
 import { getSaraCapabilities } from '@/lib/sara-capabilities'
+import { maybeSweepInBackground } from '@/lib/pix-reminder'
 
 export async function GET() {
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
   }
+
+  // Aproveita esta requisição para varrer os PIX não pagos, no máximo uma vez a
+  // cada 10 minutos. Esta rota foi escolhida por ser das mais chamadas — o
+  // usePlan roda no carregamento das páginas autenticadas.
+  //
+  // Não é aguardado de propósito: o resultado não interessa a quem só estava
+  // abrindo uma tela, e a resposta do plano não pode esperar por consultas ao
+  // Mercado Pago nem por envio de e-mail.
+  maybeSweepInBackground()
   const u = await prisma.user.findUnique({
     where: { id: session.user.id },
     select: {
