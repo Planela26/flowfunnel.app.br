@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
+// Nota interna é recurso exclusivo do admin (checado abaixo), e ele age sobre
+// chamados de outros tenants por definição — daí o cliente sem RLS. Com o
+// cliente de tenant, junções com `User` (que TEM política) voltam vazias.
+import { prismaAdmin as prisma } from '@/lib/prisma'
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {

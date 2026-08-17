@@ -1,8 +1,15 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
+import { prisma, prismaAdmin } from '@/lib/prisma'
 import { saraAI } from '@/lib/sara-ai-service'
+
+/**
+ * Cliente de banco conforme o papel — mesma razão de
+ * app/api/support/tickets/[id]/route.ts: `User` tem política de RLS, então
+ * qualquer junção com o dono do chamado volta vazia quando quem lê não é ele.
+ */
+const db = (isAdmin: boolean) => (isAdmin ? prismaAdmin : prisma)
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -13,7 +20,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     if (!isInternal && !isAdmin) return NextResponse.json({ error: 'Sem permissão' }, { status: 403 })
     const { id } = await params
 
-    const ticket = await prisma.supportTicket.findUnique({
+    // Só admin ou chamada interna chegam aqui (checado acima), e ambos leem
+    // chamado de outro tenant por definição.
+    const ticket = await prismaAdmin.supportTicket.findUnique({
       where: { id },
       include: {
         user:     { select: { id: true, name: true, email: true, plan: true, subscriptionStatus: true, createdAt: true } },
@@ -28,7 +37,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       ticket.messages,
     )
 
-    await prisma.supportTicket.update({
+    await prismaAdmin.supportTicket.update({
       where: { id },
       data:  {
         aiSummary: JSON.stringify(analysis),
@@ -54,7 +63,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     const isAdmin = (session.user as any).role === 'ADMIN'
     const { id } = await params
 
-    const ticket = await prisma.supportTicket.findFirst({
+    const ticket = await db(isAdmin).supportTicket.findFirst({
       where:  { id, ...(isAdmin ? {} : { userId: session.user.id }) },
       select: { aiSummary: true },
     })

@@ -1,10 +1,18 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
+import { prisma, prismaAdmin } from '@/lib/prisma'
 import { checkRateLimit } from '@/lib/security-utils'
 
 const MESSAGE_MAX_LEN = 10_000
+
+/**
+ * Cliente de banco conforme o papel de quem pede — mesma razão de
+ * app/api/support/tickets/[id]/route.ts: o cliente comum age no próprio chamado
+ * (RLS ligado), o admin age no de qualquer pessoa, e para ele o RLS trabalha
+ * contra. O portão continua sendo o `role === 'ADMIN'` verificado antes.
+ */
+const db = (isAdmin: boolean) => (isAdmin ? prismaAdmin : prisma)
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -13,12 +21,12 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     const isAdmin = (session.user as any).role === 'ADMIN'
     const { id } = await params
 
-    const ticket = await prisma.supportTicket.findFirst({
+    const ticket = await db(isAdmin).supportTicket.findFirst({
       where: { id, ...(isAdmin ? {} : { userId: session.user.id }) },
     })
     if (!ticket) return NextResponse.json({ error: 'Chamado não encontrado' }, { status: 404 })
 
-    const messages = await prisma.supportMessage.findMany({
+    const messages = await db(isAdmin).supportMessage.findMany({
       where:   { ticketId: id },
       orderBy: { createdAt: 'asc' },
       include: { attachments: true },
@@ -46,7 +54,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       return NextResponse.json({ error: 'Mensagem excede o tamanho máximo permitido' }, { status: 400 })
     }
 
-    const ticket = await prisma.supportTicket.findFirst({
+    const ticket = await db(isAdmin).supportTicket.findFirst({
       where: { id, ...(isAdmin ? {} : { userId: session.user.id }) },
     })
     if (!ticket) return NextResponse.json({ error: 'Chamado não encontrado' }, { status: 404 })
@@ -58,11 +66,14 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     if (!isAdmin && ticket.status === 'waiting_client') updateData.status = 'analyzing'
     if (isAdmin && ticket.status === 'new') updateData.status = 'analyzing'
 
-    const [message] = await prisma.$transaction([
-      prisma.supportMessage.create({
+    // A transação inteira roda no MESMO cliente: misturar os dois abriria duas
+    // conexões distintas e o `$transaction` deixaria de ser atômico.
+    const tx = db(isAdmin)
+    const [message] = await tx.$transaction([
+      tx.supportMessage.create({
         data: { ticketId: id, senderId: session.user.id, senderType, content: content.trim() },
       }),
-      prisma.supportTicket.update({ where: { id }, data: updateData }),
+      tx.supportTicket.update({ where: { id }, data: updateData }),
     ])
     return NextResponse.json({ message }, { status: 201 })
   } catch (err) {
