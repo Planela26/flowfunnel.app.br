@@ -37,6 +37,12 @@ model User {
   twoFactorActivatedAt   DateTime?
   subscriptionStatus     String?   // 'active' | 'past_due' | 'cancelled' | 'expired' | null
   gracePeriodEndsAt      DateTime? // 3 dias após primeira falha de pagamento
+  // Fim do período pago: gravado como pagamento + 30 dias quando a cobrança é
+  // aprovada. Antes disso não existia data alguma — o webhook marcava
+  // `subscriptionStatus: 'active'` e nada nunca expirava, então um PIX avulso
+  // dava plano vitalício. Também é a âncora do ciclo de cota (ver /api/usage):
+  // o período corrente começa 30 dias antes desta data.
+  planExpiresAt          DateTime?
   sessionVersion         Int       @default(0) // incrementado ao trocar email/senha → invalida todos os JWTs anteriores
   // Desativação administrativa (reversível). Difere da exclusão: os dados
   // permanecem no banco e a conta volta ao normal ao ser reativada. Quem é

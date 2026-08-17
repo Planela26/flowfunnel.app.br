@@ -33,6 +33,7 @@ export async function GET() {
       subscriptionStatus: true,
       paymentMethodAddedAt: true,
       gracePeriodEndsAt: true,
+      planExpiresAt: true,
     },
   })
 
@@ -49,6 +50,11 @@ export async function GET() {
     trialPlan: u?.trialPlan,
     plan: u?.plan,
     gracePeriodEndsAt: u?.gracePeriodEndsAt,
+    // Sem este campo a trava de vencimento fica inerte: `isPlanExpired` recebe
+    // undefined, devolve false, e o acesso é liberado como se o período nunca
+    // acabasse. Mesmo erro que já aconteceu com `trialStatus` — a guarda existe
+    // no código, mas o dado não chega até ela.
+    planExpiresAt: u?.planExpiresAt,
   })
   // Modo explorar — sem cartão E sem assinatura. Pode usar o funil, mas sem criar integrações reais.
   const exploringOnly = !paidAccess

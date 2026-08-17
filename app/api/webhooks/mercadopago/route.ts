@@ -6,6 +6,7 @@ import { sendWelcomeEmail } from '@/lib/email'
 import { claimMercadoPagoEvent, releaseMercadoPagoEvent } from '@/lib/mercadopago-dedup'
 import { sendMetaCapiEvent } from '@/lib/meta-capi'
 import { createCommissionFromSale, reverseCommission } from '@/lib/affiliate-ledger'
+import { computePlanExpiry } from '@/lib/plan-expiry'
 
 /**
  * Verify Mercado Pago webhook signature.
@@ -256,9 +257,25 @@ async function processPayment(request: Request, payment: any) {
 
     // Update user plan based on payment status
     if (payment.status === 'approved') {
+      // Período pago de 30 dias contado a partir de AGORA.
+      //
+      // Antes, a aprovação marcava a assinatura como ativa e pronto — sem data
+      // de fim. Como nada no sistema marcava 'expired' e `hasPaidAccess` libera
+      // para status 'active', um PIX avulso virava acesso vitalício. Cada
+      // cobrança aqui é única (o Mercado Pago não renova sozinho nesta
+      // integração), então o fim do período precisa ser gravado na aprovação.
+      //
+      // Conta a partir do pagamento, não do fim do período anterior, porque a
+      // renovação antecipada é recusada no checkout: quando um pagamento chega,
+      // o período anterior já acabou. Ver lib/plan-expiry.ts.
       const user = await prisma.user.update({
         where: { id: userId },
-        data: { plan: planKey, subscriptionStatus: 'active', gracePeriodEndsAt: null },
+        data: {
+          plan: planKey,
+          subscriptionStatus: 'active',
+          gracePeriodEndsAt: null,
+          planExpiresAt: computePlanExpiry(),
+        },
       })
 
       // ── Fase 4: Comissão de afiliado — integração de Fase 3 (atribuição segura) com Fase 2 (engine)
@@ -391,7 +408,10 @@ async function processPayment(request: Request, payment: any) {
       if (current?.plan === planKey) {
         await prisma.user.update({
           where: { id: userId },
-          data: { plan: 'FREE', subscriptionStatus: 'cancelled', gracePeriodEndsAt: null },
+          // Limpa o vencimento junto: sem isso ficaria uma data de fim órfã de
+          // um período que foi estornado, e a tela mostraria "ativo até X" para
+          // quem já voltou ao FREE.
+          data: { plan: 'FREE', subscriptionStatus: 'cancelled', gracePeriodEndsAt: null, planExpiresAt: null },
         })
 
         // Fase 4 — Reversão de comissão em refund/cancel
@@ -448,7 +468,7 @@ async function processPayment(request: Request, payment: any) {
       if (current?.plan === planKey) {
         await prisma.user.update({
           where: { id: userId },
-          data: { plan: 'FREE', subscriptionStatus: 'disputed', gracePeriodEndsAt: null },
+          data: { plan: 'FREE', subscriptionStatus: 'disputed', gracePeriodEndsAt: null, planExpiresAt: null },
         })
 
         // Reversão de comissão em chargeback

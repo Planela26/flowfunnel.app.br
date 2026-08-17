@@ -38,6 +38,8 @@ export async function assertCanCreateIntegration(
       trialEndsAt: true,
       trialPlan: true,
       gracePeriodEndsAt: true,
+      // E se o período pago de 30 dias já venceu.
+      planExpiresAt: true,
     },
   })
   if (!u) {

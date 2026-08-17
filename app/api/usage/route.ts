@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { sendUsageLimitWarningEmail } from '@/lib/email'
 import { getEffectivePlan } from '@/lib/trial'
+import { currentCycleStart, currentCycleEnd } from '@/lib/plan-expiry'
 
 const PLAN_LIMITS: Record<string, number> = {
   FREE:  0,
@@ -21,22 +22,27 @@ export async function GET() {
 
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { plan: true, email: true, name: true, trialEndsAt: true, trialPlan: true, trialStatus: true },
+      select: { plan: true, email: true, name: true, trialEndsAt: true, trialPlan: true, trialStatus: true, planExpiresAt: true },
     })
 
     const plan = getEffectivePlan(user ?? { plan: 'FREE' })
     const limit = PLAN_LIMITS[plan] ?? 0
 
-    // Count WhatsApp message webhooks this month
+    // A cota acompanha o CICLO PAGO, não o mês do calendário.
+    //
+    // Zerando no dia 1º, quem assinava dia 28 ganhava cota nova três dias
+    // depois — dois períodos de uso por um pagamento. Ancorando no vencimento,
+    // o período contado é exatamente o período cobrado. Quem não tem período
+    // pago (gratuito ou em teste) continua no mês corrente. Ver lib/plan-expiry.ts.
     const now = new Date()
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+    const inicioDoCiclo = currentCycleStart(user, now)
 
     const used = await prisma.webhookLog.count({
       where: {
         userId: session.user.id,
         platform: 'WHATSAPP',
         event: 'message',
-        createdAt: { gte: startOfMonth },
+        createdAt: { gte: inicioDoCiclo },
       },
     })
 
@@ -54,7 +60,9 @@ export async function GET() {
         where: {
           userId: session.user.id,
           type: 'USAGE_WARNING',
-          createdAt: { gte: startOfMonth },
+          // Mesma janela da cota: um aviso por ciclo pago. Usando o mês, quem
+          // virasse o mês no meio do período receberia o aviso duas vezes.
+          createdAt: { gte: inicioDoCiclo },
         },
       }).then(existing => {
         if (!existing) {
@@ -81,7 +89,7 @@ export async function GET() {
         remaining,
         isNearLimit,
         isOverLimit,
-        resetDate: new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString(),
+        resetDate: currentCycleEnd(user, now).toISOString(),
       },
       {
         headers: {

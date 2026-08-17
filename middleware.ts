@@ -236,6 +236,44 @@ export async function middleware(request: NextRequest) {
     }
   }
 
+  // ── Plano pago vencido ────────────────────────────────────────────────────
+  // Os 30 dias acabaram sem renovação. Diferente do teste grátis expirado
+  // (tratado abaixo em modo somente leitura), aqui a navegação é interrompida:
+  // é alguém que pagou, o período acabou, e a ação esperada é renovar.
+  //
+  // A checagem lê `planExpiresAt` do token, que o callback jwt relê do banco a
+  // cada renovação — então um pagamento aprovado derruba o bloqueio sozinho,
+  // sem exigir novo login.
+  //
+  // `/plano-vencido` e `/checkout` ficam de fora, senão a pessoa não teria como
+  // pagar; `/billing` também, para conseguir ver a assinatura. As APIs
+  // respondem 402 (pagamento necessário) em vez de redirecionar.
+  const expiraEm = token.planExpiresAt as string | number | null | undefined;
+  if (expiraEm && new Date(expiraEm).getTime() <= Date.now()) {
+    const liberado =
+      pathname === '/plano-vencido' ||
+      pathname === '/billing' ||
+      pathname.startsWith('/checkout') ||
+      pathname.startsWith('/api/auth/') ||
+      pathname.startsWith('/api/mercadopago/') ||
+      pathname.startsWith('/api/stripe/') ||
+      pathname === '/api/plan';
+
+    if (!liberado) {
+      if (pathname.startsWith('/api/')) {
+        return withCsp(
+          NextResponse.json({ error: 'plan_expired' }, { status: 402 })
+        );
+      }
+      const dest = new URL('/plano-vencido', request.url);
+      dest.searchParams.delete('_rsc');
+      const res = NextResponse.redirect(dest);
+      res.headers.set('Cache-Control', 'no-store');
+      return withCsp(res);
+    }
+    return next();
+  }
+
   // ── Modo somente leitura (sem bloqueio total) ────────────────────────────
   // Quando o plano vence (teste grátis expirado ou assinatura inativa), o
   // usuário NÃO é mais bloqueado nem redirecionado: continua vendo e navegando

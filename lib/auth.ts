@@ -249,12 +249,15 @@ export const authOptions: NextAuthOptions = {
         // Busca emailVerified do banco no momento do login
         const dbUser = await prisma.user.findUnique({
           where: { id: user.id },
-          select: { emailVerified: true, twoFactorEnabled: true, subscriptionStatus: true, gracePeriodEndsAt: true, trialEndsAt: true, trialPlan: true, trialStatus: true, sessionVersion: true, deactivatedAt: true, deactivatedReason: true },
+          select: { emailVerified: true, twoFactorEnabled: true, subscriptionStatus: true, gracePeriodEndsAt: true, trialEndsAt: true, trialPlan: true, trialStatus: true, sessionVersion: true, deactivatedAt: true, deactivatedReason: true, planExpiresAt: true },
         })
         token.emailVerified = dbUser?.emailVerified ?? null
         token.twoFactorEnabled = dbUser?.twoFactorEnabled ?? false
         token.subscriptionStatus = dbUser?.subscriptionStatus ?? null
         token.gracePeriodEndsAt = dbUser?.gracePeriodEndsAt ?? null
+        // Fim do período pago — o middleware bloqueia a navegação a partir daqui
+        // sem precisar consultar o banco a cada requisição.
+        token.planExpiresAt = dbUser?.planExpiresAt ?? null
         token.sessionVersion = dbUser?.sessionVersion ?? 0
         // Marca de conta desativada: o middleware lê daqui para desviar a
         // navegação inteira para /conta-desativada. O motivo viaja junto para a
@@ -277,6 +280,7 @@ export const authOptions: NextAuthOptions = {
             subscriptionStatus: true, gracePeriodEndsAt: true,
             trialEndsAt: true, trialPlan: true, trialStatus: true,
             deactivatedAt: true, deactivatedReason: true,
+            planExpiresAt: true,
           },
         })
 
@@ -302,6 +306,9 @@ export const authOptions: NextAuthOptions = {
         token.twoFactorEnabled = dbUser.twoFactorEnabled
         token.subscriptionStatus = dbUser.subscriptionStatus
         token.gracePeriodEndsAt = dbUser.gracePeriodEndsAt
+        // Relido a cada renovação: um pagamento aprovado estende o período e o
+        // bloqueio precisa cair sozinho, sem exigir novo login.
+        token.planExpiresAt = dbUser.planExpiresAt
         token.sessionVersion = dbUser.sessionVersion
         token.trialExpired = isTrialExpiredForToken(dbUser)
       }

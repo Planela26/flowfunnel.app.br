@@ -8,6 +8,7 @@ import { createPayment, getPlanPrice, getPlanName } from '@/lib/mercadopago'
 import { Plan } from '@/lib/plans'
 import { randomUUID } from 'crypto'
 import { getAttributionAffiliateId } from '@/lib/affiliate-attribution'
+import { canStartNewPayment } from '@/lib/plan-expiry'
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -66,6 +67,25 @@ export async function POST(request: Request) {
     const basePrice = getPlanPrice(planName)
     if (basePrice === 0) {
       return NextResponse.json({ error: 'Plano não disponível para pagamento' }, { status: 400 })
+    }
+
+    // Renovação só quando o período atual vencer.
+    //
+    // Cada cobrança no Mercado Pago é avulsa — não há renovação automática
+    // nesta integração. Sem esta trava, alguém que pagasse de novo por engano
+    // dentro do período teria o dinheiro debitado sem comprar nada: o novo
+    // pagamento apenas reiniciaria a contagem de 30 dias, jogando fora os dias
+    // que restavam. A checagem é no servidor porque a tela pode ser contornada.
+    const assinante = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { planExpiresAt: true },
+    })
+    const podePagar = canStartNewPayment(assinante)
+    if (!podePagar.allowed) {
+      return NextResponse.json(
+        { error: 'plan_still_active', message: podePagar.reason },
+        { status: 409 },
+      )
     }
 
     // Cookie de atribuição verificado (Fase 3, §18/§24.4) — nunca lemos

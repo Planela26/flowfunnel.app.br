@@ -10,6 +10,7 @@
 
 import { isSubscriptionBlocked } from './subscription'
 import { isTrialExpiredForToken } from './auth-trial'
+import { isPlanExpired } from './plan-expiry'
 import { prismaAdmin } from './prisma'
 
 export type AccountStatusFields = {
@@ -19,6 +20,7 @@ export type AccountStatusFields = {
   trialEndsAt?: Date | null
   trialPlan?: string | null
   plan?: string | null
+  planExpiresAt?: Date | string | null
 }
 
 /**
@@ -28,6 +30,10 @@ export type AccountStatusFields = {
  */
 export function isAccountExpired(user: AccountStatusFields | null): boolean {
   if (!user) return false
+  // Período pago de 30 dias terminado sem renovação (ver lib/plan-expiry.ts).
+  // Entra aqui para que a ingestão de webhooks/tracker pare junto — sem isso,
+  // uma conta vencida continuaria consumindo cota e recebendo dados de graça.
+  if (isPlanExpired(user)) return true
   if (isSubscriptionBlocked(user.subscriptionStatus, user.gracePeriodEndsAt)) return true
   if (isTrialExpiredForToken(user)) return true
   return false
@@ -54,6 +60,7 @@ export async function isIngestionBlockedForUser(
         trialEndsAt: true,
         trialPlan: true,
         plan: true,
+        planExpiresAt: true,
       },
     })
     return isAccountExpired(user)

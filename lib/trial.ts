@@ -1,4 +1,5 @@
 import { normalizePlan, type Plan } from './plans'
+import { isPlanExpired } from './plan-expiry'
 
 /**
  * Duração do teste grátis, em dias. Fonte única — o texto das telas e dos
@@ -96,7 +97,16 @@ export function hasPaidAccess(user: {
   trialPlan?: string | null
   plan?: string | null
   gracePeriodEndsAt?: Date | string | null
+  planExpiresAt?: Date | string | null
 }): boolean {
+  // Período pago vencido corta o acesso ANTES de qualquer outra checagem.
+  //
+  // Sem isto, a linha abaixo liberava para sempre: o webhook grava
+  // `subscriptionStatus: 'active'` na aprovação e nada nunca reverte esse
+  // status — nenhum lugar do sistema marca 'expired'. Um PIX avulso virava
+  // acesso vitalício. Ver lib/plan-expiry.ts.
+  if (isPlanExpired(user)) return false
+
   if (user.subscriptionStatus === 'active') return true
 
   // `paymentMethodAddedAt` é gravado uma vez e NUNCA é limpo. Sozinho, ele

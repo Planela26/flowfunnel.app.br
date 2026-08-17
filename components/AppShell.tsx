@@ -52,6 +52,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     // middleware devolve para cá, e o widget da Sara bateria numa API que agora
     // responde 403. Mostrar a navegação sugeriria um acesso que não existe.
     pathname === '/conta-desativada' ||
+    // Plano vencido também não mostra a casca: o menu levaria só a páginas que
+    // o middleware devolve para cá.
+    pathname === '/plano-vencido' ||
     pathname === '/forgot-password' ||
     pathname === '/reset-password' ||
     pathname === '/privacidade' ||
