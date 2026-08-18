@@ -8,7 +8,7 @@ import { useNavigation } from './NavigationContext'
 import {
   Settings, LayoutDashboard, Phone,
   Megaphone, Webhook, BarChart2, Users2, UserCog, X,
-  Users, FileText, Target, CreditCard, Gift, Route, Brain, LifeBuoy, Sparkles, Link2,
+  Users, FileText, Target, CreditCard, Gift, Route, Brain, LifeBuoy, Sparkles, Link2, FlaskConical,
 } from 'lucide-react'
 import PlanBadge from './PlanBadge'
 import UserMenu from './UserMenu'
@@ -74,6 +74,7 @@ const navGroups: NavGroup[] = [
       { href: '/admin/users', label: 'Usuários', icon: UserCog, adminOnly: true },
       { href: '/admin/suporte',  label: 'Central de Suporte', icon: LifeBuoy,  adminOnly: true },
       { href: '/admin/sara-ai', label: 'Sara.AI & KB',       icon: Sparkles,  adminOnly: true },
+      { href: '/laboratorio', label: 'Laboratório da Sara.ai', icon: FlaskConical, adminOnly: true },
     ],
   },
 ]

@@ -6,7 +6,7 @@ import { useNavigation } from './NavigationContext'
 import {
   Settings, LayoutDashboard, Phone, Megaphone, Webhook,
   BarChart2, Users2, UserCog, Users, FileText, CreditCard,
-  Target, Gift, Route, Brain, SlidersHorizontal, LifeBuoy, Sparkles, Link2,
+  Target, Gift, Route, Brain, SlidersHorizontal, LifeBuoy, Sparkles, Link2, FlaskConical,
 } from 'lucide-react'
 import UserMenu from './UserMenu'
 import PlanBadge from './PlanBadge'
@@ -73,6 +73,12 @@ const navGroups: NavGroup[] = [
       { href: '/admin/users', label: 'Usuários', icon: UserCog, adminOnly: true },
       { href: '/admin/suporte',  label: 'Central de Suporte', icon: LifeBuoy,  adminOnly: true },
       { href: '/admin/sara-ai', label: 'Sara.AI & KB',       icon: Sparkles,  adminOnly: true },
+      // Item visível para qualquer ADMIN, mas a autorização REAL é no
+      // backend: as rotas /api/owner/* conferem role E identidade da conta
+      // (ver lib/owner-funnel.ts). Um segundo admin que clique cai numa tela
+      // de "Acesso restrito" sem nenhum dado — esconder o link é conveniência
+      // de UX, não o mecanismo de proteção.
+      { href: '/laboratorio', label: 'Laboratório da Sara.ai', icon: FlaskConical, adminOnly: true },
     ],
   },
 ]
