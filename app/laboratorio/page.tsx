@@ -4,9 +4,10 @@ import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import {
-  FlaskConical, TrendingDown, DollarSign, Users, ArrowRight,
-  X, Loader2, ShieldAlert, RefreshCw, ExternalLink,
+  FlaskConical, TrendingDown, TrendingUp, DollarSign, Users, ArrowRight,
+  X, Loader2, ShieldAlert, RefreshCw, Sparkles, Minus, Target,
 } from 'lucide-react'
+import { calcularCusto, projetar, type MetricasDeCusto, type Variacao } from '@/lib/owner-metrics'
 
 type Passo = { chave: string; rotulo: string; total: number; taxaDoAnterior: string | null }
 type FunilResp = {
@@ -19,6 +20,17 @@ type FunilResp = {
   origens: Array<{ nome: string; visitas: number }>
   campanhas: Array<{ nome: string; vendas: number; receita: number }>
   anuncios: Array<{ adId: string; vendas: number; receita: number }>
+  comparacao: Record<string, Variacao> & { diasComparados: number }
+  gargalo: { de: string; para: string; taxa: number; taxaFormatada: string; perdidos: number } | null
+}
+
+type Analise = {
+  resumo: string
+  gargalo: string
+  dicas: string[]
+  campanha: string
+  estimativa: string
+  semIA?: boolean
 }
 
 type Jornada = {
@@ -65,16 +77,27 @@ export default function LaboratorioPage() {
   const [negado, setNegado] = useState(false)
   const [soComprou, setSoComprou] = useState(false)
 
+  // Custo vem da integração Meta já existente — reusar a rota evita duplicar
+  // a chamada à API deles e herda cache, gate de plano e o caso "não conectado".
+  const [meta, setMeta] = useState<any>(null)
+  const [analise, setAnalise] = useState<Analise | null>(null)
+  const [analisando, setAnalisando] = useState(false)
+  const [erroAnalise, setErroAnalise] = useState('')
+  const [investimentoDia, setInvestimentoDia] = useState(50)
+
   const carregar = useCallback(async () => {
     setLoading(true)
     try {
-      const [rf, rj] = await Promise.all([
+      const [rf, rj, rm] = await Promise.all([
         fetch(`/api/owner/funnel?days=${dias}`),
         fetch(`/api/owner/journeys${soComprou ? '?compras=1' : ''}`),
+        fetch('/api/facebook/metrics'),
       ])
       if (rf.status === 403 || rj.status === 403) { setNegado(true); setLoading(false); return }
       setFunil(rf.ok ? await rf.json() : null)
       setJornadas(rj.ok ? (await rj.json()).jornadas ?? [] : [])
+      setMeta(rm.ok ? await rm.json() : null)
+      setAnalise(null) // período mudou: a leitura anterior não vale mais
     } catch { /* mantém tela anterior em falha de rede */ }
     setLoading(false)
   }, [dias, soComprou])
@@ -114,12 +137,51 @@ export default function LaboratorioPage() {
     )
   }
 
-  const maiorGargalo = funil?.passos.reduce((pior, p, i) => {
-    if (i === 0 || !p.taxaDoAnterior || p.taxaDoAnterior === '—') return pior
-    const t = parseFloat(p.taxaDoAnterior)
-    if (!pior || t < pior.taxa) return { rotulo: `${funil.passos[i - 1].rotulo} → ${p.rotulo}`, taxa: t }
-    return pior
-  }, null as { rotulo: string; taxa: number } | null)
+  // Investimento real vindo da Meta. `connected: false` → null, e a partir daí
+  // CAC/ROAS/ROI viram "—" em vez de números que fingem certeza.
+  const investimento: number | null =
+    meta?.connected && typeof meta?.raw?.spend === 'number' ? meta.raw.spend : null
+
+  const passoPorChave = (c: string) => funil?.passos.find(p => p.chave === c)?.total ?? 0
+  const vendas = passoPorChave('compras')
+
+  const custo: MetricasDeCusto | null = funil
+    ? calcularCusto({
+        investimento,
+        receita: funil.receita,
+        vendas,
+        checkouts: passoPorChave('checkout'),
+      })
+    : null
+
+  const projecao = funil
+    ? projetar({
+        investimentoNoPeriodo: investimento,
+        receitaNoPeriodo: funil.receita,
+        vendasNoPeriodo: vendas,
+        diasDoPeriodo: funil.periodoDias,
+        investimentoDiarioPretendido: investimentoDia,
+        diasProjetados: 30,
+      })
+    : null
+
+  const pedirAnalise = async () => {
+    if (!funil) return
+    setAnalisando(true); setErroAnalise('')
+    try {
+      const r = await fetch('/api/owner/insight', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...funil, custo }),
+      })
+      const b = await r.json()
+      if (!r.ok) throw new Error(b.error || 'Não foi possível gerar a análise.')
+      setAnalise(b)
+    } catch (e: any) {
+      setErroAnalise(e.message)
+    }
+    setAnalisando(false)
+  }
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
@@ -170,13 +232,64 @@ export default function LaboratorioPage() {
             <Metrica icone={<DollarSign className="h-3.5 w-3.5" />} rotulo="Ticket médio" valor={funil.ticketMedioFormatado} />
           </div>
 
-          {maiorGargalo && (
+          {funil.gargalo && (
             <div className="mb-6 flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-900 dark:bg-amber-900/20">
               <TrendingDown className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
               <p className="text-xs leading-relaxed text-amber-800 dark:text-amber-200">
-                <strong>Maior gargalo:</strong> entre <strong>{maiorGargalo.rotulo}</strong>, com
-                apenas {maiorGargalo.taxa.toFixed(1)}% de passagem.
+                <strong>Maior gargalo:</strong> entre <strong>{funil.gargalo.de} → {funil.gargalo.para}</strong>,
+                com apenas {funil.gargalo.taxaFormatada} de passagem
+                — {funil.gargalo.perdidos.toLocaleString('pt-BR')} pessoas se perdem aqui.
               </p>
+            </div>
+          )}
+
+          {/* Custo e retorno — depende da conta Meta conectada */}
+          {custo && (
+            <div className="mb-6 rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
+              <div className="mb-3 flex items-center justify-between">
+                <p className="text-xs font-bold uppercase tracking-wider text-gray-500">Custo e retorno</p>
+                {investimento === null && (
+                  <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-500 dark:bg-gray-800">
+                    conta de anúncios não conectada
+                  </span>
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+                <Metrica rotulo="Investido" valor={custo.investimentoFormatado} icone={<DollarSign className="h-3.5 w-3.5" />} />
+                <Metrica rotulo="CAC" valor={custo.cac} icone={<Target className="h-3.5 w-3.5" />} />
+                <Metrica rotulo="CPA" valor={custo.cpa} icone={<Target className="h-3.5 w-3.5" />} />
+                <Metrica rotulo="ROAS" valor={custo.roas} icone={<TrendingUp className="h-3.5 w-3.5" />} destaque={custo.roas !== '—' && parseFloat(custo.roas) >= 1} />
+                <Metrica rotulo="ROI" valor={custo.roi} icone={<TrendingUp className="h-3.5 w-3.5" />} />
+                <Metrica rotulo="Lucro" valor={custo.lucro} icone={<DollarSign className="h-3.5 w-3.5" />} />
+              </div>
+              {investimento === null && (
+                <p className="mt-3 text-[11px] leading-relaxed text-gray-400">
+                  Estes números exigem o custo do anúncio, que só a Meta tem. Conecte a conta em
+                  Integrações para que CAC, ROAS e ROI passem a ser calculados — sem isso, eles
+                  ficam em branco em vez de exibir um valor que não corresponde à realidade.
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Comparação com o período anterior */}
+          {funil.comparacao && (
+            <div className="mb-6 rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
+              <p className="mb-3 text-xs font-bold uppercase tracking-wider text-gray-500">
+                Últimos {funil.periodoDias} dias vs. {funil.periodoDias} anteriores
+              </p>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+                {([
+                  ['Visitas', funil.comparacao.visitas],
+                  ['CTA', funil.comparacao.cta],
+                  ['Checkout', funil.comparacao.checkout],
+                  ['Vendas', funil.comparacao.vendas],
+                  ['Receita', funil.comparacao.receita],
+                  ['Ticket médio', funil.comparacao.ticketMedio],
+                ] as Array<[string, Variacao]>).map(([rotulo, v]) => (
+                  <Comparativo key={rotulo} rotulo={rotulo} v={v} />
+                ))}
+              </div>
             </div>
           )}
 
@@ -216,6 +329,100 @@ export default function LaboratorioPage() {
             <Tabela titulo="Origem" linhas={funil.origens.map(o => [o.nome, o.visitas.toLocaleString('pt-BR')])} vazio="Sem visitas no período" />
             <Tabela titulo="Campanha" linhas={funil.campanhas.map(c => [c.nome, c.receita.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })])} vazio="Sem vendas atribuídas" />
             <Tabela titulo="Anúncio" linhas={funil.anuncios.map(a => [a.adId, a.receita.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })])} vazio="Sem vendas atribuídas" />
+          </div>
+
+          {/* Projeção */}
+          {projecao && (
+            <div className="mb-6 rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
+              <p className="mb-3 text-xs font-bold uppercase tracking-wider text-gray-500">Projeção para 30 dias</p>
+              {!projecao.possivel ? (
+                <p className="text-xs text-gray-400">{projecao.motivo}</p>
+              ) : (
+                <>
+                  <div className="flex flex-wrap items-end gap-4">
+                    <label className="text-xs text-gray-500">
+                      Investimento diário
+                      <div className="mt-1 flex items-center gap-1">
+                        <span className="text-sm text-gray-400">R$</span>
+                        <input
+                          type="number"
+                          min={1}
+                          value={investimentoDia}
+                          onChange={e => setInvestimentoDia(Math.max(1, Number(e.target.value) || 1))}
+                          className="w-20 rounded-lg border border-gray-300 bg-white px-2 py-1 text-sm font-semibold text-gray-900 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                        />
+                      </div>
+                    </label>
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wide text-gray-400">Vendas estimadas</p>
+                      <p className="text-lg font-bold text-gray-900 dark:text-white">{projecao.vendasProjetadas}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wide text-gray-400">Receita estimada</p>
+                      <p className="text-lg font-bold text-green-600 dark:text-green-400">{projecao.receitaProjetadaFormatada}</p>
+                    </div>
+                    <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-500 dark:bg-gray-800">
+                      confiança {projecao.confianca}
+                    </span>
+                  </div>
+                  <p className="mt-3 text-[11px] leading-relaxed text-gray-400">
+                    Projeção estatística, não garantia. Extrapola linearmente a taxa observada no
+                    período e não considera sazonalidade, saturação de público nem desgaste de
+                    criativo — três coisas que costumam derrubar o resultado real abaixo da conta.
+                  </p>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* Análise da Sara */}
+          <div className="mb-6 rounded-2xl border border-purple-200 bg-white p-5 dark:border-purple-900/50 dark:bg-gray-900">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-purple-500" />
+                <p className="text-xs font-bold uppercase tracking-wider text-gray-500">Análise da Sara.ai</p>
+              </div>
+              <button
+                onClick={pedirAnalise}
+                disabled={analisando}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-purple-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-purple-700 disabled:opacity-50"
+              >
+                {analisando ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+                {analise ? 'Analisar de novo' : 'Analisar funil'}
+              </button>
+            </div>
+
+            {erroAnalise && <p className="text-xs text-red-500">{erroAnalise}</p>}
+
+            {!analise && !analisando && !erroAnalise && (
+              <p className="text-xs text-gray-400">
+                A Sara lê os degraus, as taxas, a comparação com o período anterior e a receita por
+                criativo, e aponta onde o dinheiro está sendo perdido.
+              </p>
+            )}
+
+            {analise && (
+              <div className="space-y-3">
+                <Bloco titulo="Leitura geral" texto={analise.resumo} />
+                <Bloco titulo="Gargalo" texto={analise.gargalo} destaque />
+                {analise.dicas?.length > 0 && (
+                  <div>
+                    <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-gray-400">Ações</p>
+                    <div className="space-y-1.5">
+                      {analise.dicas.map((d, i) => (
+                        <div key={i} className="flex gap-2 rounded-lg bg-gray-50 px-3 py-2 dark:bg-gray-800">
+                          <span className="text-[10px] font-bold text-purple-500">{i + 1}</span>
+                          <span className="text-xs text-gray-700 dark:text-gray-200">{d}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <Bloco titulo="Campanha e criativo" texto={analise.campanha} />
+                <Bloco titulo="Se o gargalo for corrigido" texto={analise.estimativa} />
+                <p className="text-[10px] text-gray-400">Sara.ai · resultados podem variar</p>
+              </div>
+            )}
           </div>
 
           {/* Jornadas individuais */}
@@ -311,6 +518,46 @@ export default function LaboratorioPage() {
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+/**
+ * Indicador comparado entre períodos.
+ *
+ * A cor vem de `melhorou`, não da direção da seta: CAC subindo é vermelho,
+ * receita subindo é verde. Pintar pela direção faria um custo em alta parecer
+ * boa notícia.
+ */
+function Comparativo({ rotulo, v }: { rotulo: string; v: Variacao }) {
+  const Icone = v.direcao === 'sobe' ? TrendingUp : v.direcao === 'desce' ? TrendingDown : Minus
+  const cor =
+    v.melhorou === null ? 'text-gray-400'
+    : v.melhorou ? 'text-green-600 dark:text-green-400'
+    : 'text-red-500 dark:text-red-400'
+
+  return (
+    <div className="rounded-xl border border-gray-200 p-3 dark:border-gray-800">
+      <p className="text-[10px] uppercase tracking-wide text-gray-400">{rotulo}</p>
+      <p className="mt-0.5 text-sm font-bold text-gray-900 dark:text-white">
+        {rotulo === 'Receita' || rotulo === 'Ticket médio'
+          ? v.atual.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+          : v.atual.toLocaleString('pt-BR')}
+      </p>
+      <p className={`mt-0.5 flex items-center gap-1 text-[11px] font-semibold ${cor}`}>
+        <Icone className="h-3 w-3" />
+        {v.variacao}
+      </p>
+    </div>
+  )
+}
+
+function Bloco({ titulo, texto, destaque }: { titulo: string; texto: string; destaque?: boolean }) {
+  if (!texto) return null
+  return (
+    <div className={`rounded-lg px-3 py-2.5 ${destaque ? 'border border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-900/20' : 'bg-gray-50 dark:bg-gray-800'}`}>
+      <p className="mb-0.5 text-[10px] font-bold uppercase tracking-wider text-gray-400">{titulo}</p>
+      <p className={`text-xs leading-relaxed ${destaque ? 'text-amber-800 dark:text-amber-200' : 'text-gray-700 dark:text-gray-200'}`}>{texto}</p>
     </div>
   )
 }

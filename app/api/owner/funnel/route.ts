@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prismaAdmin as prisma } from '@/lib/prisma'
 import { canAccessOwnerFunnel, getOwnerUserId, DEGRAUS } from '@/lib/owner-funnel'
+import { compararIndicador, encontrarGargalo } from '@/lib/owner-metrics'
 
 /**
  * Funil em degraus do laboratório — anúncio → LP → CTA → checkout → pagamento
@@ -24,7 +25,13 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url)
   const dias = Math.min(Math.max(parseInt(searchParams.get('days') || '30', 10) || 30, 1), 365)
-  const desde = new Date(Date.now() - dias * 24 * 60 * 60 * 1000)
+  const MS_DIA = 24 * 60 * 60 * 1000
+  const desde = new Date(Date.now() - dias * MS_DIA)
+  // Período anterior de MESMA duração, imediatamente antes — é a comparação
+  // que responde "melhorou ou piorou?". Comparar contra um intervalo de
+  // tamanho diferente inflaria ou desinflaria tudo por construção.
+  const desdeAnterior = new Date(Date.now() - dias * 2 * MS_DIA)
+  const ateAnterior = desde
 
   const [eventosPorNome, conversoes, porOrigem, porCampanha, porAd] = await Promise.all([
     prisma.trackedEvent.groupBy({
@@ -54,6 +61,20 @@ export async function GET(request: Request) {
     prisma.saleAttribution.findMany({
       where: { userId: ownerId, createdAt: { gte: desde } },
       select: { metadata: true, value: true },
+    }),
+  ])
+
+  // Período anterior, para a comparação.
+  const [eventosAnteriores, conversoesAnteriores] = await Promise.all([
+    prisma.trackedEvent.groupBy({
+      by: ['eventName'],
+      where: { userId: ownerId, createdAt: { gte: desdeAnterior, lt: ateAnterior } },
+      _count: { _all: true },
+    }),
+    prisma.saleAttribution.aggregate({
+      where: { userId: ownerId, createdAt: { gte: desdeAnterior, lt: ateAnterior } },
+      _count: { _all: true },
+      _sum: { value: true },
     }),
   ])
 
@@ -123,9 +144,40 @@ export async function GET(request: Request) {
     .map(([adId, v]) => ({ adId, ...v }))
     .sort((a, b) => b.receita - a.receita)
 
+  // ── Comparação com o período anterior ─────────────────────────────────────
+  const contagemAnterior: Record<string, number> = {}
+  for (const e of eventosAnteriores) contagemAnterior[e.eventName] = e._count._all
+
+  const somaDegrau = (fonte: Record<string, number>, chave: string) => {
+    const d = DEGRAUS.find(x => x.chave === chave)
+    return d ? d.eventos.reduce((acc, ev) => acc + (fonte[ev] || 0), 0) : 0
+  }
+
+  const receitaAnterior = conversoesAnteriores._sum.value || 0
+  const vendasAnteriores = conversoesAnteriores._count._all
+
+  const comparacao = {
+    diasComparados: dias,
+    visitas: compararIndicador(somaDegrau(contagem, 'visitas'), somaDegrau(contagemAnterior, 'visitas')),
+    cta: compararIndicador(somaDegrau(contagem, 'cta'), somaDegrau(contagemAnterior, 'cta')),
+    checkout: compararIndicador(somaDegrau(contagem, 'checkout'), somaDegrau(contagemAnterior, 'checkout')),
+    vendas: compararIndicador(conversoes._count._all, vendasAnteriores),
+    receita: compararIndicador(receita, receitaAnterior),
+    ticketMedio: compararIndicador(
+      ticketMedio,
+      vendasAnteriores > 0 ? receitaAnterior / vendasAnteriores : 0,
+    ),
+  }
+
+  const gargalo = encontrarGargalo(passos)
+
   return NextResponse.json({
     periodoDias: dias,
     passos: taxas,
+    comparacao,
+    gargalo: gargalo
+      ? { ...gargalo, taxaFormatada: `${gargalo.taxa.toFixed(1)}%` }
+      : null,
     receita,
     receitaFormatada: receita.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
     ticketMedio,
