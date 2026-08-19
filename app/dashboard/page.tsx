@@ -78,7 +78,17 @@ export default function Dashboard() {
   const estimatedWhatsAppConversations = estimateWhatsAppConversations(facebookData?.cliques || 0)
 
   // Buscar dados reais do WhatsApp — filtra pelo workspace ativo
-  const fetchWhatsAppMetrics = useCallback(async () => {
+  /**
+   * `trocouDeWorkspace` separa dois tipos de falha que não podem ser tratados
+   * igual.
+   *
+   * Numa atualização de rotina os parâmetros são os mesmos, então o último dado
+   * bom continua válido e apagá-lo só faria o card piscar. Mas quando o
+   * workspace muda, o dado em tela é de OUTRO workspace — mantê-lo mostraria
+   * números de um cliente sob o nome de outro, que é pior do que não mostrar
+   * nada.
+   */
+  const fetchWhatsAppMetrics = useCallback(async (trocouDeWorkspace = false) => {
     try {
       setLoadingWhatsApp(true)
       let url = '/api/whatsapp/metrics'
@@ -87,22 +97,23 @@ export default function Dashboard() {
       }
       const response = await fetch(url)
       if (response.ok) {
-        const data = await response.json()
-        setWhatsappData(data)
-      } else {
-        setWhatsappData(null)
+        setWhatsappData(await response.json())
+        return
       }
+      if (trocouDeWorkspace) setWhatsappData(null)
     } catch (error) {
       console.error('Erro ao buscar métricas WhatsApp:', error)
-      setWhatsappData(null)
+      if (trocouDeWorkspace) setWhatsappData(null)
     } finally {
       setLoadingWhatsApp(false)
     }
   }, [activeWorkspace?.whatsappIntegrationId])
 
   useEffect(() => {
-    fetchWhatsAppMetrics();
-    const interval = setInterval(fetchWhatsAppMetrics, 300000);
+    // O efeito só roda de novo quando o workspace muda, então esta primeira
+    // chamada é sempre a de parâmetros novos.
+    fetchWhatsAppMetrics(true);
+    const interval = setInterval(() => fetchWhatsAppMetrics(false), 300000);
     return () => clearInterval(interval);
   }, [fetchWhatsAppMetrics]);
 
@@ -207,15 +218,10 @@ export default function Dashboard() {
       try {
         setLoadingHotmart(true)
         const response = await fetch('/api/hotmart/metrics')
-        if (response.ok) {
-          const data = await response.json()
-          setHotmartData(data)
-        } else {
-          setHotmartData(null)
-        }
+        if (!response.ok) return // preserva o último dado bom — ver Landing Page
+        setHotmartData(await response.json())
       } catch (error) {
         console.error('Erro ao buscar métricas Hotmart:', error)
-        setHotmartData(null)
       } finally {
         setLoadingHotmart(false)
       }
@@ -232,14 +238,10 @@ export default function Dashboard() {
       try {
         setLoadingKiwify(true)
         const response = await fetch('/api/kiwify/metrics')
-        if (response.ok) {
-          const data = await response.json()
-          setKiwifyData(data)
-        } else {
-          setKiwifyData(null)
-        }
+        if (!response.ok) return // preserva o último dado bom — ver Landing Page
+        setKiwifyData(await response.json())
       } catch {
-        setKiwifyData(null)
+        /* mantém o último dado bom */
       } finally {
         setLoadingKiwify(false)
       }
@@ -255,14 +257,10 @@ export default function Dashboard() {
       try {
         setLoadingEduzz(true)
         const response = await fetch('/api/eduzz/metrics')
-        if (response.ok) {
-          const data = await response.json()
-          setEduzzData(data)
-        } else {
-          setEduzzData(null)
-        }
+        if (!response.ok) return // preserva o último dado bom — ver Landing Page
+        setEduzzData(await response.json())
       } catch {
-        setEduzzData(null)
+        /* mantém o último dado bom */
       } finally {
         setLoadingEduzz(false)
       }
@@ -278,14 +276,10 @@ export default function Dashboard() {
       try {
         setLoadingMonetizze(true)
         const response = await fetch('/api/monetizze/metrics')
-        if (response.ok) {
-          const data = await response.json()
-          setMonetizzeData(data)
-        } else {
-          setMonetizzeData(null)
-        }
+        if (!response.ok) return // preserva o último dado bom — ver Landing Page
+        setMonetizzeData(await response.json())
       } catch {
-        setMonetizzeData(null)
+        /* mantém o último dado bom */
       } finally {
         setLoadingMonetizze(false)
       }
