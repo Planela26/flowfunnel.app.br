@@ -5,7 +5,7 @@
  * Estes números decidem investimento em anúncio. Um ROAS errado por fator de
  * 10 leva alguém a triplicar orçamento numa campanha que perde dinheiro.
  */
-import { calcularCusto, compararIndicador, projetar, encontrarGargalo } from '../lib/owner-metrics'
+import { calcularCusto, compararIndicador, projetar, encontrarGargalo, calcularDivergencia } from '../lib/owner-metrics'
 
 let ok = 0, bad = 0
 function checa(n: string, c: boolean, d?: string) {
@@ -127,6 +127,32 @@ secao('Gargalo')
 {
   const g = encontrarGargalo([{ rotulo: 'Visitas', total: 0 }, { rotulo: 'CTA', total: 0 }])
   checa('funil vazio não quebra', g === null, `g=${JSON.stringify(g)}`)
+}
+
+secao('Divergência entre o clique pago e a visita registrada')
+{
+  const d = calcularDivergencia(1000, 820)
+  checa('captura em porcentagem', d?.captura === 82, `captura=${d?.captura}`)
+  checa('conta quantos cliques não viraram visita', d?.naoChegaram === 180, `naoChegaram=${d?.naoChegaram}`)
+}
+{
+  const d = calcularDivergencia(0, 0)
+  checa('sem cliques no período devolve null, não 0%', d === null, `d=${JSON.stringify(d)}`)
+}
+{
+  const d = calcularDivergencia(null, 500)
+  checa('conta de anúncios desconectada devolve null', d === null)
+}
+{
+  // Tráfego direto/orgânico marcado como Meta pode passar do clique pago.
+  const d = calcularDivergencia(100, 130)
+  checa('registrado acima do clique não vira perda negativa', d?.naoChegaram === 0, `naoChegaram=${d?.naoChegaram}`)
+  checa('e a captura passa de 100 em vez de ser truncada', (d?.captura ?? 0) > 100, `captura=${d?.captura}`)
+}
+{
+  const d = calcularDivergencia(500, 0)
+  checa('pagou e ninguém chegou: captura zero, perda total', d?.captura === 0 && d?.naoChegaram === 500,
+    `captura=${d?.captura} naoChegaram=${d?.naoChegaram}`)
 }
 
 console.log(`\n${'='.repeat(58)}`)

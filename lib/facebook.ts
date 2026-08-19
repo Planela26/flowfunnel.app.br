@@ -22,6 +22,13 @@ function graphFetch(url: string, accessToken: string, init?: RequestInit): Promi
 interface AdInsights {
   impressions: number
   clicks: number
+  /**
+   * Cliques que abrem o link do anúncio. `clicks` da Meta conta TODA
+   * interação — curtida, comentário, clique no perfil, expandir a imagem —
+   * então é sempre maior. Para comparar contra visitas registradas no site,
+   * este é o número honesto; o outro acusaria uma perda que não existe.
+   */
+  linkClicks: number
   spend: number
   cpc: number
   cpm: number
@@ -42,6 +49,7 @@ export async function getAdInsights(
     const fields = [
       'impressions',
       'clicks',
+      'inline_link_clicks',
       'spend',
       'cpc',
       'cpm',
@@ -79,6 +87,7 @@ export async function getAdInsights(
         data: {
           impressions: 0,
           clicks: 0,
+          linkClicks: 0,
           spend: 0,
           cpc: 0,
           cpm: 0,
@@ -93,10 +102,11 @@ export async function getAdInsights(
       (acc: any, item: any) => ({
         impressions: acc.impressions + parseInt(item.impressions || 0),
         clicks: acc.clicks + parseInt(item.clicks || 0),
+        linkClicks: acc.linkClicks + parseInt(item.inline_link_clicks || 0),
         spend: acc.spend + parseFloat(item.spend || 0),
         reach: acc.reach + parseInt(item.reach || 0),
       }),
-      { impressions: 0, clicks: 0, spend: 0, reach: 0 }
+      { impressions: 0, clicks: 0, linkClicks: 0, spend: 0, reach: 0 }
     )
 
     // Calcular métricas derivadas
@@ -110,6 +120,7 @@ export async function getAdInsights(
       data: {
         impressions: aggregated.impressions,
         clicks: aggregated.clicks,
+        linkClicks: aggregated.linkClicks,
         spend: aggregated.spend,
         cpc: parseFloat(cpc.toFixed(2)),
         cpm: parseFloat(cpm.toFixed(2)),

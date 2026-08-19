@@ -7,7 +7,7 @@ import {
   FlaskConical, TrendingDown, TrendingUp, DollarSign, Users, ArrowRight,
   X, Loader2, ShieldAlert, RefreshCw, Sparkles, Minus, Target,
 } from 'lucide-react'
-import { calcularCusto, projetar, type MetricasDeCusto, type Variacao } from '@/lib/owner-metrics'
+import { calcularCusto, projetar, calcularDivergencia, type MetricasDeCusto, type Variacao } from '@/lib/owner-metrics'
 
 type Passo = { chave: string; rotulo: string; total: number; taxaDoAnterior: string | null }
 type FunilResp = {
@@ -91,7 +91,10 @@ export default function LaboratorioPage() {
       const [rf, rj, rm] = await Promise.all([
         fetch(`/api/owner/funnel?days=${dias}`),
         fetch(`/api/owner/journeys${soComprou ? '?compras=1' : ''}`),
-        fetch('/api/facebook/metrics'),
+        // O período TEM que acompanhar o seletor. Buscar sempre 30 dias e
+        // dividir por 7 dias de funil inflaria o CAC em ~4x — e é um número
+        // que decide orçamento de anúncio.
+        fetch(`/api/facebook/metrics?period=last_${dias}d`),
       ])
       if (rf.status === 403 || rj.status === 403) { setNegado(true); setLoading(false); return }
       setFunil(rf.ok ? await rf.json() : null)
@@ -154,6 +157,20 @@ export default function LaboratorioPage() {
       })
     : null
 
+  // ── Meta declarada vs. FlowSara medido ────────────────────────────────────
+  // Comparação entre `inline_link_clicks` (cliques que ABREM o site) e os
+  // visitantes que o FlowSara registrou vindos da Meta. Usar `clicks` aqui
+  // acusaria uma perda inexistente: aquele número inclui curtida, comentário e
+  // clique no perfil, que nunca carregam a landing.
+  //
+  // Do lado do FlowSara a contagem é de LEADS com origem Meta, não de
+  // page_views: a mesma pessoa recarregando a página gera vários page_views e
+  // um clique só, o que faria a captura passar de 100% sem significar nada.
+  const cliquesMeta: number | null =
+    meta?.connected && typeof meta?.raw?.linkClicks === 'number' ? meta.raw.linkClicks : null
+  const visitantesDaMeta = funil?.origens.find(o => o.nome === 'Meta Ads')?.visitas ?? 0
+  const divergencia = calcularDivergencia(cliquesMeta, visitantesDaMeta)
+
   const projecao = funil
     ? projetar({
         investimentoNoPeriodo: investimento,
@@ -172,7 +189,14 @@ export default function LaboratorioPage() {
       const r = await fetch('/api/owner/insight', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...funil, custo }),
+        body: JSON.stringify({
+          ...funil,
+          custo,
+          divergencia,
+          meta: meta?.connected
+            ? { ctr: meta.ctr, cpc: meta.cpc, cpm: meta.cpm, impressoes: meta.impressoes }
+            : null,
+        }),
       })
       const b = await r.json()
       if (!r.ok) throw new Error(b.error || 'Não foi possível gerar a análise.')
@@ -268,6 +292,73 @@ export default function LaboratorioPage() {
                   Integrações para que CAC, ROAS e ROI passem a ser calculados — sem isso, eles
                   ficam em branco em vez de exibir um valor que não corresponde à realidade.
                 </p>
+              )}
+            </div>
+          )}
+
+          {/* Desempenho do anúncio na Meta + divergência com o que medimos */}
+          {meta?.connected && (
+            <div className="mb-6 rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
+              <p className="mb-3 text-xs font-bold uppercase tracking-wider text-gray-500">
+                Anúncio na Meta · últimos {funil.periodoDias} dias
+              </p>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+                <Metrica rotulo="Impressões" valor={meta.impressoes} icone={<Users className="h-3.5 w-3.5" />} />
+                <Metrica rotulo="Cliques no link" valor={(cliquesMeta ?? 0).toLocaleString('pt-BR')} icone={<ArrowRight className="h-3.5 w-3.5" />} />
+                <Metrica rotulo="CTR" valor={meta.ctr} icone={<TrendingUp className="h-3.5 w-3.5" />} />
+                <Metrica rotulo="CPC" valor={meta.cpc} icone={<DollarSign className="h-3.5 w-3.5" />} />
+                <Metrica rotulo="CPM" valor={meta.cpm} icone={<DollarSign className="h-3.5 w-3.5" />} />
+              </div>
+
+              {divergencia && (
+                <div className="mt-4 border-t border-gray-100 pt-4 dark:border-gray-800">
+                  <div className="mb-2 flex items-baseline justify-between gap-3">
+                    <p className="text-xs font-semibold text-gray-700 dark:text-gray-200">
+                      Meta declara vs. FlowSara registra
+                    </p>
+                    <span className={`text-xs font-bold ${
+                      divergencia.captura >= 80 ? 'text-emerald-600 dark:text-emerald-400'
+                      : divergencia.captura >= 50 ? 'text-amber-600 dark:text-amber-400'
+                      : 'text-red-600 dark:text-red-400'
+                    }`}>
+                      {divergencia.captura.toFixed(1)}% capturado
+                    </span>
+                  </div>
+
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
+                    <div
+                      className={`h-full rounded-full ${
+                        divergencia.captura >= 80 ? 'bg-emerald-500'
+                        : divergencia.captura >= 50 ? 'bg-amber-500' : 'bg-red-500'
+                      }`}
+                      style={{ width: `${Math.min(100, divergencia.captura)}%` }}
+                    />
+                  </div>
+
+                  <div className="mt-3 grid grid-cols-3 gap-3 text-center">
+                    <div>
+                      <p className="text-sm font-bold text-gray-900 dark:text-white">{divergencia.cliques.toLocaleString('pt-BR')}</p>
+                      <p className="text-[10px] text-gray-500">cliques na Meta</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-gray-900 dark:text-white">{divergencia.registrados.toLocaleString('pt-BR')}</p>
+                      <p className="text-[10px] text-gray-500">chegaram no site</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-gray-900 dark:text-white">{divergencia.naoChegaram.toLocaleString('pt-BR')}</p>
+                      <p className="text-[10px] text-gray-500">não chegaram</p>
+                    </div>
+                  </div>
+
+                  <p className="mt-3 text-[11px] leading-relaxed text-gray-400">
+                    {divergencia.captura >= 80
+                      ? 'Diferença dentro do esperado. Alguma perda é normal: quem desiste antes da página carregar não é registrado.'
+                      : divergencia.captura >= 50
+                      ? 'Perda relevante entre o clique e a página. Costuma ser lentidão de carregamento no celular ou bloqueador de rastreamento.'
+                      : 'Perda alta. Vale conferir se o link do anúncio aponta para a landing certa e se ela carrega rápido no 4G — você está pagando por cliques que não viram visita.'}
+                    {' '}A Meta conta o clique no servidor dela; o FlowSara só registra quando a página abre.
+                  </p>
+                </div>
               )}
             </div>
           )}

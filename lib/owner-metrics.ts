@@ -178,6 +178,43 @@ export function projetar(params: {
   }
 }
 
+export type Divergencia = {
+  cliques: number
+  registrados: number
+  naoChegaram: number
+  captura: number
+}
+
+/**
+ * Quanto do clique pago virou visita registrada.
+ *
+ * `cliquesNoLink` deve ser `inline_link_clicks` da Meta, NUNCA `clicks`: o
+ * segundo conta curtida, comentário e clique no perfil, que jamais carregam a
+ * landing — usá-lo acusaria uma perda que não existe.
+ *
+ * `visitantesRegistrados` conta LEADS com origem Meta, não page_views: a mesma
+ * pessoa recarregando a página soma vários page_views e um clique só, o que
+ * levaria a captura acima de 100% sem nada ter melhorado.
+ *
+ * Sem cliques no período não há divisão a fazer — devolve null em vez de 0%,
+ * que seria lido como "ninguém chegou" quando na verdade ninguém clicou.
+ */
+export function calcularDivergencia(
+  cliquesNoLink: number | null,
+  visitantesRegistrados: number,
+): Divergencia | null {
+  if (cliquesNoLink === null || cliquesNoLink <= 0) return null
+
+  return {
+    cliques: cliquesNoLink,
+    registrados: visitantesRegistrados,
+    // Nunca negativo: tráfego direto ou orgânico mal etiquetado pode fazer o
+    // registrado passar o clique, e "-12 não chegaram" não significa nada.
+    naoChegaram: Math.max(0, cliquesNoLink - visitantesRegistrados),
+    captura: (visitantesRegistrados / cliquesNoLink) * 100,
+  }
+}
+
 /**
  * Maior perda entre degraus consecutivos — o gargalo.
  *

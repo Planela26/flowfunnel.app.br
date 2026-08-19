@@ -52,7 +52,7 @@ export async function GET(request: Request) {
       : integration.config
 
     if (config?.demo === true) {
-      const days = period === 'today' ? 1 : period === 'last_7d' ? 7 : 30
+      const days = period === 'today' ? 1 : period === 'last_7d' ? 7 : period === 'last_90d' ? 90 : 30
       const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000)
       const funnel = await prisma.funnel.findFirst({
         where: { userId: session.user.id },
@@ -95,7 +95,9 @@ export async function GET(request: Request) {
         ctr: `${ctr.toFixed(2)}%`,
         frequencia: '1.6',
         connected: true,
-        raw: { impressions, clicks, spend, reach: Math.round(impressions * 0.7) },
+        // Na conta demo os cliques já vêm de eventos de clique no link, então
+        // não há a distinção entre interação e abertura que existe na Meta real.
+        raw: { impressions, clicks, linkClicks: clicks, spend, reach: Math.round(impressions * 0.7) },
         data: { clicks, impressions, ctr, cpc, spend },
       }
       cache.set(cacheKey, response, CacheTTL.SHORT)
@@ -159,6 +161,7 @@ export async function GET(request: Request) {
       raw: {
         impressions: data.impressions,
         clicks: data.clicks,
+        linkClicks: data.linkClicks,
         spend: data.spend,
         reach: data.reach,
       },

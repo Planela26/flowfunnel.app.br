@@ -46,6 +46,17 @@ function montarPrompt(d: any): string {
     ? `Investimento: ${d.custo.investimentoFormatado}\nCAC: ${d.custo.cac}\nCPA: ${d.custo.cpa}\nROAS: ${d.custo.roas}\nROI: ${d.custo.roi}\nLucro: ${d.custo.lucro}`
     : 'Conta de anúncios NÃO conectada — não há dado de investimento, então CAC, ROAS e ROI são desconhecidos.'
 
+  const anuncioMeta = d.meta
+    ? `CTR: ${d.meta.ctr} | CPC: ${d.meta.cpc} | CPM: ${d.meta.cpm} | Impressões: ${d.meta.impressoes}`
+    : 'Conta de anúncios não conectada — CTR, CPC e CPM desconhecidos.'
+
+  // A divergência entre o clique que a Meta cobra e a visita que registramos é
+  // um degrau ANTES do funil: se o dinheiro se perde aí, otimizar a landing não
+  // resolve nada. Por isso vai no prompt separado, não misturado aos degraus.
+  const divergencia = d.divergencia
+    ? `A Meta contabilizou ${d.divergencia.cliques} clique(s) no link; o FlowSara registrou ${d.divergencia.registrados} visitante(s) vindos da Meta (${d.divergencia.captura.toFixed(1)}% capturado). ${d.divergencia.naoChegaram} clique(s) pagos não viraram visita.`
+    : 'Sem dado de cliques da Meta para comparar.'
+
   return `
 Você é um especialista em tráfego pago e otimização de funil. Analise o funil do FlowSara (um SaaS de rastreamento de vendas que vende assinaturas de R$ 47,90 a R$ 147,90/mês) e responda em português brasileiro.
 
@@ -61,6 +72,12 @@ ${comp}
 
 CUSTO E RETORNO:
 ${custo}
+
+DESEMPENHO DO ANÚNCIO NA META:
+${anuncioMeta}
+
+PERDA ENTRE O CLIQUE E A VISITA:
+${divergencia}
 
 RECEITA POR CAMPANHA:
 ${campanhas}
@@ -79,6 +96,8 @@ INSTRUÇÕES IMPORTANTES:
 - Se houver poucos dados (menos de 20 visitas ou menos de 3 vendas), diga que a amostra é pequena e que as conclusões são preliminares.
 - Considere que "Engajamento" mede quem passou de 50% da página, e que "Pagamento iniciado" inclui Pix gerado — Pix gerado NÃO é venda.
 - Ao comparar campanhas ou criativos, considere que receita alta com poucas vendas pode ser ruído.
+- Se a captura entre clique e visita estiver abaixo de 80%, trate isso como prioridade acima de qualquer ajuste na landing: é dinheiro pago por clique que nunca chegou a ver a página. Abaixo de 50%, cite explicitamente como o problema número um.
+- CTR baixo é problema de criativo e público; CPC alto com CTR bom é problema de concorrência no leilão. Não confunda os dois.
 
 Responda em JSON com exatamente este formato:
 {
