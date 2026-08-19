@@ -42,6 +42,29 @@ function novoId(p: string) {
   return p + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 12)
 }
 
+/**
+ * Qual evento esta rota representa no funil — ou `null` para não rastrear.
+ *
+ * Lista FECHADA, e não uma lista de exclusões, porque o componente mora no
+ * layout raiz e enxerga o site inteiro. Com lista de exclusões, cada rota nova
+ * do painel voltaria a poluir o funil calada.
+ *
+ * Sem isto, cada troca de rota DENTRO do painel logado (/dashboard, /leads,
+ * /analytics, /settings) virava uma "visita na LP". Como esse degrau é o
+ * denominador de todas as taxas do funil, o efeito não era só um número
+ * inflado no topo: engajamento, CTA e conversão final saíam todos diluídos.
+ *
+ * /register fica de fora de propósito: quem chega lá já passou pelo CTA, e o
+ * clique já foi registrado como `cta_click`. Contá-lo de novo como visita
+ * duplicaria a mesma pessoa em dois degraus.
+ */
+function eventoDaRota(pathname: string | null): 'page_view' | 'checkout_view' | null {
+  if (!pathname) return null
+  if (pathname.startsWith('/checkout')) return 'checkout_view'
+  if (pathname === '/' || pathname.startsWith('/pricing')) return 'page_view'
+  return null
+}
+
 /** Persiste na primeira visita e devolve nas seguintes: a origem se perde na
  *  navegação interna, mas a jornada continua sendo da mesma campanha. */
 function capturarOuLembrar(qs: URLSearchParams, chaves: string[], prefixo: string) {
@@ -64,8 +87,12 @@ export default function LabTracker() {
   const enviados = useRef<Set<string>>(new Set())
   const identidade = useRef<{ leadId: string; visitorId: string; sessionId: string } | null>(null)
 
-  // Resolve a identidade uma vez por carregamento.
-  if (typeof window !== 'undefined' && !identidade.current) {
+  const eventoDaPagina = eventoDaRota(pathname)
+  const rastreando = eventoDaPagina !== null
+
+  // Resolve a identidade uma vez por carregamento. Só cria identidade em página
+  // de funil: abrir o painel não deve gerar um lead novo no laboratório.
+  if (typeof window !== 'undefined' && rastreando && !identidade.current) {
     const visitorId = ler(K_VISITOR) || novoId('v_')
     gravar(K_VISITOR, visitorId)
     const leadId = ler(K_LEAD) || novoId('l_')
@@ -138,15 +165,16 @@ export default function LabTracker() {
     } catch { /* rastreamento nunca quebra a página */ }
   }
 
-  // page_view e checkout_view a cada rota
+  // page_view e checkout_view a cada rota do funil
   useEffect(() => {
     enviados.current = new Set()
-    enviar(pathname?.startsWith('/checkout') ? 'checkout_view' : 'page_view')
+    if (eventoDaPagina) enviar(eventoDaPagina)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname])
+  }, [pathname, eventoDaPagina])
 
   // Profundidade de leitura — responde "a pessoa leu ou só abriu?"
   useEffect(() => {
+    if (!rastreando) return
     const marcos: Array<[number, string]> = [
       [25, 'scroll_25'], [50, 'scroll_50'], [60, 'scroll_60'], [75, 'scroll_75'], [90, 'scroll_90'],
     ]
@@ -160,11 +188,12 @@ export default function LabTracker() {
     window.addEventListener('scroll', aoRolar, { passive: true })
     return () => window.removeEventListener('scroll', aoRolar)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname])
+  }, [pathname, rastreando])
 
   // CTA: qualquer caminho que leve ao checkout ou ao cadastro. É o degrau que
   // separa quem leu de quem decidiu.
   useEffect(() => {
+    if (!rastreando) return
     const aoClicar = (e: MouseEvent) => {
       const alvo = (e.target as HTMLElement | null)?.closest('a,button')
       if (!alvo) return
@@ -179,7 +208,7 @@ export default function LabTracker() {
     document.addEventListener('click', aoClicar, true)
     return () => document.removeEventListener('click', aoClicar, true)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname])
+  }, [pathname, rastreando])
 
   return null
 }

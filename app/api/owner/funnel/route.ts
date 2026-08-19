@@ -34,10 +34,12 @@ export async function GET(request: Request) {
   const ateAnterior = desde
 
   const [eventosPorNome, conversoes, porOrigem, porCampanha, porAd] = await Promise.all([
-    prisma.trackedEvent.groupBy({
-      by: ['eventName'],
+    // Pares (evento, pessoa) sem repetição. O funil conta PESSOAS, não
+    // disparos — ver `pessoasNoDegrau` abaixo para o porquê.
+    prisma.trackedEvent.findMany({
       where: { userId: ownerId, createdAt: { gte: desde } },
-      _count: { _all: true },
+      select: { eventName: true, leadId: true },
+      distinct: ['eventName', 'leadId'],
     }),
     prisma.saleAttribution.aggregate({
       where: { userId: ownerId, createdAt: { gte: desde } },
@@ -66,10 +68,10 @@ export async function GET(request: Request) {
 
   // Período anterior, para a comparação.
   const [eventosAnteriores, conversoesAnteriores] = await Promise.all([
-    prisma.trackedEvent.groupBy({
-      by: ['eventName'],
+    prisma.trackedEvent.findMany({
       where: { userId: ownerId, createdAt: { gte: desdeAnterior, lt: ateAnterior } },
-      _count: { _all: true },
+      select: { eventName: true, leadId: true },
+      distinct: ['eventName', 'leadId'],
     }),
     prisma.saleAttribution.aggregate({
       where: { userId: ownerId, createdAt: { gte: desdeAnterior, lt: ateAnterior } },
@@ -78,18 +80,41 @@ export async function GET(request: Request) {
     }),
   ])
 
-  const contagem: Record<string, number> = {}
-  for (const e of eventosPorNome) contagem[e.eventName] = e._count._all
+  /**
+   * Quantas PESSOAS distintas alcançaram um degrau.
+   *
+   * Contar eventos distorce em dois lugares. `engajamento` reúne scroll_50,
+   * 60, 75 e 90: quem lê a página até o fim dispara os quatro, então uma
+   * pessoa virava quatro. E recarregar a página soma um page_view novo, então
+   * a mesma visita contava várias vezes no topo — justamente o degrau que é
+   * denominador de todas as taxas.
+   *
+   * Contando pessoas, o número passa a ser comparável ao que a Meta reporta
+   * como clique no link, que também é por pessoa.
+   */
+  const pessoasPorEvento = (pares: Array<{ eventName: string; leadId: string }>) => {
+    const m = new Map<string, Set<string>>()
+    for (const p of pares) {
+      let s = m.get(p.eventName)
+      if (!s) { s = new Set(); m.set(p.eventName, s) }
+      s.add(p.leadId)
+    }
+    return m
+  }
 
-  // Cada degrau soma os eventos que o compõem (ex.: engajamento = qualquer
-  // scroll >= 50%). `distinctLeads` não é usado aqui de propósito: contar
-  // EVENTOS é a métrica de volume; a taxa entre degraus é o que interessa, e
-  // ela é robusta a um lead disparar o mesmo scroll mais de uma vez porque o
-  // gate por evento+página no LabTracker já evita reenvio na mesma carga.
+  const pessoasNoDegrau = (m: Map<string, Set<string>>, eventos: string[]) => {
+    // União, não soma: quem disparou scroll_50 E scroll_90 é uma pessoa só.
+    const uniao = new Set<string>()
+    for (const ev of eventos) for (const lead of m.get(ev) ?? []) uniao.add(lead)
+    return uniao.size
+  }
+
+  const pessoas = pessoasPorEvento(eventosPorNome)
+
   const passos = DEGRAUS.map(d => ({
     chave: d.chave,
     rotulo: d.rotulo,
-    total: d.eventos.reduce((acc, ev) => acc + (contagem[ev] || 0), 0),
+    total: pessoasNoDegrau(pessoas, d.eventos),
   }))
   // Compras vem de SaleAttribution, não de TrackedEvent: é a fonte que também
   // carrega o valor, e as duas devem coincidir em contagem (o webhook grava
@@ -145,12 +170,11 @@ export async function GET(request: Request) {
     .sort((a, b) => b.receita - a.receita)
 
   // ── Comparação com o período anterior ─────────────────────────────────────
-  const contagemAnterior: Record<string, number> = {}
-  for (const e of eventosAnteriores) contagemAnterior[e.eventName] = e._count._all
+  const pessoasAnteriores = pessoasPorEvento(eventosAnteriores)
 
-  const somaDegrau = (fonte: Record<string, number>, chave: string) => {
+  const degrau = (m: Map<string, Set<string>>, chave: string) => {
     const d = DEGRAUS.find(x => x.chave === chave)
-    return d ? d.eventos.reduce((acc, ev) => acc + (fonte[ev] || 0), 0) : 0
+    return d ? pessoasNoDegrau(m, d.eventos) : 0
   }
 
   const receitaAnterior = conversoesAnteriores._sum.value || 0
@@ -158,9 +182,9 @@ export async function GET(request: Request) {
 
   const comparacao = {
     diasComparados: dias,
-    visitas: compararIndicador(somaDegrau(contagem, 'visitas'), somaDegrau(contagemAnterior, 'visitas')),
-    cta: compararIndicador(somaDegrau(contagem, 'cta'), somaDegrau(contagemAnterior, 'cta')),
-    checkout: compararIndicador(somaDegrau(contagem, 'checkout'), somaDegrau(contagemAnterior, 'checkout')),
+    visitas: compararIndicador(degrau(pessoas, 'visitas'), degrau(pessoasAnteriores, 'visitas')),
+    cta: compararIndicador(degrau(pessoas, 'cta'), degrau(pessoasAnteriores, 'cta')),
+    checkout: compararIndicador(degrau(pessoas, 'checkout'), degrau(pessoasAnteriores, 'checkout')),
     vendas: compararIndicador(conversoes._count._all, vendasAnteriores),
     receita: compararIndicador(receita, receitaAnterior),
     ticketMedio: compararIndicador(
