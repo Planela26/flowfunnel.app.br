@@ -180,10 +180,17 @@ export default function Dashboard() {
       try {
         setLoadingLanding(true)
         const response = await fetch('/api/landing/metrics')
-        setLandingData(response.ok ? await response.json() : null)
+        if (!response.ok) return // ver comentário abaixo
+        setLandingData(await response.json())
       } catch (error) {
         console.error('Erro ao buscar métricas da Landing Page:', error)
-        setLandingData(null)
+        // Mantém o último dado bom em vez de zerar.
+        //
+        // A busca se repete a cada 5 minutos. Zerando, uma única falha
+        // passageira — sessão renovando, rede oscilando — apagava o card e ele
+        // só voltava na próxima rodada: era isso que fazia o card ora mostrar
+        // as visitas, ora parecer sem integração. Rastreamento instalado não
+        // desaparece porque uma requisição falhou.
       } finally {
         setLoadingLanding(false)
       }

@@ -40,6 +40,7 @@ export async function GET(request: Request) {
       eventosPorNome,
       conversoes,
       porOrigem,
+      leadsDeSempre,
     ] = await Promise.all([
       prisma.trackedSite.count({ where: { userId } }),
       // Visitante = navegador distinto. `visitorId` só passou a ser gravado
@@ -66,6 +67,8 @@ export async function GET(request: Request) {
         where: { userId, createdAt: { gte: desde } },
         _count: { _all: true },
       }),
+      // Sem recorte de data — ver `connected` mais abaixo.
+      prisma.trackedLead.count({ where: { userId } }),
     ])
 
     const eventos: Record<string, number> = {}
@@ -105,10 +108,18 @@ export async function GET(request: Request) {
       .map(([nome, total]) => ({ nome, total }))
       .sort((a, b) => b.total - a.total)
 
-    // `connected` decide se o card mostra números ou o estado vazio. Só é
-    // verdadeiro quando existe rastreamento configurado E dado registrado —
-    // sem isso o card mostraria zeros como se fossem resultado real.
-    const connected = sites > 0 || leads > 0
+    // `connected` decide se o card mostra números ou o estado vazio, e por isso
+    // responde "existe rastreamento instalado?" — NÃO "houve movimento agora?".
+    //
+    // Antes olhava `leads`, que é contado dentro do período: uma semana parada
+    // zerava a contagem e o card voltava ao estado de "não integrado", como se
+    // a instalação tivesse sumido. Zero visita em sete dias é um RESULTADO, e
+    // precisa aparecer como zero — some com o dado e a pessoa vai reinstalar um
+    // rastreamento que nunca deixou de funcionar.
+    //
+    // `leadsDeSempre` cobre quem já rastreava pelo tracker.js antes de existir
+    // o cadastro de site: sem ele, essas contas perderiam o card.
+    const connected = sites > 0 || leadsDeSempre > 0
 
     return NextResponse.json({
       connected,
