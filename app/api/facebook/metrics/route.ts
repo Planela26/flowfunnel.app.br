@@ -124,6 +124,11 @@ export async function GET(request: Request) {
         frequencia: '0',
         connected: true,
         error: result.error,
+        // Frase pronta: sem ela a tela precisa inventar um texto a partir de um
+        // código, e historicamente inventava "sem dados" para qualquer falha.
+        errorMessage:
+          'Não foi possível ler as métricas na Meta. O token pode ter expirado ou perdido a permissão ads_read.',
+        reconnectUrl: '/facebook-connect',
       })
     }
 
@@ -157,6 +162,11 @@ export async function GET(request: Request) {
       ctr: `${data.ctr.toFixed(2)}%`,
       frequencia: data.frequency.toFixed(1),
       connected: true,
+      // A Meta respondeu, mas a campanha não rodou no período. Zeros aqui são o
+      // RESULTADO correto — e sem esta marca a tela não tem como diferenciar
+      // isso de uma falha de leitura, porque nos dois casos ela recebe zeros.
+      semVeiculacao: result.hasDelivery === false,
+      periodo: period,
       // Dados brutos para cálculos
       raw: {
         impressions: data.impressions,

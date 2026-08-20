@@ -65,7 +65,7 @@ export async function getAdInsights(
   datePreset: string = 'last_30d',
   campaignId?: string,
   timeRange?: { since: string; until: string }
-): Promise<{ success: boolean; data?: AdInsights; error?: string }> {
+): Promise<{ success: boolean; data?: AdInsights; error?: string; hasDelivery?: boolean }> {
   try {
     const fields = [
       'impressions',
@@ -102,9 +102,14 @@ export async function getAdInsights(
     // Agregar dados se houver múltiplas campanhas
     const insights = result.data || []
     
+    // Lista vazia = a campanha não teve veiculação no período pedido. É uma
+    // resposta LEGÍTIMA da Meta, não uma falha — mas devolver só zeros faz ela
+    // ficar idêntica a "não consegui ler", e quem olha a tela conclui que o
+    // sistema quebrou. `hasDelivery` deixa o chamador dizer qual dos dois é.
     if (insights.length === 0) {
       return {
         success: true,
+        hasDelivery: false,
         data: {
           impressions: 0,
           clicks: 0,
@@ -138,6 +143,7 @@ export async function getAdInsights(
 
     return {
       success: true,
+      hasDelivery: true,
       data: {
         impressions: aggregated.impressions,
         clicks: aggregated.clicks,

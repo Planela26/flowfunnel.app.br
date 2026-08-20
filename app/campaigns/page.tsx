@@ -104,6 +104,14 @@ export default function CampaignsPage() {
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null)
   const [metrics, setMetrics] = useState<CampaignMetrics | null>(null)
   const [loadingMetrics, setLoadingMetrics] = useState(false)
+  // Período das métricas. Era fixo em `last_7d`, e essa era a causa da queixa
+  // "o sistema não lê os dados da campanha": campanha que rodou meses atrás
+  // aparecia zerada, com a Meta mostrando o gasto acumulado no painel dela.
+  const [periodo, setPeriodo] = useState<string>('last_7d')
+  // A Meta respondeu, mas não houve veiculação no período. Zeros aqui são o
+  // resultado certo — outra coisa é não ter conseguido ler.
+  const [semVeiculacao, setSemVeiculacao] = useState(false)
+  const [erroMetricas, setErroMetricas] = useState<string | null>(null)
   const [notConnected, setNotConnected] = useState(false)
   // Conectado, mas a Meta recusou a leitura (token expirado, ads_read revogada,
   // conta desvinculada). É diferente de "não conectado" e de "sem campanhas" —
@@ -176,24 +184,38 @@ export default function CampaignsPage() {
     }
   }, [activeSource, selectedCampaign])
 
-  const fetchMetrics = useCallback(async (campaign: Campaign) => {
+  const fetchMetrics = useCallback(async (campaign: Campaign, periodoPedido: string) => {
     setLoadingMetrics(true)
     setMetrics(null)
+    setSemVeiculacao(false)
+    setErroMetricas(null)
     try {
-      const res = await fetch(`/api/facebook/metrics?period=last_7d&campaignId=${campaign.campaignId}`)
+      const res = await fetch(
+        `/api/facebook/metrics?period=${encodeURIComponent(periodoPedido)}&campaignId=${campaign.campaignId}`,
+      )
       const data = await res.json()
-      if (data && !data.error) {
-        const raw = data.raw || data.data || {}
-        setMetrics({
-          impressions: raw.impressions ?? 0,
-          clicks:      raw.clicks ?? data.cliques ?? 0,
-          spend:       raw.spend ?? 0,
-          ctr:         data.ctr ?? '0%',
-          cpc:         data.cpc ?? 'R$ 0,00',
-          roi:         data.roi ?? 'N/D',
-        })
+
+      // Falha de leitura tem tratamento próprio. Antes o `if (!data.error)`
+      // simplesmente não fazia nada, e a tela ficava no estado anterior — sem
+      // dizer que houve erro nem por quê.
+      if (!data || data.error) {
+        setErroMetricas(data?.errorMessage || 'Não foi possível ler as métricas na Meta.')
+        return
       }
-    } catch {}
+
+      setSemVeiculacao(Boolean(data.semVeiculacao))
+      const raw = data.raw || data.data || {}
+      setMetrics({
+        impressions: raw.impressions ?? 0,
+        clicks:      raw.clicks ?? data.cliques ?? 0,
+        spend:       raw.spend ?? 0,
+        ctr:         data.ctr ?? '0%',
+        cpc:         data.cpc ?? 'R$ 0,00',
+        roi:         data.roi ?? 'N/D',
+      })
+    } catch {
+      setErroMetricas('Não foi possível falar com o servidor para buscar as métricas.')
+    }
     finally { setLoadingMetrics(false) }
   }, [])
 
@@ -222,9 +244,11 @@ export default function CampaignsPage() {
     fetchCampaigns()
   }, [activeSource])
 
+  // `periodo` entra nas dependências: trocar a janela precisa rebuscar, senão o
+  // seletor mudaria o rótulo sem mudar os números.
   useEffect(() => {
-    if (selectedCampaign && activeSource === 'facebook') fetchMetrics(selectedCampaign)
-  }, [selectedCampaign, fetchMetrics, activeSource])
+    if (selectedCampaign && activeSource === 'facebook') fetchMetrics(selectedCampaign, periodo)
+  }, [selectedCampaign, fetchMetrics, activeSource, periodo])
 
   const filtered = campaigns.filter((c) => {
     const matchStatus = filterStatus === 'ALL' || c.status === filterStatus
@@ -532,13 +556,49 @@ export default function CampaignsPage() {
 
                       {/* Metrics */}
                       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
-                        <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                          <TrendingUp className="w-4 h-4 text-blue-600" />
-                          Métricas — Últimos 7 dias
-                        </h3>
+                        <div className="mb-4 flex items-center justify-between gap-3 flex-wrap">
+                          <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                            <TrendingUp className="w-4 h-4 text-blue-600" />
+                            Métricas
+                          </h3>
+                          {/* O período era fixo em 7 dias. Campanha que rodou
+                              meses atrás aparecia zerada, e a leitura natural
+                              era "o sistema não lê meus dados". */}
+                          <select
+                            value={periodo}
+                            onChange={(e) => setPeriodo(e.target.value)}
+                            className="text-xs font-medium border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                          >
+                            <option value="today">Hoje</option>
+                            <option value="yesterday">Ontem</option>
+                            <option value="last_7d">Últimos 7 dias</option>
+                            <option value="last_30d">Últimos 30 dias</option>
+                            <option value="last_90d">Últimos 90 dias</option>
+                            <option value="maximum">Desde o início</option>
+                          </select>
+                        </div>
                         {loadingMetrics ? (
                           <div className="flex items-center justify-center py-8">
                             <div className="animate-spin w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full" />
+                          </div>
+                        ) : erroMetricas ? (
+                          <div className="text-center py-6">
+                            <AlertCircle className="w-8 h-8 mx-auto mb-2 text-red-500" />
+                            <p className="text-sm text-red-700 dark:text-red-400 font-medium">{erroMetricas}</p>
+                            <Link href="/facebook-connect" className="text-sm text-blue-600 hover:underline mt-2 inline-block">
+                              Reconectar conta de anúncios
+                            </Link>
+                          </div>
+                        ) : semVeiculacao ? (
+                          <div className="text-center py-6">
+                            <Eye className="w-8 h-8 mx-auto mb-2 text-gray-400 opacity-60" />
+                            <p className="text-sm text-gray-600 dark:text-gray-300 font-medium">
+                              Esta campanha não teve veiculação no período selecionado
+                            </p>
+                            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                              A Meta respondeu normalmente — só não houve entrega nesta janela.
+                              Tente <strong>Desde o início</strong> para ver o acumulado.
+                            </p>
                           </div>
                         ) : metrics ? (
                           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
