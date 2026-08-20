@@ -3,7 +3,8 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { getPlanFeatures, getHistoryLimitDays, getPlanLimit, isUnlimited, normalizePlan, PLAN_LABELS } from '@/lib/plans'
-import { getEffectivePlan, hasPaidAccess, isTrialActive, isTrialExpired, isPendingPayment, isPendingEmail, trialDaysLeft } from '@/lib/trial'
+import { getEffectivePlan, isTrialActive, isTrialExpired, isPendingPayment, isPendingEmail, trialDaysLeft } from '@/lib/trial'
+import { resolveCommercialAccess } from '@/lib/commercial-access'
 import { getSaraCapabilities } from '@/lib/sara-capabilities'
 import { maybeSweepInBackground } from '@/lib/pix-reminder'
 
@@ -34,6 +35,10 @@ export async function GET() {
       paymentMethodAddedAt: true,
       gracePeriodEndsAt: true,
       planExpiresAt: true,
+      // Suspensão administrativa. Sem este campo a tela diria "acesso liberado"
+      // para uma conta desativada, e o gate diria o contrário — a divergência
+      // entre tela e backend é justamente o que produziu o erro errado antes.
+      deactivatedAt: true,
     },
   })
 
@@ -42,22 +47,19 @@ export async function GET() {
   const trialExpired = isTrialExpired(u ?? { plan: 'FREE' })
   const daysLeft = trialDaysLeft(u?.trialEndsAt)
   const cardAdded = Boolean(u?.paymentMethodAddedAt)
-  const paidAccess = hasPaidAccess({
-    subscriptionStatus: u?.subscriptionStatus,
-    paymentMethodAddedAt: u?.paymentMethodAddedAt,
-    trialStatus: u?.trialStatus,
-    trialEndsAt: u?.trialEndsAt,
-    trialPlan: u?.trialPlan,
-    plan: u?.plan,
-    gracePeriodEndsAt: u?.gracePeriodEndsAt,
-    // Sem este campo a trava de vencimento fica inerte: `isPlanExpired` recebe
-    // undefined, devolve false, e o acesso é liberado como se o período nunca
-    // acabasse. Mesmo erro que já aconteceu com `trialStatus` — a guarda existe
-    // no código, mas o dado não chega até ela.
-    planExpiresAt: u?.planExpiresAt,
-  })
+  // MESMA função que o gate das integrações usa (lib/integration-gate.ts), com
+  // o objeto do banco inteiro. Passar campo a campo era o risco: bastava
+  // esquecer um — como já aconteceu com `planExpiresAt` e `trialStatus` — para
+  // a guarda existir no código e nunca receber o dado.
+  const acesso = resolveCommercialAccess(u)
+  const paidAccess = acesso.allowed
   // Modo explorar — sem cartão E sem assinatura. Pode usar o funil, mas sem criar integrações reais.
   const exploringOnly = !paidAccess
+  // Motivo do bloqueio, para a interface escolher entre "assine" e "renove" em
+  // vez de mostrar um convite genérico a quem já é cliente.
+  const accessDenialCode = acesso.allowed ? null : acesso.code
+  const accessMessage = acesso.allowed ? null : acesso.message
+  const accessActionUrl = acesso.allowed ? null : acesso.actionUrl
 
   return NextResponse.json(
     {
@@ -84,6 +86,9 @@ export async function GET() {
       cardAdded,
       paidAccess,
       exploringOnly,
+      accessDenialCode,
+      accessMessage,
+      accessActionUrl,
     },
     {
       headers: {

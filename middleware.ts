@@ -201,8 +201,18 @@ export async function middleware(request: NextRequest) {
     if (!permitido) {
       if (pathname.startsWith('/api/')) {
         // 403, não 401: a credencial é válida: o que falta é permissão.
+        //
+        // `message` acompanha o código porque a interface mostra o que vier: sem
+        // uma frase, a tela imprime o identificador cru na cara da pessoa — foi
+        // assim que "card_required" virou texto de erro visível.
         return withCsp(
-          NextResponse.json({ error: 'account_deactivated' }, { status: 403 })
+          NextResponse.json(
+            {
+              error: 'account_deactivated',
+              message: 'Sua conta está desativada. Fale com o suporte para reativá-la.',
+            },
+            { status: 403 },
+          )
         );
       }
       const dest = new URL('/conta-desativada', request.url);
@@ -253,8 +263,18 @@ export async function middleware(request: NextRequest) {
   // `/plano-vencido` e `/checkout` ficam de fora, senão a pessoa não teria como
   // pagar; `/billing` também, para conseguir ver a assinatura. As APIs
   // respondem 402 (pagamento necessário) em vez de redirecionar.
+  //
+  // Papel administrativo não passa por aqui — mesma regra do gate das
+  // integrações (lib/commercial-access.ts). Sem esta saída, bastaria a conta
+  // fundadora testar um PIX no próprio produto para, 30 dias depois, ficar
+  // trancada fora do painel que ela administra. É por PAPEL, nunca por e-mail,
+  // e NÃO vale para conta desativada: aquele bloqueio está acima e continua
+  // valendo para todo mundo.
+  const papel = token.role as string | undefined;
+  const ehAdmin = papel === 'ADMIN' || papel === 'OWNER';
+
   const expiraEm = token.planExpiresAt as string | number | null | undefined;
-  if (expiraEm && new Date(expiraEm).getTime() <= Date.now()) {
+  if (!ehAdmin && expiraEm && new Date(expiraEm).getTime() <= Date.now()) {
     const liberado =
       pathname === '/plano-vencido' ||
       pathname === '/billing' ||
@@ -267,7 +287,13 @@ export async function middleware(request: NextRequest) {
     if (!liberado) {
       if (pathname.startsWith('/api/')) {
         return withCsp(
-          NextResponse.json({ error: 'plan_expired' }, { status: 402 })
+          NextResponse.json(
+            {
+              error: 'plan_expired',
+              message: 'Seu plano venceu. Renove para voltar a conectar e sincronizar integrações.',
+            },
+            { status: 402 },
+          )
         );
       }
       const dest = new URL('/plano-vencido', request.url);

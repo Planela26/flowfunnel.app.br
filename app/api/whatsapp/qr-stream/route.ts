@@ -19,8 +19,8 @@ export async function GET(request: NextRequest) {
 
   const userId = session.user.id
 
-  // Gate de pagamento: conectar WhatsApp cria/atualiza uma integração real,
-  // então segue a mesma regra dos POSTs de integração (402 sem cartão/assinatura).
+  // Ler o QR code é o passo que efetivamente conecta um número, então segue a
+  // mesma camada comercial dos POSTs de integração.
   const gateResp = await assertCanCreateIntegration(request)
   if (gateResp) return gateResp
 

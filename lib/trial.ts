@@ -1,5 +1,4 @@
 import { normalizePlan, type Plan } from './plans'
-import { isPlanExpired } from './plan-expiry'
 
 /**
  * Duração do teste grátis, em dias. Fonte única — o texto das telas e dos
@@ -18,7 +17,7 @@ export type TrialStatus =
   | 'expired'
   | 'converted'
 
-type TrialUser = {
+export type TrialUser = {
   plan: string
   trialEndsAt?: Date | null
   trialPlan?: string | null
@@ -76,55 +75,17 @@ export function getEffectivePlan(user: TrialUser): Plan {
 }
 
 /**
- * Determina se o usuário tem direito a criar/alterar integrações e dados de
- * funil. Verdadeiro quando:
- *  - assinatura paga ativa (Stripe ou MercadoPago, qualquer tier START/PRO/SCALE), OU
- *  - cartão adicionado (trial em curso — mesmo que trialEndsAt ainda não estourou).
+ * `hasPaidAccess` MUDOU DE CASA — está em lib/commercial-access.ts.
  *
- * Falso (modo "explorar apenas") para:
- *  - conta FREE recém-criada sem cartão, mesmo que trialEndsAt esteja populado.
+ * A versão que vivia aqui decidia por booleano e, por isso, não conseguia
+ * distinguir "nunca assinou" de "assinou e venceu": os dois viravam o mesmo
+ * `card_required`, e quem tinha pagado PIX recebia o convite para "conhecer a
+ * plataforma adicionando um cartão". A decisão agora devolve um código
+ * semântico (`plan_expired`, `subscription_required`, `account_suspended`) e
+ * enxerga `role`, para que a conta administrativa não seja barrada pelo fluxo
+ * comercial do próprio produto.
  *
- * Por quê: o "teste grátis" só é realmente grátis (cancelável a qualquer
- * momento antes da cobrança) se houver cartão cadastrado na Stripe. Sem
- * cartão, o usuário só pode navegar — não pode adicionar Meta, WhatsApp,
- * Eduzz, Kiwify, Hotmart, Monetizze ou Perfect Pay.
+ * Este arquivo segue dono das regras de TESTE GRÁTIS, que o resolvedor consome.
+ * Não reintroduza um predicado de acesso aqui: é o que fez tela e gate
+ * divergirem.
  */
-export function hasPaidAccess(user: {
-  subscriptionStatus?: string | null
-  paymentMethodAddedAt?: Date | string | null
-  trialStatus?: string | null
-  trialEndsAt?: Date | string | null
-  trialPlan?: string | null
-  plan?: string | null
-  gracePeriodEndsAt?: Date | string | null
-  planExpiresAt?: Date | string | null
-}): boolean {
-  // Período pago vencido corta o acesso ANTES de qualquer outra checagem.
-  //
-  // Sem isto, a linha abaixo liberava para sempre: o webhook grava
-  // `subscriptionStatus: 'active'` na aprovação e nada nunca reverte esse
-  // status — nenhum lugar do sistema marca 'expired'. Um PIX avulso virava
-  // acesso vitalício. Ver lib/plan-expiry.ts.
-  if (isPlanExpired(user)) return false
-
-  if (user.subscriptionStatus === 'active') return true
-
-  // `paymentMethodAddedAt` é gravado uma vez e NUNCA é limpo. Sozinho, ele
-  // concedia acesso vitalício: quem cancelasse a assinatura continuava criando
-  // e reconectando integrações para sempre. Agora o cartão só vale enquanto o
-  // direito de acesso existir de fato.
-  if (!user.paymentMethodAddedAt) return false
-
-  const status = user.subscriptionStatus
-  if (status === 'canceled' || status === 'cancelled' || status === 'unpaid') return false
-
-  // Fora do período de carência de inadimplência.
-  if (user.gracePeriodEndsAt && new Date(user.gracePeriodEndsAt).getTime() <= Date.now()) {
-    return false
-  }
-
-  // Cartão cadastrado durante um teste que já venceu, sem assinatura ativa.
-  if (user.trialEndsAt && isTrialExpired(user as TrialUser)) return false
-
-  return true
-}

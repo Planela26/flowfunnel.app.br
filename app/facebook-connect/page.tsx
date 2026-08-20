@@ -4,7 +4,7 @@ import ThemeToggle from '@/components/ThemeToggle'
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Facebook, CheckCircle, AlertCircle, ExternalLink } from 'lucide-react'
+import { Facebook, CheckCircle, AlertCircle, ExternalLink, Lock } from 'lucide-react'
 import {
   TutorialLayout, TutorialNav, FormField, InfoBox, CopyField, Tooltip,
 } from '@/components/IntegrationTutorial'
@@ -27,6 +27,10 @@ export default function FacebookConnect() {
   const [credentials, setCredentials] = useState({ appId: '', appSecret: '' })
   const [adAccounts, setAdAccounts] = useState<any[]>([])
   const [selectedAccount, setSelectedAccount] = useState('')
+  // Bloqueio comercial do FlowSara (402/403), separado de `error`, que é falha
+  // técnica ou erro da Meta. São dois problemas com saídas diferentes: um se
+  // resolve no /billing, o outro tentando de novo ou trocando o token.
+  const [bloqueio, setBloqueio] = useState<{ mensagem: string; url: string; rotulo: string } | null>(null)
 
   const handleValidateToken = async () => {
     if (!accessToken) { setError('Insira o Access Token'); return }
@@ -67,7 +71,32 @@ export default function FacebookConnect() {
         }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Erro ao conectar')
+
+      // Recusa comercial: o FlowSara decidiu que esta conta não pode conectar.
+      // Tem tratamento próprio porque existe uma ação concreta que resolve —
+      // renovar, assinar, falar com o suporte — e um "erro" vermelho sem
+      // caminho de saída não ajuda ninguém.
+      if (res.status === 402 || res.status === 403) {
+        const rotulos: Record<string, string> = {
+          plan_expired: 'Renovar plano',
+          subscription_required: 'Ver planos',
+          account_deactivated: 'Falar com o suporte',
+        }
+        setBloqueio({
+          mensagem: data.message || 'Sua conta não tem acesso liberado para conectar integrações.',
+          url: data.upgradeUrl || '/billing',
+          rotulo: rotulos[data.error] || 'Resolver',
+        })
+        return
+      }
+
+      if (res.status === 401) throw new Error('Sua sessão expirou. Entre novamente para conectar.')
+
+      // `message` antes de `error`: quando a resposta traz as duas, `error` é o
+      // código da máquina e `message` é a frase para a pessoa. Lendo `error`
+      // primeiro, a tela mostrava o código cru (foi assim que "card_required"
+      // apareceu no lugar de uma explicação).
+      if (!res.ok) throw new Error(data.message || data.error || 'Erro ao conectar')
       setStep(6)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao conectar Facebook Ads')
@@ -369,7 +398,7 @@ export default function FacebookConnect() {
                   name="adAccount"
                   value={account.id}
                   checked={selectedAccount === account.id}
-                  onChange={(e) => { setSelectedAccount(e.target.value); setError('') }}
+                  onChange={(e) => { setSelectedAccount(e.target.value); setError(''); setBloqueio(null) }}
                   className="w-4 h-4 text-blue-600"
                 />
                 <div className="ml-3 flex-1">
@@ -387,6 +416,25 @@ export default function FacebookConnect() {
             <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
               <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
               <p className="text-sm text-red-800">{error}</p>
+            </div>
+          )}
+
+          {/* Bloqueio comercial: âmbar e com botão de ação, não vermelho de
+              erro. Nada quebrou — falta direito de acesso, e existe um caminho
+              para resolver. Era aqui que aparecia a string "card_required". */}
+          {bloqueio && (
+            <div className="flex items-start gap-3 bg-amber-50 border border-amber-300 rounded-lg p-4 mb-4">
+              <Lock className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm text-amber-900 font-medium mb-2">{bloqueio.mensagem}</p>
+                <button
+                  type="button"
+                  onClick={() => router.push(bloqueio.url)}
+                  className="text-sm font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-lg px-4 py-2 transition"
+                >
+                  {bloqueio.rotulo}
+                </button>
+              </div>
             </div>
           )}
 

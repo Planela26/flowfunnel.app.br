@@ -100,10 +100,12 @@ export default function TrialBanner() {
     )
   }
 
-  // ── Caso 3: explorando sem cartão ──
+  // ── Caso 3: explorando sem cartão, com teste EM CURSO ──
   // NÃO prometer "teste grátis" — o usuário só está conhecendo a plataforma.
   // Tudo o que ele criar/importar fica na preview; só conecta integração real
   // depois de cartão ou PIX.
+  //
+  // Exige `trialActive`: quem já perdeu o teste cai no caso 4, com outro texto.
   if (info.trialActive) {
     const days = info.trialDaysLeft
     return (
@@ -136,5 +138,9 @@ export default function TrialBanner() {
     )
   }
 
+  // Sem teste em curso e sem plano pago, quem avisa é o PlanExpiredBanner —
+  // que já existe para isso e fica logo acima deste no AppShell. Dois banners
+  // sobre o mesmo bloqueio apareciam empilhados e se contradizendo ("plano
+  // vencido" × "teste grátis terminou") para a mesma conta.
   return null
 }

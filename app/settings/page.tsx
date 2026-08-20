@@ -24,6 +24,8 @@ function IntegrationPanel({
   connected,
   tutorialHref,
   locked,
+  lockedMessage,
+  lockedActionUrl,
   children,
 }: {
   icon: React.ReactNode
@@ -32,6 +34,9 @@ function IntegrationPanel({
   connected: boolean
   tutorialHref: string
   locked?: boolean
+  /** Motivo real do bloqueio, vindo de /api/plan. Sem ele, cai no texto genérico. */
+  lockedMessage?: string | null
+  lockedActionUrl?: string | null
   children: React.ReactNode
 }) {
   const [open, setOpen] = useState(true)
@@ -94,9 +99,20 @@ function IntegrationPanel({
               <div className="flex items-center gap-2 px-4 py-2.5 bg-amber-50 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-700 rounded-xl shadow-sm">
                 <Lock className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0" />
                 <span className="text-sm text-amber-800 dark:text-amber-300 font-medium">
-                  Disponível apenas com plano ativo —{' '}
-                  <a href="/pricing" className="underline font-semibold hover:text-amber-900">
-                    ver planos
+                  {/* "Disponível apenas com plano ativo" era verdade para todo
+                      mundo e útil para ninguém: não dizia se faltava assinar,
+                      renovar ou falar com o suporte. Quando o backend informa o
+                      motivo, é ele que aparece. */}
+                  {lockedMessage || 'Disponível apenas com plano ativo'} —{' '}
+                  <a
+                    href={lockedActionUrl || '/pricing'}
+                    className="underline font-semibold hover:text-amber-900"
+                  >
+                    {lockedActionUrl === '/plano-vencido'
+                      ? 'renovar'
+                      : lockedActionUrl === '/conta-desativada'
+                      ? 'saber mais'
+                      : 'ver planos'}
                   </a>
                 </span>
               </div>
@@ -376,6 +392,8 @@ export default function ConfigPage() {
                 connected={integrations.facebook}
                 tutorialHref="/facebook-connect"
                 locked={paymentLocked && !integrations.facebook}
+                lockedMessage={planInfo.accessMessage}
+                lockedActionUrl={planInfo.accessActionUrl}
               >
                 <div className="grid md:grid-cols-2 gap-3">
                   <div className="md:col-span-2">
@@ -445,6 +463,8 @@ export default function ConfigPage() {
                 connected={integrations.google}
                 tutorialHref="https://ads.google.com/intl/pt-BR/home/"
                 locked={paymentLocked && !integrations.google}
+                lockedMessage={planInfo.accessMessage}
+                lockedActionUrl={planInfo.accessActionUrl}
               >
                 <div className="grid md:grid-cols-2 gap-3">
                   <div>
@@ -532,6 +552,8 @@ export default function ConfigPage() {
                 connected={integrations.tiktok}
                 tutorialHref="https://ads.tiktok.com/marketing_api/docs"
                 locked={paymentLocked && !integrations.tiktok}
+                lockedMessage={planInfo.accessMessage}
+                lockedActionUrl={planInfo.accessActionUrl}
               >
                 <div className="grid md:grid-cols-2 gap-3">
                   <div>
@@ -616,6 +638,8 @@ export default function ConfigPage() {
                 connected={integrations.whatsapp}
                 tutorialHref="/whatsapp-connect"
                 locked={paymentLocked && !integrations.whatsapp}
+                lockedMessage={planInfo.accessMessage}
+                lockedActionUrl={planInfo.accessActionUrl}
               >
                 <div className="grid md:grid-cols-2 gap-3">
                   <div className="md:col-span-2">
@@ -688,6 +712,8 @@ export default function ConfigPage() {
                 connected={integrations.hotmart}
                 tutorialHref="/hotmart-connect"
                 locked={paymentLocked && !integrations.hotmart}
+                lockedMessage={planInfo.accessMessage}
+                lockedActionUrl={planInfo.accessActionUrl}
               >
                 <div className="grid md:grid-cols-2 gap-3">
                   <div>
@@ -751,6 +777,8 @@ export default function ConfigPage() {
                 connected={integrations.kiwify}
                 tutorialHref="/kiwify-connect"
                 locked={paymentLocked && !integrations.kiwify}
+                lockedMessage={planInfo.accessMessage}
+                lockedActionUrl={planInfo.accessActionUrl}
               >
                 <div className="grid md:grid-cols-2 gap-3">
                   <div>
@@ -804,6 +832,8 @@ export default function ConfigPage() {
                 connected={integrations.eduzz}
                 tutorialHref="/eduzz-connect"
                 locked={paymentLocked && !integrations.eduzz}
+                lockedMessage={planInfo.accessMessage}
+                lockedActionUrl={planInfo.accessActionUrl}
               >
                 <div className="grid md:grid-cols-2 gap-3">
                   <div>
@@ -856,6 +886,8 @@ export default function ConfigPage() {
                 connected={integrations.monetizze}
                 tutorialHref="/monetizze-connect"
                 locked={paymentLocked && !integrations.monetizze}
+                lockedMessage={planInfo.accessMessage}
+                lockedActionUrl={planInfo.accessActionUrl}
               >
                 <div className="grid md:grid-cols-2 gap-3">
                   <div>

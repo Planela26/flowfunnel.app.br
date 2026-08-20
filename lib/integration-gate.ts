@@ -2,60 +2,75 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from './auth'
 import { prisma } from './prisma'
-import { hasPaidAccess, TRIAL_DAYS } from './trial'
+import { resolveCommercialAccess } from './commercial-access'
 
 /**
- * Bloqueia criação de integração quando o usuário está no modo "só explorar"
- * (sem cartão na Stripe E sem assinatura ativa).
+ * Camada comercial das integrações.
  *
- * Sem cartão cadastrado, o usuário pode navegar pelo funil, ver exemplos e
- * configurar o que quiser — mas não pode adicionar Meta Ads, Google Ads,
- * TikTok, WhatsApp, Eduzz, Kiwify, Hotmart, Monetizze ou Perfect Pay.
+ * Conectar Meta, WhatsApp, Eduzz, Hotmart, Kiwify, Monetizze ou Perfect Pay é
+ * funcionalidade do produto: quem não tem direito de acesso não conecta. O que
+ * mudou não foi a existência do bloqueio, e sim a resposta.
  *
- * Quem pagou via PIX (MercadoPago) já tem `subscriptionStatus='active'`
- * aplicado pelo webhook → passa direto.
+ * ANTES: qualquer motivo de recusa saía como `card_required`, com o texto
+ * "Você está conhecendo a plataforma. Adicione um cartão". Cliente que pagou
+ * PIX e passou dos 30 dias recebia esse convite em vez de um botão de renovar;
+ * conta desativada recebia o mesmo; a conta administrativa também.
  *
- * Retorna `null` se a operação é permitida; caso contrário retorna uma
- * `NextResponse` 402 pronta para o caller devolver.
+ * AGORA: o motivo é explícito — `plan_expired`, `subscription_required` ou
+ * `account_deactivated` — e cada um leva a uma tela diferente. `card_required`
+ * não é mais emitido pelo FlowSara em lugar nenhum: se esse código aparecer na
+ * interface, veio da Graph API da Meta e é problema de cobrança DA CONTA DE
+ * ANÚNCIOS, não de autorização daqui.
+ *
+ * Retorna `null` quando a operação é permitida; caso contrário, uma
+ * `NextResponse` pronta para o caller devolver.
  */
 export async function assertCanCreateIntegration(
-  request: Request,
+  _request: Request,
 ): Promise<NextResponse | null> {
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) {
-    return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+    return NextResponse.json(
+      { error: 'unauthorized', message: 'Faça login para conectar uma integração.' },
+      { status: 401 },
+    )
   }
 
   const u = await prisma.user.findUnique({
     where: { id: session.user.id },
     select: {
+      // Papel: a conta administrativa não é barrada pelo fluxo comercial.
+      role: true,
+      // Suspensão administrativa — precede qualquer consideração de pagamento.
+      deactivatedAt: true,
       subscriptionStatus: true,
       paymentMethodAddedAt: true,
+      gracePeriodEndsAt: true,
+      // Fim do período pago de 30 dias.
+      planExpiresAt: true,
+      // Regras do teste grátis.
       plan: true,
-      // Necessários para hasPaidAccess decidir se o direito de acesso ainda vale
-      // (cancelamento, carência vencida, teste expirado).
       trialStatus: true,
       trialEndsAt: true,
       trialPlan: true,
-      gracePeriodEndsAt: true,
-      // E se o período pago de 30 dias já venceu.
-      planExpiresAt: true,
     },
   })
   if (!u) {
-    return NextResponse.json({ error: 'Usuário não encontrado' }, { status: 404 })
+    return NextResponse.json(
+      { error: 'unauthorized', message: 'Conta não encontrada. Entre novamente.' },
+      { status: 401 },
+    )
   }
 
-  if (hasPaidAccess(u)) return null
+  const decisao = resolveCommercialAccess(u)
+  if (decisao.allowed) return null
 
   return NextResponse.json(
     {
-      error: 'card_required',
-      code: 'CARD_REQUIRED_TO_LINK_INTEGRATION',
-      message:
-        `Você está conhecendo a plataforma. Adicione um cartão de crédito (teste grátis de ${TRIAL_DAYS} dias, sem cobrança até o fim do período) ou pague via PIX para liberar a conexão de integrações reais.`,
-      upgradeUrl: '/billing',
+      error: decisao.code,
+      message: decisao.message,
+      upgradeUrl: decisao.actionUrl,
     },
-    { status: 402 },
+    { status: decisao.status },
   )
 }

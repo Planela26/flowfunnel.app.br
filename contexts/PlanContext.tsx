@@ -29,6 +29,19 @@ export type PlanInfo = {
   paidAccess: boolean
   /** Sem cartão e sem assinatura: pode navegar mas sem criar integrações. */
   exploringOnly: boolean
+  /**
+   * POR QUE o acesso está bloqueado — `null` quando está liberado.
+   *
+   * Vem de `resolveCommercialAccess`, a MESMA função que o gate das
+   * integrações usa. É o que permite a tela dizer "renove" a quem já pagou em
+   * vez do convite genérico para assinar: `exploringOnly` sozinho não
+   * distingue quem nunca assinou de quem assinou e venceu.
+   */
+  accessDenialCode: 'plan_expired' | 'subscription_required' | 'account_deactivated' | null
+  /** Frase pronta para exibir. Preferir sempre a este código. */
+  accessMessage: string | null
+  /** Para onde mandar quem foi bloqueado (/billing, /plano-vencido, ...). */
+  accessActionUrl: string | null
 }
 
 const DEFAULT: PlanInfo = {
@@ -66,6 +79,12 @@ const DEFAULT: PlanInfo = {
   cardAdded: false,
   paidAccess: false,
   exploringOnly: true,
+  // Enquanto /api/plan não respondeu não sabemos o motivo, e chutar um seria
+  // pior que não mostrar nada: a pessoa leria "seu plano venceu" durante o
+  // carregamento de uma conta perfeitamente ativa.
+  accessDenialCode: null,
+  accessMessage: null,
+  accessActionUrl: null,
 }
 
 interface PlanContextType {
