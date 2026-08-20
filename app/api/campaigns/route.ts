@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma, withTenantTx } from '@/lib/prisma'
-import { checkRateLimit } from '@/lib/security-utils'
+import { checkRateLimit, decryptSecret } from '@/lib/security-utils'
 
 // Buscar campanhas do Facebook Ads
 export async function GET(request: Request) {
@@ -58,8 +58,17 @@ export async function GET(request: Request) {
       orderBy: { lastSyncedAt: 'desc' },
     })
 
-    const shouldSync = forceSync || !lastSync || 
+    const shouldSync = forceSync || !lastSync ||
       (Date.now() - new Date(lastSync.lastSyncedAt).getTime() > 3600000) // 1 hora
+
+    // Falha de sincronização precisa CHEGAR na resposta.
+    //
+    // Antes ela só ia para o `console.error` do servidor e a rota devolvia a
+    // lista do banco — vazia, com HTTP 200. Token expirado, permissão revogada
+    // ou conta desvinculada apareciam na tela exatamente como "você não tem
+    // campanhas", e não havia o que o usuário pudesse fazer a respeito porque
+    // nada indicava que algo tinha falhado.
+    let erroDeSync: string | null = null
 
     if (shouldSync) {
       // Buscar campanhas da API do Facebook
@@ -71,12 +80,17 @@ export async function GET(request: Request) {
         const response = await fetch(
           `https://graph.facebook.com/v18.0/${accountId}/campaigns?` +
           `fields=id,name,status,objective,daily_budget,lifetime_budget,start_time,stop_time,spend`,
-          { headers: { Authorization: `Bearer ${integration.accessToken}` } }
+          // Esta rota monta o fetch por conta própria, sem passar pelo
+          // `graphFetch` de lib/facebook.ts — então precisa descriptografar
+          // aqui. `Integration.accessToken` vale `enc:...` no banco; mandar a
+          // coluna crua rende 401 da Meta.
+          { headers: { Authorization: `Bearer ${decryptSecret(integration.accessToken) || integration.accessToken}` } }
         )
 
         if (!response.ok) {
-          const error = await response.json()
+          const error = await response.json().catch(() => null)
           console.error('Erro ao buscar campanhas:', error)
+          erroDeSync = error?.error?.message || `A Meta respondeu ${response.status}.`
         } else {
           const data = await response.json()
 
@@ -145,6 +159,7 @@ export async function GET(request: Request) {
         }
       } catch (error) {
         console.error('Erro ao sincronizar campanhas:', error)
+        erroDeSync = error instanceof Error ? error.message : 'Falha ao falar com a Meta.'
       }
     }
 
@@ -161,9 +176,18 @@ export async function GET(request: Request) {
       ],
     })
 
+    // Campanhas em cache continuam sendo devolvidas mesmo com sync falho — o
+    // que já foi sincronizado ontem segue valendo hoje. O aviso vai junto, para
+    // a tela poder dizer que os números podem estar desatualizados em vez de
+    // apresentar dados velhos como se fossem de agora.
     return NextResponse.json({
       campaigns,
-      synced: shouldSync,
+      synced: shouldSync && !erroDeSync,
+      syncError: erroDeSync,
+      syncErrorMessage: erroDeSync
+        ? 'Não foi possível atualizar suas campanhas na Meta. O token pode ter expirado ou perdido a permissão ads_read — reconecte a conta de anúncios.'
+        : null,
+      reconnectUrl: erroDeSync ? '/facebook-connect' : null,
     })
   } catch (error) {
     console.error('Erro ao buscar campanhas:', error)

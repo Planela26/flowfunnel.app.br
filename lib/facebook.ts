@@ -1,5 +1,7 @@
 // Biblioteca de funções para Meta/Facebook Ads API
 
+import { decryptSecret } from './security-utils'
+
 /**
  * Chamada à Graph API com o token no header, nunca na query string.
  *
@@ -7,13 +9,32 @@
  * projeto já documenta isso em app/api/cron/snapshot/route.ts ("secret deve vir
  * SOMENTE no header Authorization"). O timeout evita que um upstream lento
  * segure a conexão indefinidamente.
+ *
+ * ── Por que a descriptografia acontece AQUI ─────────────────────────────────
+ *
+ * `Integration.accessToken` é gravado por `encryptSecret` e vale
+ * `enc:<iv>:<tag>:<dados>` no banco. Cada rota que lia a coluna mandava esse
+ * texto para a Meta como se fosse o token — campanhas, métricas, relatório em
+ * PDF e o snapshot diário, todas. A Meta respondia 401, o `catch` de cada
+ * função devolvia `success: false`, e quem chamava traduzia isso em lista
+ * vazia: a tela dizia "nenhuma campanha" para uma conta cheia de campanhas.
+ *
+ * Descriptografar em cada chamador seria repetir a mesma linha cinco vezes e
+ * esperar que a sexta rota também lembrasse. Aqui é o ponto por onde todo
+ * acesso à Graph API obrigatoriamente passa.
+ *
+ * `decryptSecret` devolve o valor intacto quando não há o prefixo `enc:`, então
+ * token recém-vindo do OAuth (ainda em texto puro, como na tela de conexão) e
+ * token legado gravado antes da criptografia continuam funcionando.
  */
 function graphFetch(url: string, accessToken: string, init?: RequestInit): Promise<Response> {
+  const token = decryptSecret(accessToken) || accessToken
+
   return fetch(url, {
     ...init,
     headers: {
       ...(init?.headers ?? {}),
-      Authorization: `Bearer ${accessToken}`,
+      Authorization: `Bearer ${token}`,
     },
     signal: init?.signal ?? AbortSignal.timeout(15_000),
   })

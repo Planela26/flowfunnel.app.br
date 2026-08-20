@@ -105,6 +105,10 @@ export default function CampaignsPage() {
   const [metrics, setMetrics] = useState<CampaignMetrics | null>(null)
   const [loadingMetrics, setLoadingMetrics] = useState(false)
   const [notConnected, setNotConnected] = useState(false)
+  // Conectado, mas a Meta recusou a leitura (token expirado, ads_read revogada,
+  // conta desvinculada). É diferente de "não conectado" e de "sem campanhas" —
+  // as três situações apareciam iguais na tela.
+  const [erroSync, setErroSync] = useState<{ mensagem: string; url: string } | null>(null)
   const [settingDefault, setSettingDefault] = useState<string | null>(null)
   const [connectionStatus, setConnectionStatus] = useState<Record<Source, boolean>>({
     facebook: false, google: false, tiktok: false,
@@ -142,6 +146,16 @@ export default function CampaignsPage() {
       const url = forceSync ? '/api/campaigns?sync=true' : '/api/campaigns'
       const res = await fetch(url)
       const data = await res.json()
+
+      // A falha de sincronização é mostrada mesmo quando há campanhas em cache:
+      // os números continuam na tela, mas com o aviso de que podem estar
+      // desatualizados. Sem isso, dado velho passa por dado de agora.
+      setErroSync(
+        data.syncError
+          ? { mensagem: data.syncErrorMessage || data.syncError, url: data.reconnectUrl || '/facebook-connect' }
+          : null,
+      )
+
       if (data.campaigns && data.campaigns.length > 0) {
         setCampaigns(data.campaigns)
         setNotConnected(false)
@@ -149,7 +163,10 @@ export default function CampaignsPage() {
         if (def && !selectedCampaign) setSelectedCampaign(def)
       } else {
         setCampaigns([])
-        setNotConnected(true)
+        // Lista vazia só significa "não conectado" quando NÃO houve erro de
+        // sincronização. Com erro, a conta está conectada — o que falhou foi a
+        // leitura, e mandar a pessoa "conectar" de novo não descreve o problema.
+        setNotConnected(!data.syncError)
       }
     } catch {
       setNotConnected(true)
@@ -321,6 +338,20 @@ export default function CampaignsPage() {
                   </p>
                   <Link href="/settings" className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:underline">
                     Conectar Facebook Ads <ExternalLink className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
+              </div>
+            )}
+
+            {/* Conectado, mas a Meta recusou a leitura */}
+            {erroSync && (
+              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-xl p-6 flex items-start gap-4 mb-6">
+                <AlertCircle className="w-6 h-6 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-bold text-red-800 dark:text-red-300">Não foi possível ler suas campanhas na Meta</p>
+                  <p className="text-sm text-red-700 dark:text-red-400 mt-1">{erroSync.mensagem}</p>
+                  <Link href={erroSync.url} className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:underline">
+                    Reconectar conta de anúncios <ExternalLink className="w-3.5 h-3.5" />
                   </Link>
                 </div>
               </div>
