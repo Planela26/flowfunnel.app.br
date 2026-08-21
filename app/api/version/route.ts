@@ -27,6 +27,35 @@ export const dynamic = 'force-dynamic'
 // no ar.
 const processoIniciadoEm = new Date().toISOString()
 
+/**
+ * Commit que originou este build, lido do `.git` do diretório de deploy.
+ *
+ * O `buildId` prova que HOUVE um build novo, mas não diz QUAL código entrou —
+ * e essa diferença custou tempo: uma resposta da Sara citando "últimos 30 dias"
+ * foi lida como dado real quando podia ser o modelo renomeando a janela de 7
+ * dias, porque não havia como saber se o commit que adiciona as três janelas
+ * já estava no ar. Com o SHA, a pergunta "essa correção subiu?" se responde em
+ * uma requisição.
+ *
+ * Lê `.git/HEAD` e, se for uma ref, o arquivo apontado. É um identificador
+ * público de versão — sem relação com dados, credenciais ou usuários.
+ */
+async function lerCommit(): Promise<string | null> {
+  try {
+    const raiz = process.cwd()
+    const head = (await readFile(path.join(raiz, '.git/HEAD'), 'utf8')).trim()
+    if (head.startsWith('ref: ')) {
+      const ref = head.slice(5).trim()
+      const sha = (await readFile(path.join(raiz, '.git', ref), 'utf8')).trim()
+      return sha.slice(0, 7)
+    }
+    return head.slice(0, 7)
+  } catch {
+    // Deploy sem `.git` (build copiado, container). Não é motivo para falhar.
+    return null
+  }
+}
+
 export async function GET() {
   let buildId: string | null = null
   try {
@@ -38,6 +67,7 @@ export async function GET() {
 
   return NextResponse.json({
     buildId,
+    commit: await lerCommit(),
     processoIniciadoEm,
     agora: new Date().toISOString(),
   })

@@ -248,28 +248,41 @@ export const SaraContextService = {
           //
           // `getInsightsComFallback` cobre a conta que só reporta por campanha.
           const ids = campanhasMeta.map(c => c.campaignId).filter(Boolean) as string[]
-          const [hoje, semana, mes] = await Promise.all([
+          const [hoje, ontem, semana, mes] = await Promise.all([
             getInsightsComFallback(metaAtiva.accessToken, contaId, 'today', ids),
+            getInsightsComFallback(metaAtiva.accessToken, contaId, 'yesterday', ids),
             getInsightsComFallback(metaAtiva.accessToken, contaId, 'last_7d', ids),
             getInsightsComFallback(metaAtiva.accessToken, contaId, 'last_30d', ids),
           ])
 
-          const linha = (rotulo: string, r: typeof hoje) => {
-            if (!r.success) return `${rotulo}: leitura falhou (${r.error ?? 'motivo desconhecido'})`
-            if (!r.hasDelivery || !r.data) return `${rotulo}: sem veiculação no período (zero entrega — não é falha de leitura)`
+          const linha = (rotulo: string, preset: string, r: typeof hoje) => {
+            // O nome do preset vai junto do rótulo de propósito. Sem ele, uma
+            // resposta já saiu chamando a janela de 7 dias de "últimos 30
+            // dias": com uma janela só no contexto, o modelo preencheu o rótulo
+            // que a pergunta sugeria. Rótulo e origem colados tiram esse espaço.
+            const cab = `${rotulo} (date_preset=${preset})`
+            if (!r.success) return `${cab}: LEITURA FALHOU — ${r.error ?? 'motivo desconhecido'}. Não afirme que não houve veiculação; diga que não foi possível ler.`
+            if (!r.hasDelivery || !r.data) return `${cab}: zero entrega nesta janela. A Meta respondeu normalmente — é ausência de veiculação, não falha de leitura.`
             const d = r.data
             return (
-              `${rotulo}: Impressões ${d.impressions} | Cliques ${d.clicks} | Cliques no link ${d.linkClicks} | ` +
+              `${cab}: Impressões ${d.impressions} | Cliques ${d.clicks} | Cliques no link ${d.linkClicks} | ` +
               `Investido R$${d.spend.toFixed(2)} | CTR ${d.ctr}% | CPC R$${d.cpc.toFixed(2)} | ` +
-              `CPM R$${d.cpm.toFixed(2)} | Alcance ${d.reach}`
+              `CPM R$${d.cpm.toFixed(2)} | Alcance ${d.reach}` +
+              (r.fonte === 'campanhas' ? ' [somado por campanha]' : '')
             )
           }
 
           midiaStr =
-            'Meta Ads conectado.\n' +
-            `  - ${linha('HOJE', hoje)}\n` +
-            `  - ${linha('ÚLTIMOS 7 DIAS', semana)}\n` +
-            `  - ${linha('ÚLTIMOS 30 DIAS', mes)}`
+            'Meta Ads conectado. Quatro janelas medidas AGORA, direto na Meta:\n' +
+            `  - ${linha('HOJE', 'today', hoje)}\n` +
+            `  - ${linha('ONTEM', 'yesterday', ontem)}\n` +
+            `  - ${linha('ÚLTIMOS 7 DIAS', 'last_7d', semana)}\n` +
+            `  - ${linha('ÚLTIMOS 30 DIAS', 'last_30d', mes)}\n` +
+            '  COMO LER: as janelas se sobrepõem — a de 30 dias CONTÉM a de 7, que contém hoje. ' +
+            'Número alto em 30 dias com zero hoje NÃO é contradição nem erro: significa que a ' +
+            'campanha entregou antes e não entregou hoje. Explique isso em vez de se desculpar. ' +
+            'Cite sempre a janela ao dar um número, e nunca troque o rótulo de uma janela pelo de outra. ' +
+            'Se o usuário pedir uma janela que não está nesta lista, diga que não a tem — não estime.'
         } else {
           midiaStr = 'Meta Ads conectado, mas sem conta de anúncios definida na integração.'
         }
