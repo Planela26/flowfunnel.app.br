@@ -17,7 +17,7 @@ import { getCachedContext, setCachedContext, invalidateContext } from './sara-co
 import { SaraMemoryService } from './sara-memory'
 import { getSaraCapabilities, type SaraCapabilities } from './sara-capabilities'
 import { getEffectivePlan } from './trial'
-import { getAdInsights } from './facebook'
+import { getInsightsComFallback } from './facebook'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -78,8 +78,16 @@ export const SaraContextService = {
   // ── Internal ───────────────────────────────────────────────────────────────
 
   async _fetch(userId: string, page?: PageContext): Promise<SaraContext> {
+    // Meia-noite local: é o "hoje" que a pessoa quer dizer ao pedir o relatório
+    // do dia, e o mesmo corte que a Meta usa em `date_preset=today`.
+    const inicioDoDia = new Date()
+    inicioDoDia.setHours(0, 0, 0, 0)
+
     // Parallel fetch — all queries fire at once
-    const [user, snapshot, funnel, recentTickets, insights, kbArticles, vendas, campanhasMeta] = await Promise.all([
+    const [
+      user, snapshot, funnel, recentTickets, insights, kbArticles, vendas, campanhasMeta,
+      leadsHoje, sessoesHoje, eventosHoje, conversoesHoje, origensHoje,
+    ] = await Promise.all([
       prisma.user.findUnique({
         where: { id: userId },
         select: {
@@ -145,10 +153,31 @@ export const SaraContextService = {
 
       prisma.campaign.findMany({
         where: { userId, platform: 'META_ADS' },
-        select: { name: true, status: true, objective: true },
+        select: { name: true, status: true, objective: true, campaignId: true },
         take: 10,
         orderBy: { isDefault: 'desc' },
       }).catch(() => []),
+
+      // Landing page HOJE. A Sara só tinha o total acumulado de leads, então
+      // não conseguia responder "o que entrou hoje" — a pergunta mais comum.
+      // Mesmas tabelas que /api/landing/metrics usa, recortadas no dia.
+      prisma.trackedLead.count({ where: { userId, createdAt: { gte: inicioDoDia } } }).catch(() => 0),
+      prisma.trackedSession.count({ where: { userId, startedAt: { gte: inicioDoDia } } }).catch(() => 0),
+      prisma.trackedEvent.groupBy({
+        by: ['eventName'],
+        where: { userId, createdAt: { gte: inicioDoDia } },
+        _count: { _all: true },
+      }).catch(() => [] as Array<{ eventName: string; _count: { _all: number } }>),
+      prisma.trackedConversion.aggregate({
+        where: { userId, createdAt: { gte: inicioDoDia } },
+        _count: { _all: true },
+        _sum: { value: true },
+      }).catch(() => null),
+      prisma.trackedLead.groupBy({
+        by: ['utmSource'],
+        where: { userId, createdAt: { gte: inicioDoDia } },
+        _count: { _all: true },
+      }).catch(() => [] as Array<{ utmSource: string | null; _count: { _all: number } }>),
     ])
 
     // ── Assemble context string ─────────────────────────────────────────────
@@ -209,20 +238,38 @@ export const SaraContextService = {
           : (metaAtiva.config ?? {})
         const contaId = cfg?.adAccountId
         if (contaId && metaAtiva.accessToken) {
-          const ins = await getAdInsights(metaAtiva.accessToken, contaId, 'last_7d')
-          if (ins.success && ins.data && ins.hasDelivery !== false) {
-            const d = ins.data
-            midiaStr =
-              `Meta Ads — últimos 7 dias: Impressões ${d.impressions} | Cliques ${d.clicks} | ` +
-              `Cliques no link ${d.linkClicks} | Investido R$${d.spend.toFixed(2)} | ` +
-              `CTR ${d.ctr}% | CPC R$${d.cpc.toFixed(2)} | CPM R$${d.cpm.toFixed(2)} | Alcance ${d.reach}`
-          } else if (ins.success) {
-            midiaStr =
-              'Meta Ads conectado. A conta respondeu normalmente, mas NÃO houve veiculação ' +
-              'nos últimos 7 dias (zero entrega no período — não é falha de leitura).'
-          } else {
-            midiaStr = `Meta Ads conectado, mas a leitura falhou: ${ins.error ?? 'motivo desconhecido'}.`
+          // TRÊS janelas, não uma.
+          //
+          // Antes o contexto trazia só `last_7d`, e a Sara não tinha como
+          // responder "o relatório de HOJE" — respondia sobre a semana e, com a
+          // campanha começando a entregar hoje, concluía "sem veiculação".
+          // Perguntas sobre hoje, sobre a semana e sobre o mês são as três que
+          // as pessoas fazem; as três vão no contexto e ela escolhe.
+          //
+          // `getInsightsComFallback` cobre a conta que só reporta por campanha.
+          const ids = campanhasMeta.map(c => c.campaignId).filter(Boolean) as string[]
+          const [hoje, semana, mes] = await Promise.all([
+            getInsightsComFallback(metaAtiva.accessToken, contaId, 'today', ids),
+            getInsightsComFallback(metaAtiva.accessToken, contaId, 'last_7d', ids),
+            getInsightsComFallback(metaAtiva.accessToken, contaId, 'last_30d', ids),
+          ])
+
+          const linha = (rotulo: string, r: typeof hoje) => {
+            if (!r.success) return `${rotulo}: leitura falhou (${r.error ?? 'motivo desconhecido'})`
+            if (!r.hasDelivery || !r.data) return `${rotulo}: sem veiculação no período (zero entrega — não é falha de leitura)`
+            const d = r.data
+            return (
+              `${rotulo}: Impressões ${d.impressions} | Cliques ${d.clicks} | Cliques no link ${d.linkClicks} | ` +
+              `Investido R$${d.spend.toFixed(2)} | CTR ${d.ctr}% | CPC R$${d.cpc.toFixed(2)} | ` +
+              `CPM R$${d.cpm.toFixed(2)} | Alcance ${d.reach}`
+            )
           }
+
+          midiaStr =
+            'Meta Ads conectado.\n' +
+            `  - ${linha('HOJE', hoje)}\n` +
+            `  - ${linha('ÚLTIMOS 7 DIAS', semana)}\n` +
+            `  - ${linha('ÚLTIMOS 30 DIAS', mes)}`
         } else {
           midiaStr = 'Meta Ads conectado, mas sem conta de anúncios definida na integração.'
         }
@@ -230,6 +277,37 @@ export const SaraContextService = {
         /* rastreamento de mídia nunca pode quebrar a conversa */
       }
     }
+
+    // ── Landing page HOJE ─────────────────────────────────────────────────────
+    const ev: Record<string, number> = {}
+    for (const e of eventosHoje) ev[e.eventName] = e._count._all
+
+    const NOMES_ORIGEM: Record<string, string> = {
+      facebook: 'Meta Ads', fb: 'Meta Ads', meta: 'Meta Ads', instagram: 'Meta Ads',
+      google: 'Google Ads', adwords: 'Google Ads', tiktok: 'TikTok Ads',
+    }
+    const origensAgrupadas: Record<string, number> = {}
+    for (const o of origensHoje) {
+      const bruto = (o.utmSource || '').toLowerCase().trim()
+      const nome = !bruto ? 'Direto' : (NOMES_ORIGEM[bruto] || o.utmSource || 'Outros')
+      origensAgrupadas[nome] = (origensAgrupadas[nome] || 0) + o._count._all
+    }
+    const origensTexto = Object.entries(origensAgrupadas)
+      .sort((a, b) => b[1] - a[1])
+      .map(([nome, n]) => `${nome} ${n}`)
+      .join(', ')
+
+    const cliquesHoje =
+      (ev['link_click'] || 0) + (ev['click_whatsapp'] || 0) + (ev['click_checkout'] || 0)
+    const receitaHoje = conversoesHoje?._sum?.value ?? 0
+
+    const landingStr =
+      `Hoje: Leads ${leadsHoje} | Sessões ${sessoesHoje} | Page views ${ev['page_view'] || 0} | ` +
+      `Cliques ${cliquesHoje} (link ${ev['link_click'] || 0}, WhatsApp ${ev['click_whatsapp'] || 0}, ` +
+      `checkout ${ev['click_checkout'] || 0}) | Conversões ${conversoesHoje?._count?._all ?? 0} | ` +
+      `Receita R$${receitaHoje.toFixed(2)}` +
+      (origensTexto ? ` | Origens: ${origensTexto}` : '') +
+      `. Acumulado de sempre: ${leadsRastreados} leads rastreados.`
 
     const campanhasStr = campanhasMeta.length > 0
       ? campanhasMeta.map(c => `${c.name} [${c.status}${c.objective ? `, ${c.objective}` : ''}]`).join('; ')
@@ -280,6 +358,8 @@ INTEGRAÇÕES CONECTADAS: ${integrations.length > 0 ? integrations.join(', ') : 
 MÉTRICAS: ${metricsStr}
 
 MÍDIA PAGA: ${midiaStr}
+
+LANDING PAGE / RASTREAMENTO: ${landingStr}
 
 CAMPANHAS META: ${campanhasStr}
 

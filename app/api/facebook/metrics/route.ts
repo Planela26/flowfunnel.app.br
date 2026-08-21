@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { getAdInsights } from '@/lib/facebook'
+import { getAdInsights, getInsightsComFallback } from '@/lib/facebook'
 import { cache, generateCacheKey, CacheTTL } from '@/lib/cache'
 
 // Buscar métricas do Facebook Ads para o dashboard
@@ -104,13 +104,30 @@ export async function GET(request: Request) {
       return NextResponse.json(response)
     }
 
-    // Buscar insights da Meta Ads API (com ou sem filtro de campanha)
-    const result = await getAdInsights(
-      integration.accessToken,
-      config.adAccountId,
-      period,
-      campaignId // Passa o ID da campanha se fornecido
-    )
+    // Buscar insights da Meta Ads API.
+    //
+    // Com `campaignId`, é consulta direta à campanha. Sem ele, o pedido é pela
+    // conta inteira — e é aí que mora a armadilha: algumas contas devolvem
+    // lista VAZIA no nível de conta mesmo com campanha entregando. Foi o caso
+    // aqui: a aba Campanhas mostrava 1.386 impressões e este card, zero.
+    // `getInsightsComFallback` soma campanha a campanha quando o agregado não
+    // responde. Os IDs só são buscados nesse caminho, para não pesar o outro.
+    let result
+    if (campaignId) {
+      result = await getAdInsights(integration.accessToken, config.adAccountId, period, campaignId)
+    } else {
+      const campanhas = await prisma.campaign.findMany({
+        where: { userId: session.user.id, platform: 'META_ADS' },
+        select: { campaignId: true },
+        take: 25,
+      }).catch(() => [])
+      result = await getInsightsComFallback(
+        integration.accessToken,
+        config.adAccountId,
+        period,
+        campanhas.map(c => c.campaignId).filter(Boolean) as string[],
+      )
+    }
 
     if (!result.success || !result.data) {
       return NextResponse.json({

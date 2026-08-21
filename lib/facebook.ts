@@ -166,6 +166,91 @@ export async function getAdInsights(
   }
 }
 
+/**
+ * Insights do período, com queda para soma por campanha.
+ *
+ * A consulta no nível da CONTA (`act_<id>/insights`) volta vazia em algumas
+ * contas mesmo com campanha entregando — foi o que aconteceu aqui: a aba
+ * Campanhas mostrava 1.386 impressões consultando `<campaignId>/insights`,
+ * enquanto o card do dashboard e a Sara, que perguntavam pela conta, recebiam
+ * lista vazia e concluíam "sem veiculação no período".
+ *
+ * Não dá para saber de fora por que a conta não reporta no agregado — depende
+ * de permissão, de como a conta foi criada e de mudanças entre versões da API.
+ * Mas dá para contornar: se o agregado não trouxer entrega e houver campanhas
+ * conhecidas, somamos campanha a campanha, que é o caminho comprovadamente
+ * funcional.
+ *
+ * A ordem importa: a conta primeiro, porque é UMA requisição em vez de N.
+ * A soma só entra quando o barato não responde.
+ */
+export async function getInsightsComFallback(
+  accessToken: string,
+  adAccountId: string,
+  datePreset: string,
+  campaignIds: string[] = [],
+): Promise<{ success: boolean; data?: AdInsights; error?: string; hasDelivery?: boolean; fonte?: 'conta' | 'campanhas' }> {
+  const daConta = await getAdInsights(accessToken, adAccountId, datePreset)
+
+  if (daConta.success && daConta.hasDelivery) {
+    return { ...daConta, fonte: 'conta' }
+  }
+  if (campaignIds.length === 0) {
+    return { ...daConta, fonte: 'conta' }
+  }
+
+  // Teto de 25 campanhas: além disso o custo em requisições passa a doer, e
+  // conta com esse volume normalmente reporta no agregado.
+  const alvos = campaignIds.slice(0, 25)
+  const resultados = await Promise.all(
+    alvos.map(id => getAdInsights(accessToken, adAccountId, datePreset, id)),
+  )
+
+  const comEntrega = resultados.filter(r => r.success && r.hasDelivery && r.data)
+  if (comEntrega.length === 0) {
+    // Nem a conta nem as campanhas entregaram: aí é ausência de veiculação
+    // mesmo, e a resposta da conta já descreve isso corretamente.
+    const falhou = resultados.find(r => !r.success)
+    if (!daConta.success && falhou) return { ...daConta, fonte: 'campanhas' }
+    return { ...daConta, fonte: 'campanhas' }
+  }
+
+  const soma = comEntrega.reduce(
+    (acc, r) => ({
+      impressions: acc.impressions + (r.data!.impressions || 0),
+      clicks: acc.clicks + (r.data!.clicks || 0),
+      linkClicks: acc.linkClicks + (r.data!.linkClicks || 0),
+      spend: acc.spend + (r.data!.spend || 0),
+      reach: acc.reach + (r.data!.reach || 0),
+    }),
+    { impressions: 0, clicks: 0, linkClicks: 0, spend: 0, reach: 0 },
+  )
+
+  // Derivadas recalculadas sobre o total. Somar CPC/CTR de cada campanha daria
+  // média de razões, que não é a razão dos totais.
+  const cpc = soma.clicks > 0 ? soma.spend / soma.clicks : 0
+  const cpm = soma.impressions > 0 ? (soma.spend / soma.impressions) * 1000 : 0
+  const ctr = soma.impressions > 0 ? (soma.clicks / soma.impressions) * 100 : 0
+  const frequency = soma.reach > 0 ? soma.impressions / soma.reach : 0
+
+  return {
+    success: true,
+    hasDelivery: true,
+    fonte: 'campanhas',
+    data: {
+      impressions: soma.impressions,
+      clicks: soma.clicks,
+      linkClicks: soma.linkClicks,
+      spend: soma.spend,
+      cpc: parseFloat(cpc.toFixed(2)),
+      cpm: parseFloat(cpm.toFixed(2)),
+      ctr: parseFloat(ctr.toFixed(2)),
+      frequency: parseFloat(frequency.toFixed(2)),
+      reach: soma.reach,
+    },
+  }
+}
+
 // Buscar campanhas ativas
 export async function getActiveCampaigns(
   accessToken: string,
