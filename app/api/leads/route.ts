@@ -185,6 +185,56 @@ export async function GET(request: Request) {
       if (!lead.product && product) lead.product = product
     }
 
+    // ── Leads do RASTREAMENTO ─────────────────────────────────────────────────
+    //
+    // Até aqui a lista vinha só de `WebhookLog`, ou seja, apenas quem chegou por
+    // integração de checkout. Quem entrou pelo link rastreável ou pelo
+    // tracker.js vive em `TrackedLead` e não aparecia em lugar nenhum: uma
+    // conta com centenas de visitantes registrados lia "Nenhum lead
+    // encontrado — configure seus webhooks", como se nada tivesse sido
+    // capturado.
+    //
+    // Estes leads são ANÔNIMOS por natureza: o rastreamento identifica
+    // navegador e origem, não pessoa. Entram com o contato em branco e o que
+    // realmente têm — de onde vieram, qual campanha, qual anúncio. É a
+    // informação que decide onde colocar dinheiro, e vale mais visível do que
+    // escondida por falta de telefone.
+    const rastreados = await prisma.trackedLead.findMany({
+      where: { userId: session.user.id, createdAt: { gte: since } },
+      orderBy: { createdAt: 'desc' },
+      take: 2000,
+      select: {
+        leadId: true, utmSource: true, utmCampaign: true, adId: true,
+        firstUrl: true, referrer: true, createdAt: true,
+      },
+    })
+
+    for (const t of rastreados) {
+      // Chave própria: sem telefone nem e-mail, não há como casar com um lead
+      // de webhook aqui. O vínculo entre visita e venda é trabalho de
+      // SaleAttribution, que tem os critérios para isso.
+      const key = `rastreado:${t.leadId}`
+      if (leadMap.has(key)) continue
+
+      leadMap.set(key, {
+        id: key,
+        phone: '',
+        name: '',
+        email: '',
+        platform: 'DIRECT',
+        firstSeen: t.createdAt,
+        lastSeen: t.createdAt,
+        events: [{ event: 'visita', platform: 'RASTREAMENTO', at: t.createdAt }],
+        totalEvents: 1,
+        isSale: false,
+        revenue: 0,
+        product: t.utmCampaign || '',
+        status: 'lead',
+        _utmSource: t.utmSource || undefined,
+        _webhookPlatforms: new Set<string>(),
+      })
+    }
+
     // Buscar notes de LeadStatus para inferir origem (compatibilidade c/ seed demo)
     const phones = Array.from(leadMap.values()).map(l => l.phone).filter(Boolean)
     const notesByPhone = new Map<string, string>()

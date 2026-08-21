@@ -279,8 +279,13 @@ export default function LeadsPage() {
             <div className="flex flex-col items-center justify-center py-20 text-center px-4">
               <Users className="w-12 h-12 text-gray-300 dark:text-gray-700 mb-3" />
               <p className="text-gray-500 dark:text-gray-400 font-medium">Nenhum lead encontrado</p>
-              <p className="text-gray-400 dark:text-gray-500 text-sm mt-1">
-                Configure seus webhooks para começar a capturar leads automaticamente.
+              {/* Duas fontes, não uma. Citar só webhook mandava configurar
+                  integração de checkout quem só precisava de um link
+                  rastreável — e vice-versa. */}
+              <p className="text-gray-400 dark:text-gray-500 text-sm mt-1 max-w-md">
+                Leads chegam de duas formas: pelo <strong>link rastreável</strong> ou pelo
+                script no seu site (em Rastreamento), e pelos <strong>webhooks</strong> das
+                plataformas de checkout (em Integrações).
               </p>
             </div>
           ) : (
