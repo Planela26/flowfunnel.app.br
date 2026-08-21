@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { getHistoryLimitDays } from '@/lib/plans'
+import { getDailyInsights } from '@/lib/facebook'
 import { isSaleEvent, isCanceledSale, extractAmount, saleTransactionId } from '@/lib/sale-events'
 import { checkRateLimit } from '@/lib/security-utils'
 
@@ -112,6 +113,81 @@ export async function GET(request: Request) {
       entry.roi = entry.costs > 0 ? (entry.profit / entry.costs) * 100 : null
     }
 
+    // ── Fontes que existem de verdade ─────────────────────────────────────────
+    //
+    // Até aqui o relatório lia só WebhookLog e FunnelEvent. Quem não configurou
+    // webhook de checkout via TUDO zerado — inclusive o custo, porque ele vinha
+    // de `FunnelEvent.metadata.cost`, campo que nenhuma parte viva do sistema
+    // preenche. Numa conta com anúncio rodando e visitas entrando, a "Análise
+    // completa do funil" mostrava quatro zeros e dois gráficos vazios.
+    //
+    // Vendas e receita saem de SaleAttribution, que é o produto final da
+    // atribuição; investimento sai da Meta, dia a dia. São as mesmas fontes que
+    // o Analytics e a Sara passaram a usar.
+    const [vendasAtribuidas, visitas, metaIntegration, campanhas] = await Promise.all([
+      prisma.saleAttribution.findMany({
+        where: { userId: session.user.id, createdAt: { gte: since } },
+        select: { value: true, createdAt: true },
+      }).catch(() => [] as Array<{ value: number; createdAt: Date }>),
+      prisma.trackedLead.count({
+        where: { userId: session.user.id, createdAt: { gte: since } },
+      }).catch(() => 0),
+      prisma.integration.findFirst({
+        where: { userId: session.user.id, platform: 'META_ADS', isActive: true },
+        select: { accessToken: true, config: true },
+      }).catch(() => null),
+      prisma.campaign.findMany({
+        where: { userId: session.user.id, platform: 'META_ADS' },
+        select: { campaignId: true },
+        take: 25,
+      }).catch(() => []),
+    ])
+
+    // A atribuição é a fonte final de venda; o evento de funil é registro
+    // bruto. Havendo atribuição, ela substitui o que veio dos eventos.
+    if (vendasAtribuidas.length > 0) {
+      totalSales = vendasAtribuidas.length
+      totalRevenue = vendasAtribuidas.reduce((a, v) => a + (v.value || 0), 0)
+      for (const k of Object.keys(profitSeriesMap)) profitSeriesMap[k].revenue = 0
+      for (const v of vendasAtribuidas) {
+        const day = v.createdAt.toISOString().slice(0, 10)
+        if (!profitSeriesMap[day]) profitSeriesMap[day] = { revenue: 0, costs: 0, profit: 0, roi: null }
+        profitSeriesMap[day].revenue += v.value || 0
+      }
+    }
+
+    let investimento = 0
+    let impressoes = 0
+    let cliquesEmAnuncio = 0
+
+    if (metaIntegration?.accessToken) {
+      try {
+        const cfg = typeof metaIntegration.config === 'string'
+          ? JSON.parse(metaIntegration.config)
+          : (metaIntegration.config ?? {})
+        if (cfg?.adAccountId) {
+          const preset = days <= 1 ? 'today' : days <= 7 ? 'last_7d' : days <= 30 ? 'last_30d' : 'last_90d'
+          const ids = campanhas.map(c => c.campaignId).filter(Boolean) as string[]
+          const diario = await getDailyInsights(metaIntegration.accessToken, cfg.adAccountId, preset, ids)
+          if (diario.success) {
+            for (const [dia, v] of Object.entries(diario.porDia)) {
+              investimento += v.spend
+              impressoes += v.impressions
+              cliquesEmAnuncio += v.clicks
+              if (!profitSeriesMap[dia]) profitSeriesMap[dia] = { revenue: 0, costs: 0, profit: 0, roi: null }
+              profitSeriesMap[dia].costs = +v.spend.toFixed(2)
+            }
+          }
+        }
+      } catch { /* relatório sem gasto é melhor que relatório nenhum */ }
+    }
+
+    // Lucro e ROI recalculados depois de receita e custo terem as fontes certas.
+    for (const entry of Object.values(profitSeriesMap)) {
+      entry.profit = +(entry.revenue - entry.costs).toFixed(2)
+      entry.roi = entry.costs > 0 ? +((entry.profit / entry.costs) * 100).toFixed(1) : null
+    }
+
     const profitSeries = Object.entries(profitSeriesMap)
       .map(([date, value]) => ({ date, ...value }))
       .sort((a, b) => a.date.localeCompare(b.date))
@@ -121,9 +197,16 @@ export async function GET(request: Request) {
       summary: {
         totalWebhooks: webhookLogs.length,
         totalSales,
-        totalRevenue,
+        totalRevenue: +totalRevenue.toFixed(2),
         waConversas,
         platforms: Object.keys(byPlatform).length,
+        // Mídia paga e rastreamento: o que a conta tem mesmo sem webhook algum.
+        investimento: +investimento.toFixed(2),
+        impressoes,
+        cliquesEmAnuncio,
+        visitas,
+        lucro: +(totalRevenue - investimento).toFixed(2),
+        roi: investimento > 0 ? +(((totalRevenue - investimento) / investimento) * 100).toFixed(1) : null,
       },
       byPlatform,
       dailySeries,

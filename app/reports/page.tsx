@@ -3,10 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import {
-  Download, RefreshCw, BarChart2, MessageCircle, ShoppingCart,
-  DollarSign, Webhook, TrendingUp, Calendar, FileText, AlertCircle
-} from 'lucide-react'
+import { Download, RefreshCw, BarChart2, MessageCircle, ShoppingCart, DollarSign, Webhook, TrendingUp, Calendar, FileText, AlertCircle, Eye, MousePointer, Users } from 'lucide-react'
 import { toCsv } from '@/lib/csv'
 
 interface ReportData {
@@ -16,6 +13,13 @@ interface ReportData {
     totalSales: number
     totalRevenue: number
     waConversas: number
+    // Mídia paga e rastreamento — o que a conta tem mesmo sem webhook algum.
+    investimento?: number
+    impressoes?: number
+    cliquesEmAnuncio?: number
+    visitas?: number
+    lucro?: number
+    roi?: number | null
     platforms: number
   }
   byPlatform: Record<string, { total: number; success: number; errors: number; events: string[] }>
@@ -80,6 +84,11 @@ export default function ReportsPage() {
 
     lines.push(['RESUMO'])
     lines.push(['Métrica', 'Valor'])
+    lines.push(['Investido em anúncios', `R$ ${(data.summary.investimento ?? 0).toFixed(2)}`])
+    lines.push(['Impressões', String(data.summary.impressoes ?? 0)])
+    lines.push(['Cliques no anúncio', String(data.summary.cliquesEmAnuncio ?? 0)])
+    lines.push(['Visitas rastreadas', String(data.summary.visitas ?? 0)])
+    lines.push(['Lucro', `R$ ${(data.summary.lucro ?? 0).toFixed(2)}`])
     lines.push(['Total de webhooks', String(data.summary.totalWebhooks)])
     lines.push(['Conversas WhatsApp', String(data.summary.waConversas)])
     lines.push(['Total de vendas', String(data.summary.totalSales)])
@@ -139,6 +148,11 @@ export default function ReportsPage() {
     pushTable(
       ['Métrica', 'Valor'],
       [
+        ['Investido em anúncios', `R$ ${(data.summary.investimento ?? 0).toFixed(2)}`],
+        ['Impressões', String(data.summary.impressoes ?? 0)],
+        ['Cliques no anúncio', String(data.summary.cliquesEmAnuncio ?? 0)],
+        ['Visitas rastreadas', String(data.summary.visitas ?? 0)],
+        ['Lucro', `R$ ${(data.summary.lucro ?? 0).toFixed(2)}`],
         ['Total de webhooks', String(data.summary.totalWebhooks)],
         ['Conversas WhatsApp', String(data.summary.waConversas)],
         ['Total de vendas', String(data.summary.totalSales)],
@@ -174,12 +188,18 @@ export default function ReportsPage() {
     )
     pushBlank()
 
+    // Antes esta seção era inventada: lucro = receita × 0,7 (uma margem de 30%
+    // suposta do nada) e ROI = receita ÷ número de webhooks, que não é ROI de
+    // coisa nenhuma. Número fabricado dentro de um arquivo chamado "relatório"
+    // é pior que campo vazio — vai para uma planilha e vira decisão.
     pushSection('LUCRO E ROI')
     pushTable(
       ['Indicador', 'Valor'],
       [
-        ['Lucro estimado', `R$ ${(data.summary.totalRevenue * 0.7).toFixed(2)}`],
-        ['ROI estimado', data.summary.totalRevenue > 0 ? `${((data.summary.totalRevenue / Math.max(1, data.summary.totalWebhooks)) * 100).toFixed(2)}%` : '0%'],
+        ['Receita', `R$ ${data.summary.totalRevenue.toFixed(2)}`],
+        ['Investido em anúncios', `R$ ${(data.summary.investimento ?? 0).toFixed(2)}`],
+        ['Lucro', `R$ ${(data.summary.lucro ?? 0).toFixed(2)}`],
+        ['ROI', data.summary.roi != null ? `${data.summary.roi.toFixed(1)}%` : 'sem investimento no período'],
       ]
     )
 
@@ -295,17 +315,34 @@ export default function ReportsPage() {
             <>
             {/* Summary cards */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              {/* Investimento, impressões e visitas vêm primeiro de propósito:
+                  são o que a maioria das contas TEM. "Webhooks recebidos" e
+                  "Conversas WhatsApp" dependem de integração de checkout e do
+                  WhatsApp conectado — quem não configurou via um relatório de
+                  quatro zeros, como se não houvesse nada acontecendo. */}
               {[
-                { label: 'Webhooks recebidos', value: data.summary.totalWebhooks, icon: Webhook, color: 'text-blue-600', bg: 'bg-blue-50 dark:bg-blue-900/20' },
-                { label: 'Conversas WhatsApp', value: data.summary.waConversas, icon: MessageCircle, color: 'text-green-600', bg: 'bg-green-50 dark:bg-green-900/20' },
+                {
+                  label: 'Investido em anúncios',
+                  value: `R$ ${(data.summary.investimento ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
+                  icon: DollarSign, color: 'text-red-500', bg: 'bg-red-50 dark:bg-red-900/20',
+                },
+                { label: 'Impressões', value: (data.summary.impressoes ?? 0).toLocaleString('pt-BR'), icon: Eye, color: 'text-blue-600', bg: 'bg-blue-50 dark:bg-blue-900/20' },
+                { label: 'Cliques no anúncio', value: (data.summary.cliquesEmAnuncio ?? 0).toLocaleString('pt-BR'), icon: MousePointer, color: 'text-indigo-600', bg: 'bg-indigo-50 dark:bg-indigo-900/20' },
+                { label: 'Visitas rastreadas', value: (data.summary.visitas ?? 0).toLocaleString('pt-BR'), icon: Users, color: 'text-cyan-600', bg: 'bg-cyan-50 dark:bg-cyan-900/20' },
                 { label: 'Vendas confirmadas', value: data.summary.totalSales, icon: ShoppingCart, color: 'text-orange-600', bg: 'bg-orange-50 dark:bg-orange-900/20' },
                 {
                   label: 'Receita gerada',
                   value: `R$ ${data.summary.totalRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
-                  icon: DollarSign,
-                  color: 'text-purple-600',
-                  bg: 'bg-purple-50 dark:bg-purple-900/20',
+                  icon: DollarSign, color: 'text-purple-600', bg: 'bg-purple-50 dark:bg-purple-900/20',
                 },
+                {
+                  label: 'Lucro',
+                  value: `R$ ${(data.summary.lucro ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
+                  icon: TrendingUp,
+                  color: (data.summary.lucro ?? 0) >= 0 ? 'text-emerald-600' : 'text-red-600',
+                  bg: 'bg-emerald-50 dark:bg-emerald-900/20',
+                },
+                { label: 'Webhooks recebidos', value: data.summary.totalWebhooks, icon: Webhook, color: 'text-gray-500', bg: 'bg-gray-50 dark:bg-gray-800' },
               ].map(({ label, value, icon: Icon, color, bg }) => (
                 <div key={label} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4 flex items-center gap-3">
                   <div className={`${bg} p-2.5 rounded-xl flex-shrink-0`}>
