@@ -102,6 +102,10 @@ export default function Dashboard() {
   const [loadingCrm, setLoadingCrm] = useState(true)
   const [alerts, setAlerts] = useState<Alert[]>([])
   const [selectedSource, setSelectedSource] = useState<'all' | 'facebook' | 'google' | 'tiktok'>('all')
+  // Janela escolhida no seletor do topo, no formato que as rotas de métricas
+  // esperam. UM valor para TODOS os cards: antes só os de mídia paga
+  // respondiam ao seletor, e os de checkout ficavam presos em 30 dias.
+  const dias = periodoPor(selectedPeriod).dias
   const estimatedWhatsAppConversations = estimateWhatsAppConversations(facebookData?.cliques || 0)
 
   // Buscar dados reais do WhatsApp — filtra pelo workspace ativo
@@ -118,9 +122,11 @@ export default function Dashboard() {
   const fetchWhatsAppMetrics = useCallback(async (trocouDeWorkspace = false) => {
     try {
       setLoadingWhatsApp(true)
-      let url = '/api/whatsapp/metrics'
+      // `days` acompanha o seletor do topo, como nos demais cards. Sem isto o
+      // WhatsApp ficava cravado em 30 dias enquanto o resto da tela mudava.
+      let url = `/api/whatsapp/metrics?days=${dias}`
       if (activeWorkspace?.whatsappIntegrationId) {
-        url += `?integrationId=${activeWorkspace.whatsappIntegrationId}`
+        url += `&integrationId=${activeWorkspace.whatsappIntegrationId}`
       }
       const response = await fetch(url)
       if (response.ok) {
@@ -134,7 +140,7 @@ export default function Dashboard() {
     } finally {
       setLoadingWhatsApp(false)
     }
-  }, [activeWorkspace?.whatsappIntegrationId])
+  }, [activeWorkspace?.whatsappIntegrationId, dias])
 
   useEffect(() => {
     // O efeito só roda de novo quando o workspace muda, então esta primeira
@@ -207,7 +213,7 @@ export default function Dashboard() {
     const fetchLandingMetrics = async () => {
       try {
         setLoadingLanding(true)
-        const response = await fetch('/api/landing/metrics')
+        const response = await fetch(`/api/landing/metrics?days=${dias}`)
         if (!response.ok) return // ver comentário abaixo
         setLandingData(await response.json())
       } catch (error) {
@@ -227,14 +233,14 @@ export default function Dashboard() {
     fetchLandingMetrics()
     const interval = setInterval(fetchLandingMetrics, 300000)
     return () => clearInterval(interval)
-  }, [])
+  }, [dias])
 
   // Buscar dados reais do Hotmart
   useEffect(() => {
     const fetchHotmartMetrics = async () => {
       try {
         setLoadingHotmart(true)
-        const response = await fetch('/api/hotmart/metrics')
+        const response = await fetch(`/api/hotmart/metrics?days=${dias}`)
         if (!response.ok) return // preserva o último dado bom — ver Landing Page
         setHotmartData(await response.json())
       } catch (error) {
@@ -247,14 +253,14 @@ export default function Dashboard() {
     fetchHotmartMetrics()
     const interval = setInterval(fetchHotmartMetrics, 300000) // 5 minutos
     return () => clearInterval(interval)
-  }, [])
+  }, [dias])
 
   // Buscar dados reais do Kiwify
   useEffect(() => {
     const fetchKiwifyMetrics = async () => {
       try {
         setLoadingKiwify(true)
-        const response = await fetch('/api/kiwify/metrics')
+        const response = await fetch(`/api/kiwify/metrics?days=${dias}`)
         if (!response.ok) return // preserva o último dado bom — ver Landing Page
         setKiwifyData(await response.json())
       } catch {
@@ -266,14 +272,14 @@ export default function Dashboard() {
     fetchKiwifyMetrics()
     const interval = setInterval(fetchKiwifyMetrics, 300000)
     return () => clearInterval(interval)
-  }, [])
+  }, [dias])
 
   // Fetch Eduzz metrics
   useEffect(() => {
     const fetchEduzzMetrics = async () => {
       try {
         setLoadingEduzz(true)
-        const response = await fetch('/api/eduzz/metrics')
+        const response = await fetch(`/api/eduzz/metrics?days=${dias}`)
         if (!response.ok) return // preserva o último dado bom — ver Landing Page
         setEduzzData(await response.json())
       } catch {
@@ -285,14 +291,14 @@ export default function Dashboard() {
     fetchEduzzMetrics()
     const interval = setInterval(fetchEduzzMetrics, 300000)
     return () => clearInterval(interval)
-  }, [])
+  }, [dias])
 
   // Fetch Monetizze metrics
   useEffect(() => {
     const fetchMonetizzeMetrics = async () => {
       try {
         setLoadingMonetizze(true)
-        const response = await fetch('/api/monetizze/metrics')
+        const response = await fetch(`/api/monetizze/metrics?days=${dias}`)
         if (!response.ok) return // preserva o último dado bom — ver Landing Page
         setMonetizzeData(await response.json())
       } catch {
@@ -304,7 +310,7 @@ export default function Dashboard() {
     fetchMonetizzeMetrics()
     const interval = setInterval(fetchMonetizzeMetrics, 300000)
     return () => clearInterval(interval)
-  }, [])
+  }, [dias])
 
   // Fetch Stripe metrics (payment data)
   useEffect(() => {

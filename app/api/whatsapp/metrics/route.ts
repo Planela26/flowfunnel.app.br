@@ -1,3 +1,4 @@
+import { desdeQuando } from '@/lib/periodo'
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
@@ -56,7 +57,7 @@ export async function GET(request: Request) {
     }
 
     const now = new Date()
-    const last30Days = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+    const last30Days = desdeQuando(request) // janela escolhida no dashboard; 30 dias por padrão
     const last7Days = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
 
     // Buscar todas as conversas (filtro por phoneNumberId feito em memória)

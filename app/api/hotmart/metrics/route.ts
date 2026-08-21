@@ -1,3 +1,4 @@
+import { desdeQuando } from '@/lib/periodo'
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
@@ -5,7 +6,7 @@ import { prisma } from '@/lib/prisma'
 import { cache, generateCacheKey, CacheTTL } from '@/lib/cache'
 
 // Buscar métricas do Hotmart para o dashboard
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user) {
@@ -58,7 +59,7 @@ export async function GET() {
     }
 
     const now = new Date()
-    const last30Days = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+    const last30Days = desdeQuando(request) // janela escolhida no dashboard; 30 dias por padrão
 
     // Contar checkouts iniciados (últimos 30 dias)
     const checkoutsIniciados = await prisma.funnelEvent.count({
