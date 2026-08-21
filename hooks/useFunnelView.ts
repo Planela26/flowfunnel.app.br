@@ -32,7 +32,11 @@ export const AVAILABLE_INTEGRATIONS: IntegrationCard[] = [
   { id: 'crm', label: 'CRM', type: 'crm', icon: 'CRM', color: '#64748b', borderColor: 'border-slate-500/50', connectHref: '/settings' },
 ]
 
-const getStorageKey = (userId: string) => `funnel_view_${userId}`
+// A chave inclui o FUNIL. Sem isso, o cache local de um funil era lido pelo
+// outro e os cards apareciam com o arranjo errado antes mesmo do servidor
+// responder. `conta` cobre o caso sem funil selecionado.
+const getStorageKey = (userId: string, workspaceId?: string | null) =>
+  `funnel_view_${userId}_${workspaceId ?? 'conta'}`
 
 /**
  * Persistência de cards visíveis do funil.
@@ -55,7 +59,7 @@ const getStorageKey = (userId: string) => `funnel_view_${userId}`
  *    (≤1/s), seguro ir direto. Posições de drag continuam debounced em
  *    FunnelFlow.tsx.
  */
-export function useFunnelView(userId: string | undefined) {
+export function useFunnelView(userId: string | undefined, workspaceId?: string | null) {
   const [visibleIds, setVisibleIds] = useState<string[]>(AVAILABLE_INTEGRATIONS.map(i => i.id))
 
   // Dois gates separados:
@@ -82,7 +86,7 @@ export function useFunnelView(userId: string | undefined) {
 
     // (1) Cache local primeiro — render sem flash.
     try {
-      const raw = localStorage.getItem(getStorageKey(userId))
+      const raw = localStorage.getItem(getStorageKey(userId, workspaceId))
       if (raw) {
         const parsed = JSON.parse(raw)
         if (Array.isArray(parsed)) {
@@ -102,7 +106,10 @@ export function useFunnelView(userId: string | undefined) {
     ;(async () => {
       try {
         const versionAtStart = userActionVersion.current
-        const res = await fetch('/api/funnel-layout', { cache: 'no-store' })
+        const res = await fetch(
+          `/api/funnel-layout${workspaceId ? `?workspaceId=${encodeURIComponent(workspaceId)}` : ''}`,
+          { cache: 'no-store' },
+        )
         if (!res.ok || cancelled) {
           // Mesmo em erro de rede: libera SAVE para não bloquear para sempre.
           // O SAVE vai considerar o estado atual como baseline.
@@ -133,7 +140,7 @@ export function useFunnelView(userId: string | undefined) {
           if (serverJson !== currentJson) {
             // Servidor tem estado diferente → aplica (outro browser salvou algo).
             setVisibleIds(valid)
-            try { localStorage.setItem(getStorageKey(userId!), serverJson) } catch {}
+            try { localStorage.setItem(getStorageKey(userId!, workspaceId), serverJson) } catch {}
           }
           // Baseline = o que o servidor tem. SAVE só posta se divergir daqui.
           lastServerSavedJson.current = serverJson
@@ -151,7 +158,7 @@ export function useFunnelView(userId: string | undefined) {
     })()
 
     return () => { cancelled = true }
-  }, [userId])
+  }, [userId, workspaceId])
 
   // ─── SAVE ────────────────────────────────────────────────────────────────
   // serverLoaded garante que o GET completou antes de qualquer POST.
@@ -163,7 +170,7 @@ export function useFunnelView(userId: string | undefined) {
     const json = JSON.stringify(visibleIds)
 
     // Cache local imediato (UX sem flash em reload).
-    try { localStorage.setItem(getStorageKey(userId), json) } catch {}
+    try { localStorage.setItem(getStorageKey(userId, workspaceId), json) } catch {}
 
     // Só posta se divergir do que o servidor já tem.
     if (lastServerSavedJson.current === json) return
@@ -172,7 +179,7 @@ export function useFunnelView(userId: string | undefined) {
     void fetch('/api/funnel-layout', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ visibleIds }),
+      body: JSON.stringify({ visibleIds, workspaceId }),
       keepalive: true,
     }).catch(() => {})
 
@@ -182,13 +189,13 @@ export function useFunnelView(userId: string | undefined) {
       void fetch('/api/funnel-layout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ visibleIds }),
+        body: JSON.stringify({ visibleIds, workspaceId }),
         keepalive: true,
       }).catch(() => {})
     }
     window.addEventListener('pagehide', flush)
     return () => { window.removeEventListener('pagehide', flush) }
-  }, [visibleIds, userId, initialized, serverLoaded])
+  }, [visibleIds, userId, workspaceId, initialized, serverLoaded])
 
   // ─── Ações do usuário ────────────────────────────────────────────────────
   const addCard = useCallback((id: string) => {

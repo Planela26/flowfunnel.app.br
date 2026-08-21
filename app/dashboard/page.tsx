@@ -48,7 +48,10 @@ export default function Dashboard() {
   const [activeWorkspace, setActiveWorkspace] = useState<Workspace | null>(null)
   const { data: session } = useSession()
   const userId = session?.user?.id as string | undefined
-  const { visibleIds, addCard, removeCard } = useFunnelView(userId)
+  // O funil aberto entra aqui: arranjo e cards visíveis são POR FUNIL. Sem
+  // isto, os dois funis liam e gravavam o mesmo registro, e mexer num mexia no
+  // outro.
+  const { visibleIds, addCard, removeCard } = useFunnelView(userId, activeWorkspace?.id ?? null)
   const [whatsappData, setWhatsappData] = useState<any>(null)
   const [facebookData, setFacebookData] = useState<any>(null)
   const [googleData, setGoogleData] = useState<any>(null)
@@ -455,6 +458,7 @@ export default function Dashboard() {
             visibleIds={visibleIds}
             onAddCard={addCard}
             onRemoveCard={removeCard}
+            workspaceId={activeWorkspace?.id ?? null}
             dataMap={{
               facebook: facebookData,
               google: googleData,

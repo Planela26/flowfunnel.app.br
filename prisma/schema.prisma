@@ -400,6 +400,13 @@ model Workspace {
   whatsappIntegrationId String?
   facebookCampaignId    String?
   checkoutSources       String   @default("[\"hotmart\"]")
+  // Layout do FunnelFlow POR FUNIL. Antes vivia só em `User.funnelLayout` e
+  // `User.funnelVisibleIds`: um arranjo por conta, compartilhado por todos os
+  // funis. Arrastar um card num funil movia o card do outro, e esconder um
+  // card escondia nos dois — não havia como ter arranjos diferentes.
+  // `null` = este funil ainda não tem arranjo próprio; cai no do usuário.
+  funnelLayout          String?
+  funnelVisibleIds      String?
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 

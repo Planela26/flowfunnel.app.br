@@ -39,19 +39,24 @@ export interface FunnelFlowProps {
   onInsight: (cardType: string, data: any) => void
   planName?: string
   userId?: string
+  /** Funil aberto. As posições são POR FUNIL — ver getPosKey. */
+  workspaceId?: string | null
 }
 
 /* ─── Persistência de posições ────────────────────────────────────────
  * Fonte da verdade: banco de dados (via /api/funnel-layout) → sincroniza
  * entre navegadores e dispositivos. localStorage é só cache local para
  * o primeiro render ser instantâneo. */
-const getPosKey = (userId: string) => `funnel_positions_${userId}`
+// A chave inclui o FUNIL. Antes era só o usuário: dois funis liam e escreviam
+// o mesmo cache, então arrastar um card num funil movia o card do outro.
+const getPosKey = (userId: string, workspaceId?: string | null) =>
+  `funnel_positions_${userId}_${workspaceId ?? 'conta'}`
 
 type SavedPositions = Record<string, { x: number; y: number }>
 
-function loadSavedPositions(userId: string): SavedPositions | null {
+function loadSavedPositions(userId: string, workspaceId?: string | null): SavedPositions | null {
   try {
-    const raw = localStorage.getItem(getPosKey(userId))
+    const raw = localStorage.getItem(getPosKey(userId, workspaceId))
     if (!raw) return null
     const parsed = JSON.parse(raw)
     if (parsed && typeof parsed === 'object') return parsed
@@ -59,15 +64,18 @@ function loadSavedPositions(userId: string): SavedPositions | null {
   return null
 }
 
-function cachePositionsLocally(userId: string, pos: SavedPositions) {
+function cachePositionsLocally(userId: string, pos: SavedPositions, workspaceId?: string | null) {
   try {
-    localStorage.setItem(getPosKey(userId), JSON.stringify(pos))
+    localStorage.setItem(getPosKey(userId, workspaceId), JSON.stringify(pos))
   } catch { /* ignore */ }
 }
 
-async function fetchServerPositions(): Promise<SavedPositions | null> {
+async function fetchServerPositions(workspaceId?: string | null): Promise<SavedPositions | null> {
   try {
-    const res = await fetch('/api/funnel-layout', { cache: 'no-store' })
+    const res = await fetch(
+      `/api/funnel-layout${workspaceId ? `?workspaceId=${encodeURIComponent(workspaceId)}` : ''}`,
+      { cache: 'no-store' },
+    )
     if (!res.ok) return null
     const data = await res.json()
     if (data?.positions && typeof data.positions === 'object') return data.positions
@@ -75,12 +83,12 @@ async function fetchServerPositions(): Promise<SavedPositions | null> {
   return null
 }
 
-async function saveServerPositions(pos: SavedPositions): Promise<boolean> {
+async function saveServerPositions(pos: SavedPositions, workspaceId?: string | null): Promise<boolean> {
   try {
     const res = await fetch('/api/funnel-layout', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ positions: pos }),
+      body: JSON.stringify({ positions: pos, workspaceId }),
     })
     return res.ok
   } catch {
@@ -525,6 +533,7 @@ function FunnelCanvas({
   onInsight,
   planName,
   userId,
+  workspaceId,
 }: FunnelFlowProps) {
   const [modalOpen, setModalOpen] = useState(false)
   const { setEdges } = useReactFlow()
@@ -646,7 +655,7 @@ function FunnelCanvas({
   // Monta nodes iniciais: usa posições salvas do usuário, senão usa layout padrão
   const initialNodes = useCallback(() => {
     const fresh = buildNodes()
-    const saved = userId ? loadSavedPositions(userId) : null
+    const saved = userId ? loadSavedPositions(userId, workspaceId) : null
     if (!saved) return fresh
     return fresh.map(n => saved[n.id] ? { ...n, position: saved[n.id] } : n)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
@@ -673,15 +682,15 @@ function FunnelCanvas({
   useEffect(() => {
     if (!userId) return
     let cancelled = false
-    fetchServerPositions().then(serverPos => {
+    fetchServerPositions(workspaceId).then(serverPos => {
       if (cancelled || !serverPos || Object.keys(serverPos).length === 0) return
       if (hasLocalEditsRef.current) return // usuário já mexeu → local vence
-      cachePositionsLocally(userId, serverPos)
+      cachePositionsLocally(userId, serverPos, workspaceId)
       setNodes(prev => prev.map(n => serverPos[n.id] ? { ...n, position: serverPos[n.id] } : n))
       setTimeout(() => fitView({ padding: 0.12 }), 50)
     })
     return () => { cancelled = true }
-  }, [userId]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [userId, workspaceId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Flush: se sair da página com save pendente, salva imediatamente
   useEffect(() => {
@@ -693,7 +702,7 @@ function FunnelCanvas({
         saveTimerRef.current = null
       }
       const pos = nodesToPositions(nodesRef.current)
-      cachePositionsLocally(userId, pos)
+      cachePositionsLocally(userId, pos, workspaceId)
       // Usa fetch keepalive em vez de sendBeacon com application/json,
       // porque sendBeacon ignora o Content-Type no Opera/Firefox e o servidor
       // não consegue fazer req.json() — o fetch keepalive funciona em todos os browsers.
@@ -701,7 +710,7 @@ function FunnelCanvas({
         fetch('/api/funnel-layout', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ positions: pos }),
+          body: JSON.stringify({ positions: pos, workspaceId }),
           keepalive: true,
         }).catch(() => {})
       } catch { /* ignore */ }
@@ -711,7 +720,7 @@ function FunnelCanvas({
       window.removeEventListener('pagehide', flush)
       flush() // unmount (navegação interna Next.js) também salva
     }
-  }, [userId]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [userId, workspaceId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Quando dados mudam (loading/data), reconstrói nodes preservando posições atuais
   useEffect(() => {
@@ -732,7 +741,7 @@ function FunnelCanvas({
   useEffect(() => {
     setNodes(prev => {
       const fresh = buildNodes()
-      const saved = userId ? loadSavedPositions(userId) : null
+      const saved = userId ? loadSavedPositions(userId, workspaceId) : null
       return fresh.map(n => {
         // Card já estava na tela: mantém posição atual (onde o usuário deixou)
         const existing = prev.find(p => p.id === n.id)
@@ -762,8 +771,8 @@ function FunnelCanvas({
 
     setNodes(current => {
       const pos = nodesToPositions(current)
-      cachePositionsLocally(userId, pos)
-      saveServerPositions(pos).then(ok => {
+      cachePositionsLocally(userId, pos, workspaceId)
+      saveServerPositions(pos, workspaceId).then(ok => {
         setSaveStatus(ok ? 'saved' : 'error')
         savedTimerRef.current = setTimeout(() => setSaveStatus('idle'), ok ? 3000 : 5000)
       })
