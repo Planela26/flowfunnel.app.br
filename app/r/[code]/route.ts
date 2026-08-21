@@ -42,6 +42,39 @@ import {
  */
 export const dynamic = 'force-dynamic'
 
+/**
+ * Cache do slug → destino, em memória do processo.
+ *
+ * Um clique de anúncio não pode esperar o banco. O destino de um link muda
+ * raramente (só quando o dono edita), então guardá-lo por um minuto elimina a
+ * ÚNICA consulta que ainda bloqueia o redirecionamento. Na segunda pessoa que
+ * clica no mesmo anúncio, a resposta sai sem tocar no Postgres.
+ *
+ * TTL curto de propósito: editar o destino ou desativar o link passa a valer
+ * em no máximo 60 segundos, o que é aceitável, e o processo reinicia a cada
+ * deploy de qualquer forma.
+ */
+type SiteCache = { id: string; userId: string; destinationUrl: string; isActive: boolean }
+const CACHE_TTL_MS = 60_000
+const cacheDeSites = new Map<string, { valor: SiteCache | null; expiraEm: number }>()
+
+function lerCache(slug: string): { valor: SiteCache | null } | null {
+  const hit = cacheDeSites.get(slug)
+  if (!hit) return null
+  if (Date.now() > hit.expiraEm) {
+    cacheDeSites.delete(slug)
+    return null
+  }
+  return { valor: hit.valor }
+}
+
+function gravarCache(slug: string, valor: SiteCache | null) {
+  // Teto para não virar vazamento de memória com slug inexistente sendo
+  // sondado em massa. 5 mil entradas é folgado para qualquer volume real.
+  if (cacheDeSites.size > 5000) cacheDeSites.clear()
+  cacheDeSites.set(slug, { valor, expiraEm: Date.now() + CACHE_TTL_MS })
+}
+
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ code: string }> },
@@ -57,18 +90,23 @@ export async function GET(
 
   const ip = getClientIp(request.headers)
 
-  // Teto por IP: o link é público e um robô poderia inflar as estatísticas do
-  // cliente. Generoso o bastante para não atrapalhar tráfego real de anúncio.
-  const rl = await checkRateLimit(`track:link:${ip}`, 120, 60_000)
-
-  let site: { id: string; userId: string; destinationUrl: string; isActive: boolean } | null = null
-  try {
-    site = await prisma.trackedSite.findUnique({
-      where: { slug },
-      select: { id: true, userId: true, destinationUrl: true, isActive: true },
-    })
-  } catch (e) {
-    console.error('[r/[code]] falha ao resolver slug:', e)
+  // Resolver o slug é a única coisa que PRECISA acontecer antes de responder —
+  // sem o destino não há para onde mandar. Tudo o mais foi para depois do
+  // redirecionamento (ver o bloco no fim).
+  let site: SiteCache | null = null
+  const doCache = lerCache(slug)
+  if (doCache) {
+    site = doCache.valor
+  } else {
+    try {
+      site = await prisma.trackedSite.findUnique({
+        where: { slug },
+        select: { id: true, userId: true, destinationUrl: true, isActive: true },
+      })
+      gravarCache(slug, site)
+    } catch (e) {
+      console.error('[r/[code]] falha ao resolver slug:', e)
+    }
   }
 
   // Slug desconhecido ou desativado: leva para a home do FlowSara em vez de
@@ -101,29 +139,53 @@ export async function GET(
   res.cookies.set(COOKIE_LEAD, identidade.leadId, { ...comum, maxAge: VISITANTE_TTL_S })
   res.cookies.set(COOKIE_SESSAO, identidade.sessionId, { ...comum, maxAge: SESSAO_TTL_S })
 
-  // Não registra, mas redireciona: excesso de cliques do mesmo IP.
-  if (!rl.ok) return res
+  // ── Registro DEPOIS da resposta ───────────────────────────────────────────
+  //
+  // Nada aqui é aguardado. Antes era, e o custo aparecia inteiro no tempo de
+  // carregamento: limite por IP (1 ida ao banco), conta bloqueada (1) e
+  // registrarVisita (4 — upsert do lead, upsert da sessão, create do evento,
+  // update do site). Seis idas em SÉRIE a um Postgres em outra região, somadas
+  // aos 300ms de cada uma, faziam o anúncio levar de 8 a 10 segundos para
+  // abrir a página. Quem clicou pagava a conta de uma estatística que não é
+  // dele.
+  //
+  // O arquivo já dizia, no topo, que perder uma linha de estatística é
+  // incomparavelmente menos grave do que atrapalhar um visitante pago. A regra
+  // estava escrita; o código é que ainda esperava.
+  //
+  // Isto funciona porque o app roda como processo Node persistente (PM2): o
+  // trabalho continua depois da resposta ir embora. Num ambiente serverless
+  // seria preciso `waitUntil`.
+  const headerReferer = request.headers.get('referer')
+  const headerUserAgent = request.headers.get('user-agent')
 
-  try {
-    // Plano vencido ou teste expirado param a ENTRADA de dados, como já
-    // acontece nos webhooks e no tracker (ver lib/account-status.ts). O
-    // visitante continua chegando na página do cliente — quem perdeu o direito
-    // é a conta, não quem clicou no anúncio.
-    if (await isIngestionBlockedForUser(site.userId)) return res
+  void (async () => {
+    try {
+      // Teto por IP: o link é público e um robô poderia inflar as estatísticas
+      // do cliente. Generoso o bastante para não atrapalhar tráfego real.
+      const rl = await checkRateLimit(`track:link:${ip}`, 120, 60_000)
+      if (!rl.ok) return
 
-    await registrarVisita({
-      userId: site.userId,
-      siteId: site.id,
-      identidade,
-      dados,
-      destino,
-      referrer: request.headers.get('referer'),
-      ip,
-      userAgent: request.headers.get('user-agent'),
-    })
-  } catch (e) {
-    console.error('[r/[code]] falha ao registrar visita:', e)
-  }
+      // Plano vencido ou teste expirado param a ENTRADA de dados, como já
+      // acontece nos webhooks e no tracker (ver lib/account-status.ts). O
+      // visitante continua chegando na página do cliente — quem perdeu o
+      // direito é a conta, não quem clicou no anúncio.
+      if (await isIngestionBlockedForUser(site.userId)) return
+
+      await registrarVisita({
+        userId: site.userId,
+        siteId: site.id,
+        identidade,
+        dados,
+        destino,
+        referrer: headerReferer,
+        ip,
+        userAgent: headerUserAgent,
+      })
+    } catch (e) {
+      console.error('[r/[code]] falha ao registrar visita:', e)
+    }
+  })()
 
   return res
 }
