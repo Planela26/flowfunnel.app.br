@@ -133,15 +133,16 @@ export default function Dashboard() {
         let url = `/api/facebook/metrics?period=${period}`
         if (campaignId) url += `&campaignId=${campaignId}`
         const response = await fetch(url)
-        if (response.ok) {
-          const data = await response.json()
-          setFacebookData(data)
-        } else {
-          setFacebookData(null)
-        }
+        // Mantém o último dado bom em vez de zerar — mesma razão já documentada
+        // no card da Landing Page logo abaixo. Zerando, uma falha passageira
+        // (sessão renovando, rede oscilando, Meta lenta) apagava o card do Meta
+        // Ads, e ele voltava sozinho na rodada seguinte: era isso que fazia os
+        // números aparecerem e sumirem sem motivo aparente.
+        if (!response.ok) return
+        const data = await response.json()
+        setFacebookData(data)
       } catch (error) {
         console.error('Erro ao buscar métricas Facebook:', error)
-        setFacebookData(null)
       } finally {
         setLoadingFacebook(false)
       }

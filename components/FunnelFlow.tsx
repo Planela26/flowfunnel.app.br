@@ -254,10 +254,17 @@ function IntegrationCardNode({ data }: NodeProps) {
             {/* Context-aware message */}
             <div className="text-center space-y-0.5">
               <p className="text-[11px] font-semibold text-gray-300">
-                {isTraffic ? 'Nenhuma conta conectada' : isTracking ? 'Sem dados disponíveis' : 'Integração não ativa'}
+                {/* Conectado, mas a leitura falhou, é diferente de nunca ter
+                    conectado. Dizer "nenhuma conta conectada" para quem tem a
+                    conta ligada manda a pessoa refazer o que já está feito. */}
+                {d.data?.error
+                  ? 'Não foi possível ler na Meta'
+                  : isTraffic ? 'Nenhuma conta conectada' : isTracking ? 'Sem dados disponíveis' : 'Integração não ativa'}
               </p>
               <p className="text-[9px] text-gray-500 leading-tight">
-                {isTraffic
+                {d.data?.error
+                  ? 'O token pode ter expirado. Reconecte a conta de anúncios.'
+                  : isTraffic
                   ? 'Conecte para ver cliques, leads e gastos no funil'
                   : isTracking
                   ? 'Gere um link rastreável para ver visitantes e origem'
@@ -426,6 +433,11 @@ function buildMetrics(id: string, data: any): any[] | null {
 
   switch (id) {
     case 'facebook':
+      // Falha de leitura NÃO vira "0 cliques". Com `error`, os zeros da resposta
+      // são de preenchimento, não medição — mostrá-los faz o card afirmar que a
+      // campanha não teve movimento quando na verdade ninguém conseguiu olhar.
+      // Devolvendo null, o card cai no estado vazio, que explica o motivo.
+      if (data.error) return null
       return [
         { label: 'Cliques', value: data.cliques || 0 },
         { label: 'Impressões', value: data.impressoes || 0 },
