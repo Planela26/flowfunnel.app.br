@@ -202,7 +202,11 @@ export const SaraContextService = {
     // números vivem em TrackedLead e SaleAttribution de qualquer jeito. Antes o
     // fallback era a frase "Sem métricas registradas ainda.", e a Sara repetia
     // isso ao usuário mesmo com campanha ativa e leads no banco.
-    const leadsRastreados = user?._count?.trackedLeads ?? 0
+    // VISITANTES, não leads. A tabela chama-se TrackedLead por herança, mas
+    // guarda navegador anônimo — lead é quem deixou e-mail ou telefone. Chamar
+    // isso de "lead" fez a Sara relatar centenas deles para uma campanha com
+    // quinze cliques, e o número passou a contradizer o resto do relatório.
+    const visitantesRastreados = user?._count?.trackedLeads ?? 0
     const totalVendas = vendas?._count?._all ?? 0
     const totalReceita = vendas?._sum?.value ?? 0
 
@@ -212,7 +216,7 @@ export const SaraContextService = {
         `Checkouts ${snapshot.checkouts ?? 0} | Leads ${snapshot.leads ?? 0} | ` +
         `Conversas WA ${snapshot.conversas ?? 0} | Gasto R$${(snapshot.gasto ?? 0).toFixed(2)}`
       : `Sem snapshot diário (série histórica indisponível). Acumulado no banco: ` +
-        `Leads rastreados ${leadsRastreados} | Vendas atribuídas ${totalVendas} | ` +
+        `Visitantes rastreados ${visitantesRastreados} | Vendas atribuídas ${totalVendas} | ` +
         `Receita R$${totalReceita.toFixed(2)}`
 
     // ── Mídia paga, lida AO VIVO na Meta ───────────────────────────────────────
@@ -315,12 +319,12 @@ export const SaraContextService = {
     const receitaHoje = conversoesHoje?._sum?.value ?? 0
 
     const landingStr =
-      `Hoje: Leads ${leadsHoje} | Sessões ${sessoesHoje} | Page views ${ev['page_view'] || 0} | ` +
+       `Hoje: Visitantes ${leadsHoje} | Sessões ${sessoesHoje} | Page views ${ev['page_view'] || 0} | ` +
       `Cliques ${cliquesHoje} (link ${ev['link_click'] || 0}, WhatsApp ${ev['click_whatsapp'] || 0}, ` +
       `checkout ${ev['click_checkout'] || 0}) | Conversões ${conversoesHoje?._count?._all ?? 0} | ` +
       `Receita R$${receitaHoje.toFixed(2)}` +
       (origensTexto ? ` | Origens: ${origensTexto}` : '') +
-      `. Acumulado de sempre: ${leadsRastreados} leads rastreados.`
+      `. Acumulado de sempre: ${visitantesRastreados} visitantes rastreados (visitas anônimas, NÃO leads — lead é quem deixou contato).`
 
     const campanhasStr = campanhasMeta.length > 0
       ? campanhasMeta.map(c => `${c.name} [${c.status}${c.objective ? `, ${c.objective}` : ''}]`).join('; ')
@@ -363,7 +367,7 @@ Nome: ${userName}
 ID FlowSara: ${publicId ?? 'não gerado'}
 Plano: ${plan} | Assinatura: ${user?.subscriptionStatus ?? 'desconhecida'}
 Cliente desde: ${user?.createdAt ? new Date(user.createdAt).toLocaleDateString('pt-BR') : '—'}
-Total de leads rastreados: ${user?._count?.trackedLeads ?? 0}
+Total de visitantes rastreados: ${user?._count?.trackedLeads ?? 0} (visitas anônimas; lead exige contato)
 ${pageCtxStr}
 
 INTEGRAÇÕES CONECTADAS: ${integrations.length > 0 ? integrations.join(', ') : 'nenhuma'}
@@ -403,7 +407,7 @@ ${kbStr ? `BASE DE CONHECIMENTO RELEVANTE:\n${kbStr}` : ''}
       integrations,
       // "Tem métrica" passou a incluir o que existe fora do snapshot — era
       // justamente o caso em que a Sara se declarava sem dados.
-      hasMetrics:  !!snapshot || leadsRastreados > 0 || totalVendas > 0 || Boolean(metaAtiva),
+      hasMetrics:  !!snapshot || visitantesRastreados > 0 || totalVendas > 0 || Boolean(metaAtiva),
       openTickets,
       insightCount: insights.length,
     }

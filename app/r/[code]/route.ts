@@ -1,3 +1,4 @@
+import { pareceRobo } from '@/lib/bot-detection'
 import { NextResponse } from 'next/server'
 import { prismaAdmin as prisma } from '@/lib/prisma'
 import { checkRateLimit } from '@/lib/security-utils'
@@ -165,6 +166,11 @@ export async function GET(
       // do cliente. Generoso o bastante para não atrapalhar tráfego real.
       const rl = await checkRateLimit(`track:link:${ip}`, 120, 60_000)
       if (!rl.ok) return
+
+      // Robô não conta como visita. O redirecionamento JÁ aconteceu lá em
+      // cima — quem quer que seja continua chegando na página; o que não
+      // acontece é virar estatística de quem paga anúncio.
+      if (pareceRobo(headerUserAgent)) return
 
       // Plano vencido ou teste expirado param a ENTRADA de dados, como já
       // acontece nos webhooks e no tracker (ver lib/account-status.ts). O

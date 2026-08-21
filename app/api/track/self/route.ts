@@ -1,3 +1,4 @@
+import { pareceRobo } from '@/lib/bot-detection'
 import { NextResponse } from 'next/server'
 import { prismaAdmin as prisma } from '@/lib/prisma'
 import { checkRateLimit, getClientIp } from '@/lib/security-utils'
@@ -34,6 +35,13 @@ export async function POST(request: Request) {
     // este limite só barra automação.
     const rl = await checkRateLimit(`track:self:${ip}`, 60, 60_000)
     if (!rl.ok) return NextResponse.json({ ok: false }, { status: 429 })
+
+    // Robô não é visitante: não clicou em anúncio e não vai comprar. Contá-lo
+    // estraga toda taxa que tenha visita no denominador. `204` para não dar
+    // pista de que o filtro existe.
+    if (pareceRobo(request.headers.get('user-agent'))) {
+      return NextResponse.json({ ok: true }, { status: 204 })
+    }
 
     const ownerId = await getOwnerUserId()
     if (!ownerId) return NextResponse.json({ ok: false }, { status: 204 })

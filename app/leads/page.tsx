@@ -279,13 +279,16 @@ export default function LeadsPage() {
             <div className="flex flex-col items-center justify-center py-20 text-center px-4">
               <Users className="w-12 h-12 text-gray-300 dark:text-gray-700 mb-3" />
               <p className="text-gray-500 dark:text-gray-400 font-medium">Nenhum lead encontrado</p>
-              {/* Duas fontes, não uma. Citar só webhook mandava configurar
-                  integração de checkout quem só precisava de um link
-                  rastreável — e vice-versa. */}
+              {/* Diz o que conta como lead. Sem isso, quem vê visitantes no card
+                  da Landing Page conclui que a aba está quebrada — quando a
+                  diferença é que visitante anônimo não é lead. */}
               <p className="text-gray-400 dark:text-gray-500 text-sm mt-1 max-w-md">
-                Leads chegam de duas formas: pelo <strong>link rastreável</strong> ou pelo
-                script no seu site (em Rastreamento), e pelos <strong>webhooks</strong> das
-                plataformas de checkout (em Integrações).
+                Um lead é alguém que deixou <strong>e-mail ou telefone</strong>. Eles chegam
+                pelos webhooks das plataformas de checkout e do WhatsApp, em Integrações.
+              </p>
+              <p className="text-gray-400 dark:text-gray-500 text-xs mt-2 max-w-md">
+                Visitantes anônimos do seu site aparecem em <strong>Rastreamento</strong> e no
+                card da Landing Page — são visitas, não leads.
               </p>
             </div>
           ) : (

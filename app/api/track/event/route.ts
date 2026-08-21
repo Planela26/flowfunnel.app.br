@@ -1,3 +1,4 @@
+import { pareceRobo } from '@/lib/bot-detection'
 import { NextResponse } from 'next/server'
 import { prismaAdmin as prisma } from '@/lib/prisma'
 import { checkRateLimit } from '@/lib/security-utils'
@@ -23,6 +24,13 @@ function clientIp(req: Request): string | null {
 export async function POST(request: Request) {
   const rl = await checkRateLimit(`track:event:${request.headers.get('x-forwarded-for') || 'anon'}`, 60, 60_000)
   if (!rl.ok) return NextResponse.json({ error: 'rate_limited' }, { status: 429, headers: CORS_HEADERS })
+
+  // Este endpoint é público (é o que o tracker.js do site do cliente chama),
+  // então recebe tudo que passeia pela internet. Sem este filtro, cada
+  // rastreador vira um "visitante" e infla as métricas de quem paga anúncio.
+  if (pareceRobo(request.headers.get('user-agent'))) {
+    return NextResponse.json({ ok: true }, { status: 200, headers: CORS_HEADERS })
+  }
   let body: any
   try {
     body = await request.json()
