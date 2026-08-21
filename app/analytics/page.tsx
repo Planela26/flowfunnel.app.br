@@ -7,6 +7,7 @@ import TrendChart from '@/components/charts/TrendChart'
 import ComparisonChart from '@/components/charts/ComparisonChart'
 import FunnelVisualization from '@/components/charts/FunnelVisualization'
 import DateFilter from '@/components/DateFilter'
+import { periodoPor, opcoesDePeriodo } from '@/lib/periodo'
 import { Settings, Download, Mail, LineChart, BarChart3, ShoppingBag } from 'lucide-react'
 
 interface MetricsData {
@@ -52,15 +53,18 @@ export default function AnalyticsPage() {
   const [platformPerformance, setPlatformPerformance] = useState<Array<{
     name: string; gasto: number; receita: number; lucro: number; roi: number; cliques: number
   }>>([])
-  const [dateRange, setDateRange] = useState<{
-    startDate: Date | null
-    endDate: Date | null
-    period: string
-  }>({
-    startDate: null,
-    endDate: null,
-    period: 'last7days',
-  })
+  /**
+   * Período, no MESMO vocabulário do resto do produto (lib/periodo.ts).
+   *
+   * Antes o estado guardava `'last7days'` e o seletor emitia `'7days'` — dois
+   * dialetos que nunca casavam. Somado a isso, a página passava as props
+   * `period`/`onFilterChange`, que o DateFilter declara mas não usa: ele lê
+   * `selectedPeriod`/`onPeriodChange`. Resultado: nenhum botão aparecia
+   * selecionado, clicar não fazia nada, e o período parecia travado em 7 dias.
+   */
+  const [selectedPeriod, setSelectedPeriod] = useState('7days')
+  const [customDateRange, setCustomDateRange] = useState({ start: '', end: '' })
+  const periodo = periodoPor(selectedPeriod)
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -72,11 +76,11 @@ export default function AnalyticsPage() {
     const fetchData = async () => {
       try {
         setLoading(true)
-        const days = dateRange.period === 'last7days' ? 7 : dateRange.period === 'last30days' ? 30 : 7
+        const days = periodo.dias
         const [whatsappRes, facebookRes, hotmartRes, timeseriesRes, platformRes] = await Promise.all([
-          fetch('/api/whatsapp/metrics'),
-          fetch('/api/facebook/metrics'),
-          fetch('/api/hotmart/metrics'),
+          fetch(`/api/whatsapp/metrics?days=${periodo.dias}`),
+          fetch(`/api/facebook/metrics?period=${periodo.meta}`),
+          fetch(`/api/hotmart/metrics?days=${periodo.dias}`),
           fetch(`/api/analytics/timeseries?days=${days}`),
           fetch(`/api/analytics/platform-performance?days=${days}`),
         ])
@@ -105,7 +109,7 @@ export default function AnalyticsPage() {
     if (status === 'authenticated') {
       fetchData()
     }
-  }, [status, dateRange])
+  }, [status, selectedPeriod])
 
   if (status === 'loading' || loading) {
     return (
@@ -181,12 +185,11 @@ export default function AnalyticsPage() {
         {/* Filtros de Data */}
         <div className="mb-8">
           <DateFilter
-            startDate={dateRange.startDate}
-            endDate={dateRange.endDate}
-            period={dateRange.period}
-            onFilterChange={(start, end, period) => {
-              setDateRange({ startDate: start, endDate: end, period })
-            }}
+            selectedPeriod={selectedPeriod}
+            onPeriodChange={setSelectedPeriod}
+            periods={opcoesDePeriodo()}
+            customDateRange={customDateRange}
+            onCustomDateChange={(start, end) => setCustomDateRange({ start, end })}
           />
         </div>
 

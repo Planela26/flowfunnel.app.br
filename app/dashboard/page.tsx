@@ -5,6 +5,7 @@ import { useEffect, useState, useCallback, Suspense } from 'react'
 import { useSession } from 'next-auth/react'
 import { MessageCircle, Settings, Download, MousePointer2, Eye, Target, TrendingUp, DollarSign, BarChart3, Zap, Trophy, Pin, AlertTriangle, Smartphone, Megaphone, Plug2, ArrowRight } from 'lucide-react'
 import { useFunnelView } from '@/hooks/useFunnelView'
+import { PERIODOS, periodoPor, opcoesDePeriodo } from '@/lib/periodo'
 import CardInsightModal from '@/components/CardInsightModal'
 import DateFilter from '@/components/DateFilter'
 import AlertSystem, { Alert } from '@/components/AlertSystem'
@@ -38,29 +39,6 @@ import SaraInsightsPanel from '@/components/SaraInsightsPanel'
 
 const estimateWhatsAppConversations = (clicks: number) => Math.max(0, Math.round(clicks * 0.18))
 
-/**
- * Períodos do painel, em um lugar só.
- *
- * O mapa `{today, 7days, 30days}` estava duplicado em QUATRO trechos deste
- * arquivo — três iguais e um com valores diferentes. Pior: `setSelectedPeriod`
- * nunca era chamado, então o estado existia, alimentava as buscas e ficava
- * preso em 7 dias para sempre. Não havia como pedir os números de ontem ou do
- * mês, e o card do Meta Ads mostrava uma janela que ninguém tinha escolhido.
- *
- * `meta` é o `date_preset` da Graph API; `dias` é o formato que as rotas de
- * analytics esperam; `comparacao` é o vocabulário próprio de
- * /api/analytics/comparison, que não tem equivalente para hoje/ontem.
- */
-const PERIODOS = [
-  { valor: 'today',     rotulo: 'Hoje',             meta: 'today',     dias: 1,   comparacao: '7d'  },
-  { valor: 'yesterday', rotulo: 'Ontem',            meta: 'yesterday', dias: 2,   comparacao: '7d'  },
-  { valor: '7days',     rotulo: 'Últimos 7 dias',   meta: 'last_7d',   dias: 7,   comparacao: '7d'  },
-  { valor: '30days',    rotulo: 'Últimos 30 dias',  meta: 'last_30d',  dias: 30,  comparacao: '30d' },
-  { valor: '90days',    rotulo: 'Últimos 90 dias',  meta: 'last_90d',  dias: 90,  comparacao: '90d' },
-  { valor: 'maximum',   rotulo: 'Desde o início',   meta: 'maximum',   dias: 365, comparacao: '90d' },
-] as const
-
-const periodoPor = (valor: string) => PERIODOS.find(p => p.valor === valor) ?? PERIODOS[2]
 
 export default function Dashboard() {
   const { info: planInfo } = usePlan()
@@ -476,7 +454,7 @@ export default function Dashboard() {
           <DateFilter
             selectedPeriod={selectedPeriod}
             onPeriodChange={setSelectedPeriod}
-            periods={PERIODOS.map(p => ({ value: p.valor, label: p.rotulo }))}
+            periods={opcoesDePeriodo()}
             customDateRange={customDateRange}
             onCustomDateChange={(start, end) => setCustomDateRange({ start, end })}
           />
