@@ -251,6 +251,74 @@ export async function getInsightsComFallback(
   }
 }
 
+/**
+ * Insights DIA A DIA, para séries temporais.
+ *
+ * `time_increment=1` faz a Meta devolver uma linha por dia em vez de um total
+ * agregado. É o que permite o gráfico de gasto ao longo do tempo — antes o
+ * Analytics tentava montar isso a partir de `FunnelEvent.metadata.cost`, um
+ * campo que nenhuma parte viva do sistema preenche, então a linha de gasto era
+ * sempre zero.
+ *
+ * Mesma queda para soma por campanha usada em `getInsightsComFallback`: se a
+ * conta não reporta no agregado, somamos os dias campanha a campanha.
+ *
+ * Chave do mapa: `YYYY-MM-DD`, como a Meta devolve em `date_start`.
+ */
+export async function getDailyInsights(
+  accessToken: string,
+  adAccountId: string,
+  datePreset: string,
+  campaignIds: string[] = [],
+): Promise<{ success: boolean; porDia: Record<string, { impressions: number; clicks: number; spend: number }>; error?: string }> {
+  const campos = 'impressions,clicks,spend'
+
+  const buscar = async (endpoint: string) => {
+    const url = `${GRAPH_API_BASE}/${endpoint}?fields=${campos}&date_preset=${datePreset}&time_increment=1`
+    const response = await graphFetch(url, accessToken)
+    const result = await response.json()
+    if (!response.ok) throw new Error(result.error?.message || 'Erro ao buscar insights diários')
+    return (result.data || []) as Array<Record<string, string>>
+  }
+
+  const acumular = (
+    alvo: Record<string, { impressions: number; clicks: number; spend: number }>,
+    linhas: Array<Record<string, string>>,
+  ) => {
+    for (const l of linhas) {
+      const dia = l.date_start
+      if (!dia) continue
+      if (!alvo[dia]) alvo[dia] = { impressions: 0, clicks: 0, spend: 0 }
+      alvo[dia].impressions += parseInt(l.impressions || '0') || 0
+      alvo[dia].clicks += parseInt(l.clicks || '0') || 0
+      alvo[dia].spend += parseFloat(l.spend || '0') || 0
+    }
+  }
+
+  try {
+    const porDia: Record<string, { impressions: number; clicks: number; spend: number }> = {}
+
+    acumular(porDia, await buscar(`act_${adAccountId}/insights`))
+    if (Object.keys(porDia).length > 0) return { success: true, porDia }
+
+    if (campaignIds.length === 0) return { success: true, porDia }
+
+    for (const id of campaignIds.slice(0, 25)) {
+      try {
+        acumular(porDia, await buscar(`${id}/insights`))
+      } catch { /* uma campanha sem acesso não invalida as demais */ }
+    }
+    return { success: true, porDia }
+  } catch (error) {
+    console.error('Erro ao buscar insights diários:', error)
+    return {
+      success: false,
+      porDia: {},
+      error: error instanceof Error ? error.message : 'Erro desconhecido',
+    }
+  }
+}
+
 // Buscar campanhas ativas
 export async function getActiveCampaigns(
   accessToken: string,

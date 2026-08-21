@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { getHistoryLimitDays, normalizePlan } from '@/lib/plans'
+import { getDailyInsights } from '@/lib/facebook'
 import { isSaleEvent, isCheckoutEvent, isCanceledSale, extractAmount, saleTransactionId } from '@/lib/sale-events'
 
 export async function GET(request: Request) {
@@ -23,13 +24,19 @@ export async function GET(request: Request) {
     const requested = Math.max(1, Math.min(planMaxDays, parseInt(searchParams.get('days') || '7')))
     const days = requested
 
+    // `Funnel` (o modelo com etapas e FunnelEvent) é OPCIONAL aqui.
+    //
+    // Antes a rota devolvia série vazia quando não existia nenhum — e não
+    // existe na conta típica, porque o "funil" que se cria na interface é
+    // `Workspace`, outro modelo. O gráfico do Analytics ficava em branco mesmo
+    // com campanha rodando, leads entrando e vendas atribuídas no banco.
+    //
+    // Quem tem `Funnel` continua tendo seus eventos considerados; quem não tem
+    // agora recebe a série montada a partir das fontes que realmente existem:
+    // gasto e cliques da Meta, leads do rastreamento e vendas da atribuição.
     const funnel = await prisma.funnel.findFirst({
       where: { userId: session.user.id },
     })
-
-    if (!funnel) {
-      return NextResponse.json({ data: [], empty: true })
-    }
 
     const since = new Date()
     since.setHours(0, 0, 0, 0)
@@ -68,14 +75,16 @@ export async function GET(request: Request) {
     }
 
     // 2) Para dias sem snapshot (e SEMPRE para hoje, que é parcial), agregar eventos em tempo real
-    const events = await prisma.funnelEvent.findMany({
-      where: {
-        funnelId: funnel.id,
-        timestamp: { gte: since },
-      },
-      orderBy: { timestamp: 'asc' },
-      select: { eventType: true, metadata: true, timestamp: true },
-    })
+    const events = funnel
+      ? await prisma.funnelEvent.findMany({
+          where: {
+            funnelId: funnel.id,
+            timestamp: { gte: since },
+          },
+          orderBy: { timestamp: 'asc' },
+          select: { eventType: true, metadata: true, timestamp: true },
+        })
+      : []
 
     const today = new Date()
     const todayKey = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}`
@@ -122,8 +131,87 @@ export async function GET(request: Request) {
       }
     }
 
+    // ── 3) Fontes reais, que existem independentemente de Funnel ──────────────
+    //
+    // O gasto vinha de `FunnelEvent.metadata.cost`, campo que nada preenche
+    // hoje: a linha de gasto era sempre zero. Agora vem da Meta, dia a dia.
+    // Vendas e leads vêm de SaleAttribution e TrackedLead, que são as tabelas
+    // realmente alimentadas pelo produto.
+    const chaveDoDia = (d: Date) =>
+      `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`
+
+    const [metaIntegration, campanhas, vendasPorDia, leadsPorDia] = await Promise.all([
+      prisma.integration.findFirst({
+        where: { userId: session.user.id, platform: 'META_ADS', isActive: true },
+        select: { accessToken: true, config: true },
+      }).catch(() => null),
+      prisma.campaign.findMany({
+        where: { userId: session.user.id, platform: 'META_ADS' },
+        select: { campaignId: true },
+        take: 25,
+      }).catch(() => []),
+      prisma.saleAttribution.findMany({
+        where: { userId: session.user.id, createdAt: { gte: since } },
+        select: { value: true, createdAt: true },
+      }).catch(() => [] as Array<{ value: number; createdAt: Date }>),
+      prisma.trackedLead.findMany({
+        where: { userId: session.user.id, createdAt: { gte: since } },
+        select: { createdAt: true },
+      }).catch(() => [] as Array<{ createdAt: Date }>),
+    ])
+
+    // Vendas e receita reais sobrescrevem o que veio de FunnelEvent: a
+    // atribuição é a fonte final, e o evento de funil é o registro bruto.
+    if (vendasPorDia.length > 0) {
+      for (const k of Object.keys(map)) { map[k].vendas = 0; map[k].receita = 0 }
+      for (const v of vendasPorDia) {
+        const k = chaveDoDia(new Date(v.createdAt))
+        if (!map[k]) continue
+        map[k].vendas += 1
+        map[k].receita += v.value || 0
+      }
+    }
+
+    if (leadsPorDia.length > 0) {
+      for (const k of Object.keys(map)) map[k].cliques = 0
+      for (const l of leadsPorDia) {
+        const k = chaveDoDia(new Date(l.createdAt))
+        if (map[k]) map[k].cliques += 1
+      }
+    }
+
+    if (metaIntegration?.accessToken) {
+      try {
+        const cfg = typeof metaIntegration.config === 'string'
+          ? JSON.parse(metaIntegration.config)
+          : (metaIntegration.config ?? {})
+        if (cfg?.adAccountId) {
+          const preset = days <= 1 ? 'today' : days <= 7 ? 'last_7d' : days <= 30 ? 'last_30d' : 'last_90d'
+          const diario = await getDailyInsights(
+            metaIntegration.accessToken,
+            cfg.adAccountId,
+            preset,
+            campanhas.map(c => c.campaignId).filter(Boolean) as string[],
+          )
+          if (diario.success) {
+            for (const [iso, v] of Object.entries(diario.porDia)) {
+              // `date_start` vem como YYYY-MM-DD; montamos a data em horário
+              // local para cair no mesmo rótulo dd/mm usado no mapa.
+              const [y, m, dd] = iso.split('-').map(Number)
+              const k = chaveDoDia(new Date(y, m - 1, dd))
+              if (map[k]) map[k].gasto = +v.spend.toFixed(2)
+            }
+          }
+        }
+      } catch { /* série sem gasto é melhor que série nenhuma */ }
+    }
+
     const data = Object.values(map)
-    const hasData = data.some(d => d.vendas > 0 || d.receita > 0 || d.checkouts > 0 || d.conversas > 0)
+    // "Tem dado" passou a incluir cliques e gasto: uma conta que só investiu em
+    // anúncio, ainda sem venda, tinha o gráfico escondido como se estivesse vazia.
+    const hasData = data.some(
+      d => d.vendas > 0 || d.receita > 0 || d.checkouts > 0 || d.conversas > 0 || d.cliques > 0 || d.gasto > 0,
+    )
 
     return NextResponse.json({ data, empty: !hasData })
   } catch (error) {

@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { cache, generateCacheKey, CacheTTL } from '@/lib/cache'
+import { getInsightsComFallback } from '@/lib/facebook'
 
 const PURCHASE_EVENT_RX = /_purchase_complete$/
 
@@ -54,73 +55,100 @@ export async function GET(request: Request) {
     since.setHours(0, 0, 0, 0)
     since.setDate(since.getDate() - (days - 1))
 
-    // Agrega através de TODOS os funis do usuário
-    const funnels = await prisma.funnel.findMany({
-      where: { userId: session.user.id },
-      select: { id: true },
-    })
-    const funnelIds = funnels.map(f => f.id)
+    // ── De onde vêm gasto e receita ───────────────────────────────────────────
+    //
+    // Antes esta rota exigia um registro `Funnel` e derivava o gasto de
+    // `FunnelEvent.metadata.cost` — um campo que NENHUMA parte viva do sistema
+    // preenche hoje. E `Funnel` não é o "funil" que se cria na interface (esse
+    // é `Workspace`), então a conta típica não tem nenhum: a rota devolvia
+    // tudo zerado na primeira linha, antes de olhar qualquer dado.
+    //
+    // Agora lê as fontes reais: gasto e cliques vêm da Meta ao vivo; receita
+    // vem de SaleAttribution, que é onde a venda atribuída de fato mora.
+    const perPlatform: Record<string, { clicks: number; spend: number; revenue: number }> = {}
+    for (const p of PLATFORMS) perPlatform[p.key] = { clicks: 0, spend: 0, revenue: 0 }
 
-    const emptyResponse = {
-      data: PLATFORMS.map(p => ({ name: p.label, gasto: 0, receita: 0, lucro: 0, roi: 0, cliques: 0 })),
-      empty: true,
+    const [metaIntegration, campanhas, vendas] = await Promise.all([
+      prisma.integration.findFirst({
+        where: { userId: session.user.id, platform: 'META_ADS', isActive: true },
+        select: { accessToken: true, config: true },
+      }).catch(() => null),
+      prisma.campaign.findMany({
+        where: { userId: session.user.id, platform: 'META_ADS' },
+        select: { campaignId: true },
+        take: 25,
+      }).catch(() => []),
+      // Receita por origem. `utmSource` é o que liga a venda à plataforma que a
+      // trouxe — é isso que o link rastreável grava.
+      prisma.saleAttribution.groupBy({
+        by: ['utmSource'],
+        where: { userId: session.user.id, createdAt: { gte: since } },
+        _sum: { value: true },
+        _count: { _all: true },
+      }).catch(() => [] as Array<{ utmSource: string | null; _sum: { value: number | null }; _count: { _all: number } }>),
+    ])
+
+    // Gasto e cliques reais da Meta.
+    if (metaIntegration?.accessToken) {
+      try {
+        const cfg = typeof metaIntegration.config === 'string'
+          ? JSON.parse(metaIntegration.config)
+          : (metaIntegration.config ?? {})
+        if (cfg?.adAccountId) {
+          const preset = days <= 1 ? 'today' : days <= 7 ? 'last_7d' : days <= 30 ? 'last_30d' : 'last_90d'
+          const ins = await getInsightsComFallback(
+            metaIntegration.accessToken,
+            cfg.adAccountId,
+            preset,
+            campanhas.map(c => c.campaignId).filter(Boolean) as string[],
+          )
+          if (ins.success && ins.data) {
+            // A chave é 'facebook' (ver PLATFORMS), não 'meta'. Escrever na
+            // chave errada não daria erro de tipo — `perPlatform` é
+            // Record<string, …> — e o catch abaixo engoliria o TypeError,
+            // deixando o gasto em zero sem nenhum sinal.
+            perPlatform.facebook.spend = ins.data.spend
+            perPlatform.facebook.clicks = ins.data.clicks
+          }
+        }
+      } catch { /* uma falha da Meta não zera as outras plataformas */ }
     }
 
-    if (funnelIds.length === 0) {
-      return NextResponse.json(emptyResponse)
+    // Receita por plataforma, a partir da origem gravada na atribuição.
+    // Valores à direita são as chaves de PLATFORMS.
+    const ORIGEM_PARA_PLATAFORMA: Record<string, string> = {
+      facebook: 'facebook', fb: 'facebook', meta: 'facebook', instagram: 'facebook',
+      google: 'google', adwords: 'google',
+      tiktok: 'tiktok',
+    }
+    let receitaSemOrigem = 0
+    for (const v of vendas) {
+      const bruto = (v.utmSource || '').toLowerCase().trim()
+      const chave = ORIGEM_PARA_PLATAFORMA[bruto]
+      const valor = v._sum.value || 0
+      if (chave && perPlatform[chave]) perPlatform[chave].revenue += valor
+      else receitaSemOrigem += valor
     }
 
-    const allClickEventTypes = PLATFORMS.flatMap(p => [...p.eventTypes])
-    const events = await prisma.funnelEvent.findMany({
-      where: {
-        funnelId: { in: funnelIds },
-        timestamp: { gte: since },
-        OR: [
-          { eventType: { in: allClickEventTypes } },
-          { eventType: { endsWith: '_purchase_complete' } },
-        ],
-      },
-      select: { eventType: true, metadata: true },
-    })
+    const totalClicks = Object.values(perPlatform).reduce((a, p) => a + p.clicks, 0)
+    const totalRevenue = Object.values(perPlatform).reduce((a, p) => a + p.revenue, 0) + receitaSemOrigem
 
-    const perPlatform: Record<string, { clicks: number; spend: number }> = {}
-    for (const p of PLATFORMS) perPlatform[p.key] = { clicks: 0, spend: 0 }
-
-    let totalClicks = 0
-    let totalRevenue = 0
-
-    for (const ev of events) {
-      const meta = safeJson(ev.metadata)
-
-      if (PURCHASE_EVENT_RX.test(ev.eventType)) {
-        const status = String(meta.status || '').toLowerCase()
-        if (NON_ELIGIBLE_PURCHASE_STATUS.has(status)) continue
-        totalRevenue += toNumber(meta.amount ?? meta.price ?? meta.value)
-        continue
-      }
-
-      const platform = PLATFORMS.find(p => (p.eventTypes as readonly string[]).includes(ev.eventType))
-      if (!platform) continue
-
-      perPlatform[platform.key].clicks += 1
-      perPlatform[platform.key].spend += toNumber(meta.cost ?? meta.spend ?? meta.value)
-      totalClicks += 1
-    }
-
-    // Atribuição: por share de cliques. Fallback: se houver receita mas nenhum clique
-    // rastreado, divide igualmente entre plataformas que tiveram gasto.
+    // Receita sem origem identificada é rateada por share de cliques — é o
+    // melhor palpite quando a venda chegou sem UTM (anúncio apontando direto
+    // para a página, sem o link rastreável). Com origem, o valor vai inteiro
+    // para a plataforma certa e não precisa de rateio.
     const platformsWithSpend = PLATFORMS.filter(p => perPlatform[p.key].spend > 0)
-    const fallbackSplit = totalClicks === 0 && totalRevenue > 0 && platformsWithSpend.length > 0
+    const rateioIgual = totalClicks === 0 && receitaSemOrigem > 0 && platformsWithSpend.length > 0
 
     const data = PLATFORMS.map(p => {
       const stats = perPlatform[p.key]
-      let receita: number
-      if (totalClicks > 0) {
-        receita = totalRevenue * (stats.clicks / totalClicks)
-      } else if (fallbackSplit && stats.spend > 0) {
-        receita = totalRevenue / platformsWithSpend.length
-      } else {
-        receita = 0
+      let receita = stats.revenue
+      if (receitaSemOrigem > 0) {
+        if (totalClicks > 0) {
+          receita += receitaSemOrigem * (stats.clicks / totalClicks)
+        } else if (rateioIgual && stats.spend > 0) {
+          receita += receitaSemOrigem / platformsWithSpend.length
+        }
       }
       const gasto = +stats.spend.toFixed(2)
       const receitaR = +receita.toFixed(2)
