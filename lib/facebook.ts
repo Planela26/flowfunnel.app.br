@@ -1,5 +1,6 @@
 // Biblioteca de funções para Meta/Facebook Ads API
 
+import { GRAPH_API_BASE } from './graph-api'
 import { decryptSecret } from './security-utils'
 
 /**
@@ -90,7 +91,7 @@ export async function getAdInsights(
       ? `time_range=${encodeURIComponent(JSON.stringify(timeRange))}`
       : `date_preset=${datePreset}`
 
-    const url = `https://graph.facebook.com/v18.0/${endpoint}?fields=${fields}&${dateParam}`
+    const url = `${GRAPH_API_BASE}/${endpoint}?fields=${fields}&${dateParam}`
 
     const response = await graphFetch(url, accessToken)
     const result = await response.json()
@@ -182,7 +183,7 @@ export async function getActiveCampaigns(
       'updated_time',
     ].join(',')
 
-    const url = `https://graph.facebook.com/v18.0/act_${adAccountId}/campaigns?fields=${fields}`
+    const url = `${GRAPH_API_BASE}/act_${adAccountId}/campaigns?fields=${fields}`
 
     const response = await graphFetch(url, accessToken)
     const result = await response.json()
@@ -220,7 +221,7 @@ export async function getAdAccountInfo(
       'balance',
     ].join(',')
 
-    const url = `https://graph.facebook.com/v18.0/act_${adAccountId}?fields=${fields}`
+    const url = `${GRAPH_API_BASE}/act_${adAccountId}?fields=${fields}`
 
     const response = await graphFetch(url, accessToken)
     const result = await response.json()
@@ -252,7 +253,7 @@ export async function exchangeForLongLivedToken(
     // Endpoint de OAuth: ainda não existe bearer token para enviar no header, e
     // a própria Meta espera estes parâmetros no corpo/query. Enviamos via POST
     // para que `client_secret` não fique na URL (que vaza em log e Referer).
-    const url = 'https://graph.facebook.com/v18.0/oauth/access_token'
+    const url = `${GRAPH_API_BASE}/oauth/access_token`
     const form = new URLSearchParams({
       grant_type: 'fb_exchange_token',
       client_id: appId,
@@ -290,7 +291,7 @@ export async function exchangeForLongLivedToken(
 export async function getAdAccounts(accessToken: string) {
   try {
     const fields = ['id', 'name', 'account_status', 'currency'].join(',')
-    const url = `https://graph.facebook.com/v18.0/me/adaccounts?fields=${fields}`
+    const url = `${GRAPH_API_BASE}/me/adaccounts?fields=${fields}`
 
     const response = await graphFetch(url, accessToken)
     const result = await response.json()
@@ -315,7 +316,7 @@ export async function getAdAccounts(accessToken: string) {
 // Validar access token
 export async function validateAccessToken(accessToken: string) {
   try {
-    const url = `https://graph.facebook.com/v18.0/me`
+    const url = `${GRAPH_API_BASE}/me`
 
     const response = await graphFetch(url, accessToken)
     const result = await response.json()

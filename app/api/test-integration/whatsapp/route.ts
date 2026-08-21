@@ -1,3 +1,4 @@
+import { GRAPH_API_BASE } from '@/lib/graph-api'
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
@@ -24,7 +25,7 @@ export async function POST(request: Request) {
     const testStart1 = Date.now()
     try {
       const response = await fetch(
-        `https://graph.facebook.com/v18.0/${phoneNumberId}`,
+        `${GRAPH_API_BASE}/${phoneNumberId}`,
         { headers: { Authorization: `Bearer ${accessToken}` } }
       )
       const data = await response.json()
@@ -57,7 +58,7 @@ export async function POST(request: Request) {
     const testStart2 = Date.now()
     try {
       const response = await fetch(
-        `https://graph.facebook.com/v18.0/${phoneNumberId}/message_templates?limit=1`,
+        `${GRAPH_API_BASE}/${phoneNumberId}/message_templates?limit=1`,
         { headers: { Authorization: `Bearer ${accessToken}` } }
       )
       const data = await response.json()

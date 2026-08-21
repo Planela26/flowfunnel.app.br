@@ -1,3 +1,4 @@
+import { GRAPH_API_BASE } from '@/lib/graph-api'
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
@@ -78,7 +79,7 @@ export async function GET(request: Request) {
           : `act_${config.adAccountId}`
 
         const response = await fetch(
-          `https://graph.facebook.com/v18.0/${accountId}/campaigns?` +
+          `${GRAPH_API_BASE}/${accountId}/campaigns?` +
           `fields=id,name,status,objective,daily_budget,lifetime_budget,start_time,stop_time,spend`,
           // Esta rota monta o fetch por conta própria, sem passar pelo
           // `graphFetch` de lib/facebook.ts — então precisa descriptografar

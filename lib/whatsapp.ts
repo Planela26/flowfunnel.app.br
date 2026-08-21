@@ -1,5 +1,7 @@
 // Biblioteca de funções para WhatsApp Cloud API
 
+import { GRAPH_API_BASE } from './graph-api'
+
 interface SendMessageParams {
   phoneNumberId: string
   accessToken: string
@@ -26,7 +28,7 @@ export async function sendWhatsAppMessage({
   type = 'text',
 }: SendMessageParams) {
   try {
-    const url = `https://graph.facebook.com/v18.0/${phoneNumberId}/messages`
+    const url = `${GRAPH_API_BASE}/${phoneNumberId}/messages`
 
     const payload = {
       messaging_product: 'whatsapp',
@@ -78,7 +80,7 @@ export async function sendWhatsAppTemplate({
   components = [],
 }: SendTemplateParams) {
   try {
-    const url = `https://graph.facebook.com/v18.0/${phoneNumberId}/messages`
+    const url = `${GRAPH_API_BASE}/${phoneNumberId}/messages`
 
     const payload = {
       messaging_product: 'whatsapp',
@@ -129,7 +131,7 @@ export async function markMessageAsRead(
   messageId: string
 ) {
   try {
-    const url = `https://graph.facebook.com/v18.0/${phoneNumberId}/messages`
+    const url = `${GRAPH_API_BASE}/${phoneNumberId}/messages`
 
     const payload = {
       messaging_product: 'whatsapp',
@@ -167,7 +169,7 @@ export async function getBusinessProfile(
   accessToken: string
 ) {
   try {
-    const url = `https://graph.facebook.com/v18.0/${phoneNumberId}/whatsapp_business_profile?fields=about,address,description,email,profile_picture_url,websites,vertical`
+    const url = `${GRAPH_API_BASE}/${phoneNumberId}/whatsapp_business_profile?fields=about,address,description,email,profile_picture_url,websites,vertical`
 
     const response = await fetch(url, {
       headers: {
@@ -199,7 +201,7 @@ export async function sendInteractiveButtons(
   buttons: Array<{ id: string; title: string }>
 ) {
   try {
-    const url = `https://graph.facebook.com/v18.0/${phoneNumberId}/messages`
+    const url = `${GRAPH_API_BASE}/${phoneNumberId}/messages`
 
     const payload = {
       messaging_product: 'whatsapp',

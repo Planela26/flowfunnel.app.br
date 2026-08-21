@@ -1,5 +1,6 @@
 'use client'
 
+import { GRAPH_API_BASE } from '@/lib/graph-api'
 import ThemeToggle from '@/components/ThemeToggle'
 
 import { useState } from 'react'
@@ -39,12 +40,12 @@ export default function FacebookConnect() {
     if (!accessToken) { setError('Insira o Access Token'); return }
     setLoading(true); setError('')
     try {
-      const validateRes = await fetch(`https://graph.facebook.com/v18.0/me?access_token=${accessToken}`)
+      const validateRes = await fetch(`${GRAPH_API_BASE}/me?access_token=${accessToken}`)
       const validateData = await validateRes.json()
       if (!validateRes.ok) throw new Error(validateData.error?.message || 'Token inválido')
 
       const accountsRes = await fetch(
-        `https://graph.facebook.com/v18.0/me/adaccounts?fields=id,name,account_status,currency&access_token=${accessToken}`
+        `${GRAPH_API_BASE}/me/adaccounts?fields=id,name,account_status,currency&access_token=${accessToken}`
       )
       const accountsData = await accountsRes.json()
       if (!accountsRes.ok) throw new Error(accountsData.error?.message || 'Erro ao buscar contas')

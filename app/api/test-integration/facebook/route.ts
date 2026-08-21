@@ -1,3 +1,4 @@
+import { GRAPH_API_BASE } from '@/lib/graph-api'
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
@@ -24,7 +25,7 @@ export async function POST(request: Request) {
     const testStart1 = Date.now()
     try {
       const response = await fetch(
-        `https://graph.facebook.com/v18.0/me`,
+        `${GRAPH_API_BASE}/me`,
         { headers: { Authorization: `Bearer ${accessToken}` } }
       )
       const data = await response.json()
@@ -58,7 +59,7 @@ export async function POST(request: Request) {
     try {
       const accountId = adAccountId.startsWith('act_') ? adAccountId : `act_${adAccountId}`
       const response = await fetch(
-        `https://graph.facebook.com/v18.0/${accountId}?fields=name,account_id,account_status`,
+        `${GRAPH_API_BASE}/${accountId}?fields=name,account_id,account_status`,
         { headers: { Authorization: `Bearer ${accessToken}` } }
       )
       const data = await response.json()
@@ -93,7 +94,7 @@ export async function POST(request: Request) {
     try {
       const accountId = adAccountId.startsWith('act_') ? adAccountId : `act_${adAccountId}`
       const response = await fetch(
-        `https://graph.facebook.com/v18.0/${accountId}/campaigns?fields=id,name,status&limit=1`,
+        `${GRAPH_API_BASE}/${accountId}/campaigns?fields=id,name,status&limit=1`,
         { headers: { Authorization: `Bearer ${accessToken}` } }
       )
       const data = await response.json()
@@ -127,7 +128,7 @@ export async function POST(request: Request) {
     try {
       const accountId = adAccountId.startsWith('act_') ? adAccountId : `act_${adAccountId}`
       const response = await fetch(
-        `https://graph.facebook.com/v18.0/${accountId}/insights?fields=impressions,clicks,spend&date_preset=last_7d`,
+        `${GRAPH_API_BASE}/${accountId}/insights?fields=impressions,clicks,spend&date_preset=last_7d`,
         { headers: { Authorization: `Bearer ${accessToken}` } }
       )
       const data = await response.json()

@@ -1,5 +1,6 @@
 'use client'
 
+import { GRAPH_API_BASE } from '@/lib/graph-api'
 import ThemeToggle from '@/components/ThemeToggle'
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
@@ -192,7 +193,7 @@ function BusinessConnect({ plan }: { plan: 'PRO' | 'SCALE' }) {
     setError('')
     try {
       const res = await fetch(
-        `https://graph.facebook.com/v18.0/${credentials.phoneNumberId}?access_token=${credentials.accessToken}`
+        `${GRAPH_API_BASE}/${credentials.phoneNumberId}?access_token=${credentials.accessToken}`
       )
       const data = await res.json()
       if (res.ok && data.id) {
