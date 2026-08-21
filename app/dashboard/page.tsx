@@ -38,6 +38,30 @@ import SaraInsightsPanel from '@/components/SaraInsightsPanel'
 
 const estimateWhatsAppConversations = (clicks: number) => Math.max(0, Math.round(clicks * 0.18))
 
+/**
+ * Períodos do painel, em um lugar só.
+ *
+ * O mapa `{today, 7days, 30days}` estava duplicado em QUATRO trechos deste
+ * arquivo — três iguais e um com valores diferentes. Pior: `setSelectedPeriod`
+ * nunca era chamado, então o estado existia, alimentava as buscas e ficava
+ * preso em 7 dias para sempre. Não havia como pedir os números de ontem ou do
+ * mês, e o card do Meta Ads mostrava uma janela que ninguém tinha escolhido.
+ *
+ * `meta` é o `date_preset` da Graph API; `dias` é o formato que as rotas de
+ * analytics esperam; `comparacao` é o vocabulário próprio de
+ * /api/analytics/comparison, que não tem equivalente para hoje/ontem.
+ */
+const PERIODOS = [
+  { valor: 'today',     rotulo: 'Hoje',             meta: 'today',     dias: 1,   comparacao: '7d'  },
+  { valor: 'yesterday', rotulo: 'Ontem',            meta: 'yesterday', dias: 2,   comparacao: '7d'  },
+  { valor: '7days',     rotulo: 'Últimos 7 dias',   meta: 'last_7d',   dias: 7,   comparacao: '7d'  },
+  { valor: '30days',    rotulo: 'Últimos 30 dias',  meta: 'last_30d',  dias: 30,  comparacao: '30d' },
+  { valor: '90days',    rotulo: 'Últimos 90 dias',  meta: 'last_90d',  dias: 90,  comparacao: '90d' },
+  { valor: 'maximum',   rotulo: 'Desde o início',   meta: 'maximum',   dias: 365, comparacao: '90d' },
+] as const
+
+const periodoPor = (valor: string) => PERIODOS.find(p => p.valor === valor) ?? PERIODOS[2]
+
 export default function Dashboard() {
   const { info: planInfo } = usePlan()
   const [viewMode, setViewMode] = useState<'produtor' | 'gestor'>('gestor')
@@ -125,12 +149,7 @@ export default function Dashboard() {
     const fetchFacebookMetrics = async () => {
       try {
         setLoadingFacebook(true)
-        const periodMap: Record<string, string> = {
-          'today': 'today',
-          '7days': 'last_7d',
-          '30days': 'last_30d',
-        }
-        const period = periodMap[selectedPeriod] || 'last_30d'
+        const period = periodoPor(selectedPeriod).meta
         // Prioridade: campanha do workspace > campanha selecionada manualmente
         const campaignId = activeWorkspace?.facebookCampaignId || selectedCampaign
         let url = `/api/facebook/metrics?period=${period}`
@@ -156,8 +175,7 @@ export default function Dashboard() {
 
   // Buscar dados de Google Ads e TikTok Ads
   useEffect(() => {
-    const periodMap2: Record<string, string> = { today: 'today', '7days': 'last_7d', '30days': 'last_30d' }
-    const period = periodMap2[selectedPeriod] || 'last_30d'
+    const period = periodoPor(selectedPeriod).meta
     const fetchOther = async () => {
       try {
         setLoadingGoogle(true)
@@ -180,12 +198,7 @@ export default function Dashboard() {
   }, [selectedPeriod])
 
   // Mapeamento de períodos para API do Facebook (para uso em outros contextos)
-  const periodMap: Record<string, string> = {
-    'today': 'today',
-    '7days': 'last_7d',
-    '30days': 'last_30d',
-  }
-  const period = periodMap[selectedPeriod] || 'last_30d'
+  const period = periodoPor(selectedPeriod).meta
   const campaignParam = selectedCampaign ? `&campaignId=${selectedCampaign}` : ''
 
   // Landing Page — lê o rastreamento que já existe (tracker.js + link
@@ -352,11 +365,7 @@ export default function Dashboard() {
       })
       return
     }
-    const periodMap: Record<string, string> = {
-      '7days': '7d', '30days': '30d', '90days': '90d',
-      'thismonth': 'month', 'lastmonth': 'lastmonth',
-    }
-    const p = periodMap[selectedPeriod] || '30d'
+    const p = periodoPor(selectedPeriod).comparacao
     fetch(`/api/analytics/comparison?period=${p}`)
       .then(r => r.ok ? r.json() : null)
       .then(data => { if (data) setComparisonData(data) })
@@ -452,8 +461,31 @@ export default function Dashboard() {
       <WorkspaceTabs onWorkspaceChange={handleWorkspaceChange} />
 
       <main className="container mx-auto px-4 py-4">
+        {/* Período dos cards.
+            O estado existia e alimentava todas as buscas, mas nada na tela
+            chamava `setSelectedPeriod` — ficava preso em 7 dias, e o card do
+            Meta Ads mostrava uma janela que ninguém tinha escolhido. O rótulo
+            aparece junto dos cards para que nenhum número fique sem contexto. */}
+        <div className="mb-4">
+          <DateFilter
+            selectedPeriod={selectedPeriod}
+            onPeriodChange={setSelectedPeriod}
+            periods={PERIODOS.map(p => ({ value: p.valor, label: p.rotulo }))}
+            customDateRange={customDateRange}
+            onCustomDateChange={(start, end) => setCustomDateRange({ start, end })}
+          />
+        </div>
+
         {/* Workflow Canvas — funil visual interativo (topo) */}
         <div className="mb-6">
+          <div className="flex items-center justify-between mb-2 px-1">
+            <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+              Funil
+            </span>
+            <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+              Números de: <strong className="text-gray-700 dark:text-gray-200">{periodoPor(selectedPeriod).rotulo}</strong>
+            </span>
+          </div>
           <FunnelFlow
             visibleIds={visibleIds}
             onAddCard={addCard}

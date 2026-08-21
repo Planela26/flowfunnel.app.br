@@ -5,24 +5,33 @@ interface DateFilterProps {
   onPeriodChange?: (period: string) => void;
   customDateRange?: { start: string; end: string };
   onCustomDateChange?: (start: string, end: string) => void;
+  /**
+   * Períodos oferecidos. Quem renderiza passa a própria lista, porque é ela
+   * que sabe traduzir cada valor para o `date_preset` da Meta e para os
+   * parâmetros das rotas de analytics. Uma lista fixa aqui já divergiu do que
+   * o dashboard sabia buscar. Omitido, cai no conjunto abaixo.
+   */
+  periods?: ReadonlyArray<{ value: string; label: string }>;
   startDate?: Date | null;
   endDate?: Date | null;
   period?: string;
   onFilterChange?: (start: any, end: any, period: any) => void;
 }
 
-export default function DateFilter({ 
-  selectedPeriod, 
+const PADRAO = [
+  { value: 'today', label: 'Hoje' },
+  { value: '7days', label: 'Últimos 7 dias' },
+  { value: '30days', label: 'Últimos 30 dias' },
+] as const
+
+export default function DateFilter({
+  selectedPeriod,
   onPeriodChange,
   customDateRange,
-  onCustomDateChange 
+  onCustomDateChange,
+  periods: periodsProp,
 }: DateFilterProps) {
-  const periods = [
-    { value: 'today', label: 'Hoje' },
-    { value: '7days', label: 'Últimos 7 dias' },
-    { value: '30days', label: 'Últimos 30 dias' },
-    { value: 'custom', label: 'Personalizado' },
-  ]
+  const periods = periodsProp ?? PADRAO
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 p-4 transition-colors">
