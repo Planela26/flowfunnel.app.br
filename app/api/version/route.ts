@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { readFile } from 'fs/promises'
 import path from 'path'
+import { estatisticasDeConexao } from '@/lib/prisma'
 
 /**
  * Qual build está rodando agora.
@@ -70,5 +71,8 @@ export async function GET() {
     commit: await lerCommit(),
     processoIniciadoEm,
     agora: new Date().toISOString(),
+    // Contenção de conexão desde que o processo subiu. Responde "o limite de
+    // pool resolveu?" com número em vez de impressão — ver lib/prisma.ts.
+    banco: estatisticasDeConexao(),
   })
 }

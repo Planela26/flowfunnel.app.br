@@ -80,15 +80,49 @@ const prismaClientOptions = urlComPool
  */
 const ERROS_DE_CONEXAO = new Set(['P1001', 'P1002', 'P1008', 'P1017', 'P2024'])
 
+/**
+ * Contadores de contenção, expostos em /api/version.
+ *
+ * Existem porque a pergunta "o limite de pool resolveu?" não tem resposta
+ * olhando a tela: quando funciona, funciona — e antes também funcionava, às
+ * vezes. Sem medir, a única verificação possível é usar o sistema e torcer.
+ *
+ * Com isto, depois do deploy a resposta é um número:
+ *   `retentativas` > 0  → houve disputa por conexão e a retentativa segurou;
+ *                         o diagnóstico estava certo.
+ *   `desistencias` > 0  → a disputa passou do que 3 tentativas resolvem;
+ *                         subir DB_CONNECTION_LIMIT ou migrar para o pooler
+ *                         de transação (porta 6543).
+ *   tudo em 0 e a tela estável → o teto resolveu antes de virar erro.
+ *
+ * São contagens de processo, sem nada de usuário. Zeram a cada restart.
+ */
+const conexao = { retentativas: 0, recuperadas: 0, desistencias: 0, ultimoCodigo: null as string | null }
+
+export function estatisticasDeConexao() {
+  return { ...conexao }
+}
+
 async function comRetentativa<T>(fn: () => Promise<T>, tentativas = 3): Promise<T> {
   for (let i = 0; ; i++) {
     try {
-      return await fn()
+      const r = await fn()
+      if (i > 0) conexao.recuperadas++
+      return r
     } catch (e: any) {
+      const codigo = e?.code ?? null
       const transitorio =
-        ERROS_DE_CONEXAO.has(e?.code) ||
+        ERROS_DE_CONEXAO.has(codigo) ||
         /Can't reach database server|Timed out fetching a new connection/i.test(String(e?.message ?? ''))
-      if (!transitorio || i >= tentativas - 1) throw e
+      if (!transitorio) throw e
+      conexao.ultimoCodigo = codigo
+      if (i >= tentativas - 1) {
+        conexao.desistencias++
+        console.error(`[prisma] desisti após ${tentativas} tentativas (${codigo ?? 'sem código'})`)
+        throw e
+      }
+      conexao.retentativas++
+      console.warn(`[prisma] conexão indisponível (${codigo ?? 'sem código'}), tentativa ${i + 2}/${tentativas}`)
       // 100ms, 200ms — curto o bastante para caber num request, longo o
       // bastante para o slot ser devolvido por quem estava na frente.
       await new Promise(r => setTimeout(r, 100 * 2 ** i))
