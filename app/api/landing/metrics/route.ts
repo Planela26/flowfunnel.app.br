@@ -145,6 +145,18 @@ export async function GET(request: Request) {
     })
   } catch (error) {
     console.error('[landing/metrics]', error)
-    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
+    // 200 com a falha DESCRITA, em vez de 500 mudo.
+    //
+    // O dashboard descarta resposta não-ok e mantém o último dado bom — o que
+    // é certo para uma oscilação de rede, mas com falha persistente o card
+    // ficava eternamente no estado inicial, dizendo "Gere um link rastreável"
+    // para uma conta com centenas de leads registrados. A pessoa não tinha como
+    // saber que algo quebrou, e o motivo morria no log do servidor.
+    return NextResponse.json({
+      connected: false,
+      erro: true,
+      mensagem: 'Não foi possível carregar as métricas de rastreamento.',
+      detalhe: error instanceof Error ? error.message : String(error),
+    })
   }
 }

@@ -265,12 +265,19 @@ function IntegrationCardNode({ data }: NodeProps) {
                 {/* Conectado, mas a leitura falhou, é diferente de nunca ter
                     conectado. Dizer "nenhuma conta conectada" para quem tem a
                     conta ligada manda a pessoa refazer o que já está feito. */}
-                {d.data?.error
+                {d.data?.erro
+                  ? 'Não foi possível carregar'
+                  : d.data?.error
                   ? 'Não foi possível ler na Meta'
                   : isTraffic ? 'Nenhuma conta conectada' : isTracking ? 'Sem dados disponíveis' : 'Integração não ativa'}
               </p>
               <p className="text-[9px] text-gray-500 leading-tight">
-                {d.data?.error
+                {/* `erro` vem das rotas que respondem 200 descrevendo a falha —
+                    convidar a pessoa a instalar um rastreamento que já existe é
+                    pior do que admitir que a leitura falhou. */}
+                {d.data?.erro
+                  ? (d.data.mensagem || 'A leitura falhou. Tente recarregar a página.')
+                  : d.data?.error
                   ? 'O token pode ter expirado. Reconecte a conta de anúncios.'
                   : isTraffic
                   ? 'Conecte para ver cliques, leads e gastos no funil'
@@ -283,7 +290,9 @@ function IntegrationCardNode({ data }: NodeProps) {
             </div>
 
             {/* CTA button */}
-            {card.connectHref && (
+            {/* Com falha de leitura o CTA some: "Configurar rastreamento" numa
+                conta que já rastreia manda refazer o que está feito. */}
+            {card.connectHref && !d.data?.erro && (
               <Link
                 href={card.connectHref}
                 className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-[10px] font-bold text-white transition hover:opacity-90 active:scale-95"
