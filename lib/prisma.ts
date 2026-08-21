@@ -16,15 +16,85 @@ function buildPoolerUrl(raw: string | undefined): string | undefined {
 
 const supabasePoolerUrl = buildPoolerUrl(process.env.SUPABASE_DATABASE_URL)
 
-const prismaClientOptions = supabasePoolerUrl
+/**
+ * Limita o pool de conexões explicitamente.
+ *
+ * Sem `connection_limit`, o Prisma usa `núcleos × 2 + 1` — num VPS de 8 núcleos
+ * são 17 conexões, e o app é UM processo entre outros que também falam com o
+ * mesmo Postgres. O pooler do Supabase tem um teto de slots bem menor do que a
+ * soma disso.
+ *
+ * Agrava o quadro o desenho do cliente de tenant logo abaixo: CADA operação de
+ * modelo abre uma transação de três comandos, segurando uma conexão do começo
+ * ao fim. Uma tela como o dashboard dispara mais de dez buscas em paralelo, e
+ * cada uma faz várias consultas — dezenas de transações concorrentes.
+ *
+ * Estourado o teto, o erro que chega é "Can't reach database server", que
+ * parece queda do banco e não é: é falta de slot. Some sozinho quando o
+ * tráfego alivia, e por isso o sintoma aparece como "às vezes funciona, às
+ * vezes não".
+ *
+ * Com o teto explícito, a requisição ESPERA por um slot (até `pool_timeout`)
+ * em vez de falhar. Ajustável por ambiente sem mexer no código.
+ */
+function comLimiteDePool(raw: string | undefined): string | undefined {
+  if (!raw) return undefined
+  try {
+    const u = new URL(raw)
+    if (!u.searchParams.has('connection_limit')) {
+      u.searchParams.set('connection_limit', process.env.DB_CONNECTION_LIMIT ?? '10')
+    }
+    if (!u.searchParams.has('pool_timeout')) {
+      u.searchParams.set('pool_timeout', process.env.DB_POOL_TIMEOUT ?? '20')
+    }
+    return u.toString()
+  } catch {
+    // URL malformada: melhor deixar o Prisma reclamar do original do que
+    // devolver algo remendado.
+    return raw
+  }
+}
+
+const urlComPool = comLimiteDePool(supabasePoolerUrl ?? process.env.DATABASE_URL)
+
+const prismaClientOptions = urlComPool
   ? {
       datasources: {
         db: {
-          url: supabasePoolerUrl,
+          url: urlComPool,
         },
       },
     }
   : undefined
+
+/**
+ * Erros que significam "a operação NEM COMEÇOU" — falha ao obter conexão ou ao
+ * alcançar o servidor. Repetir é seguro: nada foi aplicado.
+ *
+ * Deliberadamente NÃO inclui erro no meio da transação, onde repetir poderia
+ * aplicar duas vezes.
+ *
+ *   P1001 servidor inalcançável   P1002 timeout de conexão
+ *   P1008 timeout de operação     P1017 servidor fechou a conexão
+ *   P2024 timeout esperando slot no pool
+ */
+const ERROS_DE_CONEXAO = new Set(['P1001', 'P1002', 'P1008', 'P1017', 'P2024'])
+
+async function comRetentativa<T>(fn: () => Promise<T>, tentativas = 3): Promise<T> {
+  for (let i = 0; ; i++) {
+    try {
+      return await fn()
+    } catch (e: any) {
+      const transitorio =
+        ERROS_DE_CONEXAO.has(e?.code) ||
+        /Can't reach database server|Timed out fetching a new connection/i.test(String(e?.message ?? ''))
+      if (!transitorio || i >= tentativas - 1) throw e
+      // 100ms, 200ms — curto o bastante para caber num request, longo o
+      // bastante para o slot ser devolvido por quem estava na frente.
+      await new Promise(r => setTimeout(r, 100 * 2 ** i))
+    }
+  }
+}
 
 // ----------------------------------------------------------------------------
 // Cliente base: conecta como a role do DATABASE_URL (superuser + BYPASSRLS).
@@ -105,11 +175,17 @@ export const prisma = base.$extends({
     $allModels: {
       async $allOperations({ args, query }) {
         const userId = await resolveTenantUserId()
-        const result = await base.$transaction([
-          base.$executeRaw`SELECT set_config('app.current_user_id', ${userId ?? ''}, true)`,
-          base.$executeRawUnsafe('SET LOCAL ROLE "app_rls"'),
-          query(args),
-        ])
+        // A retentativa cobre só falha de CONEXÃO — ver ERROS_DE_CONEXAO. Sem
+        // ela, um pico de concorrência derruba a consulta, o chamador cai no
+        // `.catch(() => [])` e a tela conclui "não há dados" quando o que
+        // faltou foi um slot no pool.
+        const result = await comRetentativa(() =>
+          base.$transaction([
+            base.$executeRaw`SELECT set_config('app.current_user_id', ${userId ?? ''}, true)`,
+            base.$executeRawUnsafe('SET LOCAL ROLE "app_rls"'),
+            query(args),
+          ]),
+        )
         return (result as unknown[])[2]
       },
     },
@@ -125,8 +201,10 @@ export async function withTenantTx<T>(
   fn: (tx: Prisma.TransactionClient) => Promise<T>,
 ): Promise<T> {
   const userId = await resolveTenantUserId()
-  return base.$transaction(async (tx) => {
-    await setTenantOnTx(tx, userId)
-    return fn(tx)
-  })
+  return comRetentativa(() =>
+    base.$transaction(async (tx) => {
+      await setTenantOnTx(tx, userId)
+      return fn(tx)
+    }),
+  )
 }
