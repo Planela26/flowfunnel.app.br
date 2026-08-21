@@ -6,6 +6,7 @@ import { encryptSecret, decryptSecret, checkRateLimit } from '@/lib/security-uti
 import { logAudit } from '@/lib/audit'
 import { safeIntegration } from '@/lib/integration-sanitize'
 import { assertCanCreateIntegration } from '@/lib/integration-gate'
+import { exchangeForLongLivedToken } from '@/lib/facebook'
 
 // Conectar Meta Ads com Access Token de longa duração
 export async function POST(request: Request) {
@@ -28,6 +29,48 @@ export async function POST(request: Request) {
       )
     }
 
+    // ── Troca por token de longa duração ──────────────────────────────────────
+    //
+    // O token que se gera no Graph API Explorer — o caminho que o próprio
+    // tutorial da tela ensina — vale ENTRE 1 E 2 HORAS. Antes, `appId` e
+    // `appSecret` eram recebidos, guardados no config e nunca usados: a troca
+    // existia em lib/facebook.ts e ninguém chamava. O token curto era salvo com
+    // `expiresAt` cravado em 60 dias, e uma hora depois TUDO da Meta parava —
+    // campanhas, métricas, snapshot, Sara — sem nenhuma pista do motivo, porque
+    // o banco jurava que o token estava válido por dois meses.
+    //
+    // Com App ID e App Secret, a Meta devolve um token de ~60 dias. Sem eles,
+    // não há o que trocar; nesse caso gravamos uma validade curta e HONESTA, em
+    // vez de inventar uma data que não se sustenta.
+    let tokenFinal: string = accessToken
+    let expiraEm: Date
+    let avisoDeValidade: string | null = null
+
+    if (appId && appSecret) {
+      const troca = await exchangeForLongLivedToken(appId, appSecret, accessToken)
+      if (troca.success && troca.accessToken) {
+        tokenFinal = troca.accessToken
+        // `expires_in` vem em segundos. Quando a Meta não informa, 60 dias é o
+        // padrão dela para token de longa duração.
+        const segundos = typeof troca.expiresIn === 'number' && troca.expiresIn > 0
+          ? troca.expiresIn
+          : 60 * 24 * 60 * 60
+        expiraEm = new Date(Date.now() + segundos * 1000)
+      } else {
+        // Troca recusada (App ID/Secret errados, app sem permissão). O token
+        // curto ainda serve agora, mas dura pouco — e é isso que gravamos.
+        expiraEm = new Date(Date.now() + 2 * 60 * 60 * 1000)
+        avisoDeValidade =
+          `Não foi possível estender a validade do token (${troca.error ?? 'motivo desconhecido'}). ` +
+          'Ele vai expirar em cerca de 1 hora. Confira o App ID e o App Secret e conecte de novo.'
+      }
+    } else {
+      expiraEm = new Date(Date.now() + 2 * 60 * 60 * 1000)
+      avisoDeValidade =
+        'Conectado sem App ID e App Secret: este token expira em cerca de 1 hora e as campanhas ' +
+        'vão parar de atualizar. Para uma conexão duradoura, reconecte informando os dois.'
+    }
+
     // Verificar se já existe integração ativa
     const existingIntegration = await prisma.integration.findFirst({
       where: {
@@ -42,14 +85,15 @@ export async function POST(request: Request) {
       const updated = await prisma.integration.update({
         where: { id: existingIntegration.id },
         data: {
-          accessToken: encryptSecret(accessToken) || accessToken,
+          accessToken: encryptSecret(tokenFinal) || tokenFinal,
           config: JSON.stringify({
             adAccountId,
             appId,
             appSecret,
             connectedAt: new Date().toISOString(),
+            tokenDeLongaDuracao: !avisoDeValidade,
           }),
-          expiresAt: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000), // 60 dias
+          expiresAt: expiraEm,
         },
       })
       await logAudit({
@@ -59,9 +103,15 @@ export async function POST(request: Request) {
         entityType: 'Integration',
         entityId: updated.id,
         request,
-        metadata: { platform: 'META_ADS', mode: 'updated' },
+        metadata: { platform: 'META_ADS', mode: 'updated', longLived: !avisoDeValidade },
       })
-      return NextResponse.json({ success: true, integration: safeIntegration(updated), action: 'updated' })
+      return NextResponse.json({
+        success: true,
+        integration: safeIntegration(updated),
+        action: 'updated',
+        expiresAt: expiraEm.toISOString(),
+        warning: avisoDeValidade,
+      })
     }
 
     // Criar nova integração
@@ -69,14 +119,15 @@ export async function POST(request: Request) {
       data: {
         userId: session.user.id,
         platform: 'META_ADS',
-        accessToken: encryptSecret(accessToken) || accessToken,
+        accessToken: encryptSecret(tokenFinal) || tokenFinal,
         config: JSON.stringify({
           adAccountId,
           appId,
           appSecret,
           connectedAt: new Date().toISOString(),
+          tokenDeLongaDuracao: !avisoDeValidade,
         }),
-        expiresAt: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000), // 60 dias
+        expiresAt: expiraEm,
         isActive: true,
       },
     })
@@ -88,9 +139,15 @@ export async function POST(request: Request) {
       entityType: 'Integration',
       entityId: integration.id,
       request,
-      metadata: { platform: 'META_ADS', mode: 'created' },
+      metadata: { platform: 'META_ADS', mode: 'created', longLived: !avisoDeValidade },
     })
-    return NextResponse.json({ success: true, integration: safeIntegration(integration), action: 'created' })
+    return NextResponse.json({
+      success: true,
+      integration: safeIntegration(integration),
+      action: 'created',
+      expiresAt: expiraEm.toISOString(),
+      warning: avisoDeValidade,
+    })
   } catch (error) {
     console.error('Erro ao conectar Meta Ads:', error)
     return NextResponse.json(

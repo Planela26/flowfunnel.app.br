@@ -31,6 +31,9 @@ export default function FacebookConnect() {
   // técnica ou erro da Meta. São dois problemas com saídas diferentes: um se
   // resolve no /billing, o outro tentando de novo ou trocando o token.
   const [bloqueio, setBloqueio] = useState<{ mensagem: string; url: string; rotulo: string } | null>(null)
+  // Conexão feita, mas com token de vida curta. Ver o passo 6.
+  const [avisoValidade, setAvisoValidade] = useState<string | null>(null)
+  const [validoAte, setValidoAte] = useState<string | null>(null)
 
   const handleValidateToken = async () => {
     if (!accessToken) { setError('Insira o Access Token'); return }
@@ -97,6 +100,13 @@ export default function FacebookConnect() {
       // primeiro, a tela mostrava o código cru (foi assim que "card_required"
       // apareceu no lugar de uma explicação).
       if (!res.ok) throw new Error(data.message || data.error || 'Erro ao conectar')
+
+      // Conectou, mas o token pode durar só ~1h (sem App ID/Secret, ou troca
+      // recusada). Isso PRECISA aparecer: sem o aviso, a pessoa comemora a
+      // conexão e descobre o problema uma hora depois, quando tudo para sem
+      // explicação — foi exatamente o que aconteceu aqui.
+      setAvisoValidade(data.warning ?? null)
+      setValidoAte(data.expiresAt ?? null)
       setStep(6)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao conectar Facebook Ads')
@@ -128,7 +138,7 @@ export default function FacebookConnect() {
               <li>• Conta no <strong>Meta for Developers</strong></li>
               <li>• <strong>Conta de anúncios ativa</strong> no Meta Business Manager</li>
               <li>• Permissões: <code className="bg-white border rounded px-1 text-xs">ads_read</code>, <code className="bg-white border rounded px-1 text-xs">ads_management</code></li>
-              <li>• Opcionalmente: App ID e App Secret para tokens de longa duração</li>
+              <li>• <strong>App ID e App Secret</strong> — sem eles o token expira em ~1 hora e as campanhas param de atualizar</li>
             </ul>
           </InfoBox>
 
@@ -460,7 +470,29 @@ export default function FacebookConnect() {
             <CheckCircle className="w-12 h-12 text-blue-600" />
           </div>
           <h2 className="text-2xl font-bold mb-2">Facebook Ads Conectado!</h2>
-          <p className="text-gray-500 dark:text-gray-400 mb-8">Sua conta de anúncios foi conectada. As métricas já estão disponíveis no dashboard.</p>
+          <p className="text-gray-500 dark:text-gray-400 mb-6">Sua conta de anúncios foi conectada. As métricas já estão disponíveis no dashboard.</p>
+
+          {/* Token de vida curta: avisar AGORA, não daqui a uma hora. */}
+          {avisoValidade ? (
+            <div className="text-left bg-amber-50 border border-amber-300 rounded-lg p-4 mb-8">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-bold text-amber-900 mb-1">Esta conexão vai durar pouco</p>
+                  <p className="text-sm text-amber-800">{avisoValidade}</p>
+                  {validoAte && (
+                    <p className="text-xs text-amber-700 mt-2">
+                      Válido até {new Date(validoAte).toLocaleString('pt-BR')}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          ) : validoAte ? (
+            <p className="text-sm text-emerald-700 dark:text-emerald-400 mb-8">
+              Token de longa duração ativo — válido até {new Date(validoAte).toLocaleDateString('pt-BR')}.
+            </p>
+          ) : null}
 
           <div className="grid sm:grid-cols-2 gap-4 mb-8 text-left">
             <InfoBox type="success" title="O que está funcionando">
