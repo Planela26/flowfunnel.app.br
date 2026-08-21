@@ -187,6 +187,21 @@ export default function SaraAIWidget() {
           if (data === '[DONE]') break
           try {
             const parsed = JSON.parse(data)
+            // Erro DENTRO do stream: a resposta começou e foi interrompida. O
+            // laço só olhava `delta`, então esse caso passava despercebido — a
+            // mensagem parava no meio da frase e nada explicava por quê.
+            if (parsed.error) {
+              const aviso = parsed.message || 'A resposta foi interrompida. Pergunte de novo.'
+              accumulated = accumulated
+                ? `${accumulated}\n\n_${aviso}_`
+                : aviso
+              setMessages(prev => {
+                const updated = [...prev]
+                updated[updated.length - 1] = { role: 'assistant', content: accumulated, streaming: false }
+                return updated
+              })
+              break
+            }
             if (parsed.delta) {
               accumulated += parsed.delta
               setMessages(prev => {

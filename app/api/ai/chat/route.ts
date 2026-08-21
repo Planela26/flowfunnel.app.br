@@ -215,9 +215,39 @@ INSTRUÇÕES:
       // Sem isto não há como registrar custo desta rota.
       stream_options: { include_usage: true },
     })
-  } catch (error) {
-    console.error('Erro ao iniciar stream da OpenAI:', error)
-    return new Response(JSON.stringify({ error: 'Erro ao gerar resposta' }), { status: 502 })
+  } catch (error: any) {
+    // O motivo REAL não pode morrer no log do servidor.
+    //
+    // Antes esta rota devolvia só "Erro ao gerar resposta", e a mensagem valia
+    // igual para chave inválida, cota estourada, limite de requisições e
+    // contexto grande demais. Cada um desses tem uma ação diferente, e nenhuma
+    // delas é "tentar de novo" — que é o que a frase genérica sugere.
+    const status = error?.status ?? error?.response?.status
+    const codigo = error?.code ?? error?.error?.code
+    const detalhe = error?.message ?? error?.error?.message ?? 'sem detalhe'
+    console.error(`[ai/chat] OpenAI falhou (status=${status} code=${codigo}): ${detalhe}`)
+
+    const mensagem =
+      status === 401 ? 'A chave da OpenAI foi recusada. Verifique OPENAI_API_KEY no servidor.'
+      : status === 429 && /quota|billing|insufficient/i.test(String(detalhe))
+        ? 'A conta da OpenAI está sem créditos. Recarregue o saldo para a Sara voltar a responder.'
+      : status === 429 ? 'Muitas perguntas em pouco tempo. Aguarde alguns segundos e tente de novo.'
+      : status === 400 && /context length|too many tokens|maximum context/i.test(String(detalhe))
+        ? 'A conversa ficou longa demais para o modelo. Abra uma conversa nova.'
+      : status === 404 ? `O modelo "${MODEL}" não está disponível para esta chave.`
+      : status && status >= 500 ? 'A OpenAI está instável agora. Tente de novo em instantes.'
+      : 'Não foi possível falar com a OpenAI.'
+
+    return new Response(
+      JSON.stringify({
+        error: 'openai_error',
+        message: mensagem,
+        // Identificadores da falha, sem nada da chave nem do prompt. É o que
+        // permite diagnosticar sem acesso ao log do servidor.
+        detalhe: { status: status ?? null, codigo: codigo ?? null },
+      }),
+      { status: 502, headers: { 'Content-Type': 'application/json' } },
+    )
   }
 
   const encoder  = new TextEncoder()
@@ -234,8 +264,16 @@ INSTRUÇÕES:
           }
         }
         controller.enqueue(encoder.encode('data: [DONE]\n\n'))
-      } catch {
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: 'Erro ao gerar resposta' })}\n\n`))
+      } catch (error: any) {
+        // Falha NO MEIO do stream: parte da resposta já chegou à tela. O
+        // `catch` vazio que existia aqui apagava o motivo e mandava a mesma
+        // frase genérica do caso anterior, impossibilitando distinguir
+        // "nem começou" de "interrompeu no meio".
+        console.error('[ai/chat] stream interrompido:', error?.message ?? error)
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+          error: 'stream_interrompido',
+          message: 'A resposta foi interrompida no meio. Pergunte de novo.',
+        })}\n\n`))
       } finally {
         controller.close()
         // Registra o custo mesmo se o stream falhou no meio: os tokens de
