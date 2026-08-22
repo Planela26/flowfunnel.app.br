@@ -212,6 +212,20 @@ export default function ConfigPage() {
           monetizze: mzData?.connected ?? false,
           kiwify:    kwData?.connected ?? false,
         }))
+
+        // O GET já devolve hotmartId e email, mas o formulário nascia vazio.
+        // Quem voltava aqui só para trocar o Hottok encontrava o botão Salvar
+        // desabilitado (ele exige o ID) e tinha que ir procurar o número do
+        // produto de novo — e, se salvasse sem o e-mail, o POST regravava o
+        // `config` sem ele. O Hottok segue de fora de propósito: é segredo e
+        // não volta na resposta.
+        if (hmData?.connected) {
+          setHmCreds(prev => ({
+            ...prev,
+            hotmartId: prev.hotmartId || hmData.hotmartId || '',
+            email: prev.email || hmData.email || '',
+          }))
+        }
       } catch (err) {
         console.error('Erro ao verificar integrações:', err)
       } finally {
