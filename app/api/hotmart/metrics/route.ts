@@ -5,6 +5,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { cache, generateCacheKey, CacheTTL } from '@/lib/cache'
 import { isCanceledSale, extractAmount } from '@/lib/sale-events'
+import { produtosDoFunil, eventoDoFunil } from '@/lib/funil-produtos'
 
 // Buscar métricas do Hotmart para o dashboard
 export async function GET(request: Request) {
@@ -18,7 +19,11 @@ export async function GET(request: Request) {
     // compartilhavam a MESMA entrada de cache: trocar o período no dashboard
     // devolvia os números da janela anterior por até dois minutos.
     const dias = new URL(request.url).searchParams.get('days') || '30'
-    const cacheKey = generateCacheKey(session.user.id, 'hotmart-metrics', { dias })
+    // O funil ativo no dashboard. Entra na chave de cache junto com a janela —
+    // sem isso, trocar de funil devolveria os números do funil anterior, que é
+    // a mesma armadilha que o `days` já tinha causado.
+    const workspaceId = new URL(request.url).searchParams.get('workspaceId')
+    const cacheKey = generateCacheKey(session.user.id, 'hotmart-metrics', { dias, workspaceId })
     const cached = cache.get(cacheKey)
     if (cached) {
       return NextResponse.json(cached)
@@ -74,18 +79,38 @@ export async function GET(request: Request) {
     const desde = desdeQuando(request) // janela escolhida no dashboard; 30 dias por padrão
     const naJanela = { funnelId: { in: funnelIds }, timestamp: { gte: desde } }
 
+    // Produtos que ESTE funil acompanha. `null` = sem vínculo, mostra tudo —
+    // o comportamento de sempre, que mantém os funis já criados intactos.
+    const produtos = await produtosDoFunil(workspaceId, 'hotmart', session.user.id)
+
+    const lerMeta = (linha: { metadata: string | null }) => {
+      try {
+        return typeof linha.metadata === 'string' ? JSON.parse(linha.metadata) : linha.metadata
+      } catch {
+        return {}
+      }
+    }
+
+    // Com vínculo de produto, contar no banco não serve: o productId vive dentro
+    // do JSON de metadata. Busca-se e filtra-se aqui, com a mesma regra que as
+    // vendas usam, para os três números saírem do mesmo critério.
+    const contarPorTipo = async (eventType: string) => {
+      if (!produtos) return prisma.funnelEvent.count({ where: { ...naJanela, eventType } })
+      const linhas = await prisma.funnelEvent.findMany({
+        where: { ...naJanela, eventType },
+        select: { metadata: true },
+      })
+      return linhas.filter((l) => eventoDoFunil(lerMeta(l), produtos)).length
+    }
+
     // Boletos/PIX emitidos e ainda não pagos.
-    const checkoutsPendentes = await prisma.funnelEvent.count({
-      where: { ...naJanela, eventType: 'hotmart_checkout_started' },
-    })
+    const checkoutsPendentes = await contarPorTipo('hotmart_checkout_started')
 
     // Carrinhos abandonados — evento PURCHASE_OUT_OF_SHOPPING_CART.
     // Antes, "abandonados" era `checkouts - confirmados`, uma subtração entre
     // grandezas que não se relacionam: dava 0 sempre, e negativo quando havia
     // mais vendas do que boletos.
-    const carrinhosAbandonados = await prisma.funnelEvent.count({
-      where: { ...naJanela, eventType: 'hotmart_cart_abandoned' },
-    })
+    const carrinhosAbandonados = await contarPorTipo('hotmart_cart_abandoned')
 
     // Buscar vendas completas
     const vendasCompletas = await prisma.funnelEvent.findMany({
@@ -95,25 +120,22 @@ export async function GET(request: Request) {
       select: { metadata: true },
     })
 
-    const lerMeta = (venda: any) => {
-      try {
-        return typeof venda.metadata === 'string' ? JSON.parse(venda.metadata) : venda.metadata
-      } catch {
-        return {}
-      }
-    }
-
     // `isCanceledSale` é a mesma regra usada em Relatórios, Analytics e no cron
     // de snapshot. A daqui testava só `status !== 'canceled'`, então uma venda
     // REEMBOLSADA (status 'refunded') continuava contando como confirmada e
     // somando faturamento — o card mostrava receita que já tinha voltado.
-    const vendasAtivas = vendasCompletas.filter((venda: any) => !isCanceledSale(lerMeta(venda)))
+    // O vínculo de produto entra no mesmo filtro: venda de produto que não é
+    // deste funil não conta aqui nem no faturamento.
+    const vendasAtivas = vendasCompletas.filter((venda) => {
+      const meta = lerMeta(venda)
+      return !isCanceledSale(meta) && eventoDoFunil(meta, produtos)
+    })
 
     const pagamentosConfirmados = vendasAtivas.length
 
     // Calcular faturamento total
     let faturamentoTotal = 0
-    vendasAtivas.forEach((venda: any) => {
+    vendasAtivas.forEach((venda) => {
       faturamentoTotal += extractAmount(lerMeta(venda))
     })
 

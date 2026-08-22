@@ -400,6 +400,17 @@ model Workspace {
   whatsappIntegrationId String?
   facebookCampaignId    String?
   checkoutSources       String   @default("[\"hotmart\"]")
+  // Quais PRODUTOS de checkout este funil acompanha, por plataforma:
+  // {"hotmart":["8365536"],"kiwify":["abc"]}
+  //
+  // Sem isto, todo funil mostrava as vendas da conta INTEIRA: criar um funil
+  // novo trazia junto o faturamento do anterior, porque as rotas de métrica
+  // consultavam por `userId` e nada mais. WhatsApp e Facebook já se separavam
+  // por `whatsappIntegrationId` e `facebookCampaignId`; o checkout ficou de fora.
+  //
+  // `null` ou objeto vazio = SEM filtro, mostra tudo. É o que mantém os funis
+  // que já existem funcionando exatamente como antes desta coluna existir.
+  checkoutProductIds    String?
   // Layout do FunnelFlow POR FUNIL. Antes vivia só em `User.funnelLayout` e
   // `User.funnelVisibleIds`: um arranjo por conta, compartilhado por todos os
   // funis. Arrastar um card num funil movia o card do outro, e esconder um

@@ -88,6 +88,15 @@ export async function POST(request: Request) {
           whatsappIntegrationId: whatsappIntegrationId || null,
           facebookCampaignId: facebookCampaignId || null,
           checkoutSources: checkoutSources ? JSON.stringify(checkoutSources) : '["hotmart"]',
+          // Funil NOVO nasce sem card nenhum. Antes, `funnelVisibleIds` ficava
+          // null, o que significa "cai no arranjo do usuário" — e o arranjo do
+          // usuário tem todos os cards. Resultado: criar um funil trazia junto o
+          // card do Hotmart já preenchido com as vendas do funil anterior.
+          //
+          // `'[]'` é EXPLÍCITO, e é o que diferencia "escolhi não ter cards" de
+          // "ainda não escolhi". Só vale para quem nasce daqui em diante: os
+          // funis já criados continuam com null e seguem exatamente como estão.
+          funnelVisibleIds: '[]',
           isDefault: count === 0,
         },
       })

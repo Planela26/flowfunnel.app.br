@@ -218,7 +218,8 @@ export default function Dashboard() {
     const fetchHotmartMetrics = async () => {
       try {
         setLoadingHotmart(true)
-        const response = await fetch(`/api/hotmart/metrics?days=${dias}`)
+        const wsq = activeWorkspace?.id ? `&workspaceId=${activeWorkspace.id}` : ''
+        const response = await fetch(`/api/hotmart/metrics?days=${dias}${wsq}`)
         if (!response.ok) return // preserva o último dado bom — ver Landing Page
         setHotmartData(await response.json())
       } catch (error) {
@@ -231,7 +232,9 @@ export default function Dashboard() {
     fetchHotmartMetrics()
     const interval = setInterval(fetchHotmartMetrics, 300000) // 5 minutos
     return () => clearInterval(interval)
-  }, [dias])
+    // `activeWorkspace?.id` entra aqui: sem ele, trocar de funil deixava na tela
+    // os números do funil anterior até o refresh de 5 minutos.
+  }, [dias, activeWorkspace?.id])
 
   // Buscar dados reais do Kiwify
   useEffect(() => {
