@@ -155,11 +155,29 @@ async function hotmartPurchaseComplete(data: any, userId: string) {
   const existente = transactionId
     ? await prisma.funnelEvent.findFirst({
         where: { funnelId: funnel.id, source: 'hotmart', transactionId: String(transactionId) },
-        select: { id: true, eventType: true },
+        select: { id: true, eventType: true, metadata: true },
       })
     : null
 
-  if (existente?.eventType === 'hotmart_purchase_complete') return // reentrega real
+  if (existente?.eventType === 'hotmart_purchase_complete') {
+    // Reentrega. Normalmente não há o que fazer — mas uma venda gravada com
+    // valor ZERO precisa poder se curar. Linhas escritas antes da correção de
+    // `valorDaCompra` ficaram com price:0, e descartar toda reentrega as
+    // prendia nesse estado para sempre: o valor certo chegava e era jogado
+    // fora. Só sobrescreve quando havia zero e agora há valor, então uma
+    // reentrega normal continua sendo ignorada.
+    if (price > 0) {
+      let atual: any = {}
+      try {
+        atual = typeof existente.metadata === 'string' ? JSON.parse(existente.metadata) : existente.metadata || {}
+      } catch { atual = {} }
+      if (!(Number(atual?.price) > 0)) {
+        console.log(`♻️ [hotmart] venda ${transactionId} tinha valor zero; corrigido para ${price}`)
+        await prisma.funnelEvent.update({ where: { id: existente.id }, data: dados })
+      }
+    }
+    return
+  }
 
   if (existente) {
     await prisma.funnelEvent.update({ where: { id: existente.id }, data: dados })
