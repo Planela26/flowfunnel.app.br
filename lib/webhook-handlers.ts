@@ -4,6 +4,9 @@ import { isDuplicateTransaction } from './webhook-dedup'
 import { isIngestionBlockedForUser } from './account-status'
 import { attributeSale } from './attribution'
 import { dataDeWebhook, valorDaCompra } from './webhook-time'
+import type {
+  HotmartData, KiwifyBody, EduzzBody, MonetizzeBody, PerfectPayBody,
+} from './webhook-payloads'
 
 // Atualiza o LeadStatus do contato a partir do resultado de uma venda.
 // Usado por TODAS as plataformas (Hotmart/Kiwify/Eduzz/Monetizze/Perfect Pay)
@@ -58,7 +61,7 @@ export type ResultadoIngestao =
 
 export async function processHotmartEvent(
   event: string,
-  data: any,
+  data: HotmartData,
   userId: string,
 ): Promise<ResultadoIngestao> {
   if (await isIngestionBlockedForUser(userId)) {
@@ -93,8 +96,8 @@ export async function processHotmartEvent(
   return { ingerido: true, evento: event }
 }
 
-async function hotmartPurchaseComplete(data: any, userId: string) {
-  const transactionId = data?.purchase?.transaction
+async function hotmartPurchaseComplete(data: HotmartData, userId: string) {
+  const transactionId = data?.purchase?.transaction != null ? String(data.purchase.transaction) : null
   // Três campos de preço possíveis; ver valorDaCompra em lib/webhook-time.ts.
   const { valor: price, moeda, campo: campoDoPreco } = valorDaCompra(data?.purchase)
   if (price === 0) {
@@ -167,7 +170,7 @@ async function hotmartPurchaseComplete(data: any, userId: string) {
     // fora. Só sobrescreve quando havia zero e agora há valor, então uma
     // reentrega normal continua sendo ignorada.
     if (price > 0) {
-      let atual: any = {}
+      let atual: Record<string, unknown> = {}
       try {
         atual = typeof existente.metadata === 'string' ? JSON.parse(existente.metadata) : existente.metadata || {}
       } catch { atual = {} }
@@ -227,8 +230,8 @@ async function hotmartPurchaseComplete(data: any, userId: string) {
   }
 }
 
-async function hotmartPurchaseCanceled(data: any, userId: string, event?: string) {
-  const transactionId = data?.purchase?.transaction
+async function hotmartPurchaseCanceled(data: HotmartData, userId: string, event?: string) {
+  const transactionId = data?.purchase?.transaction != null ? String(data.purchase.transaction) : null
   if (!transactionId) return
 
   // PURCHASE_REFUNDED → Reembolsado; PURCHASE_CANCELED → Recusado.
@@ -290,8 +293,12 @@ async function hotmartPurchaseCanceled(data: any, userId: string, event?: string
   }
 }
 
-async function hotmartPurchaseDelayed(data: any, userId: string) {
-  const transactionId = data?.purchase?.transaction
+async function hotmartPurchaseDelayed(data: HotmartData, userId: string) {
+  // Normalizado uma vez: a Hotmart manda `transaction` como texto, mas o tipo
+  // admite número. `String(undefined)` gravaria a string "undefined" no banco
+  // como se fosse um id de transação — e ela casaria com a próxima entrega
+  // sem transação, deduplicando duas compras diferentes uma contra a outra.
+  const transactionId = data?.purchase?.transaction != null ? String(data.purchase.transaction) : null
   // `findFirst` sem funil devolvia silenciosamente: boleto emitido antes da
   // primeira venda aprovada sumia sem deixar rastro.
   const funnel = await ensureFunnelWithStages(userId)
@@ -307,7 +314,7 @@ async function hotmartPurchaseDelayed(data: any, userId: string) {
       stageId: checkoutStage.id,
       eventType: 'hotmart_checkout_started',
       source: 'hotmart',
-      transactionId: String(transactionId),
+      transactionId,
       timestamp: dataDeWebhook(data?.purchase?.order_date),
       metadata: JSON.stringify({
         buyerEmail: data?.buyer?.email,
@@ -330,7 +337,7 @@ async function hotmartPurchaseDelayed(data: any, userId: string) {
  * O carrinho abandonado não tem `transaction` (não houve transação). A chave de
  * dedup passa a ser o e-mail do comprador, que é o que a Hotmart manda aqui.
  */
-async function hotmartCartAbandoned(data: any, userId: string) {
+async function hotmartCartAbandoned(data: HotmartData, userId: string) {
   const funnel = await ensureFunnelWithStages(userId)
   const abandonedStage = pickStage(funnel.stages, 'Abandonado')
 
@@ -360,7 +367,7 @@ async function hotmartCartAbandoned(data: any, userId: string) {
 
 // ---------- KIWIFY ----------
 
-export async function processKiwifyEvent(body: any, userId: string, startTime: number, endpoint: string) {
+export async function processKiwifyEvent(body: KiwifyBody, userId: string, startTime: number, endpoint: string) {
   if (await isIngestionBlockedForUser(userId)) {
     console.warn(`⛔ [account-status] plano vencido — ingestão Kiwify pausada para ${userId}`)
     return
@@ -398,7 +405,7 @@ export async function processKiwifyEvent(body: any, userId: string, startTime: n
       transactionId: String(orderId),
       timestamp: new Date(),
       metadata: JSON.stringify({
-        amount: (body.amount || 0) / 100,
+        amount: (Number(body.amount) || 0) / 100,
         buyerEmail: body.customer?.email || body.email,
         buyerName: body.customer?.name || body.name,
         productName: body.product?.name || body.product_name,
@@ -419,7 +426,7 @@ export async function processKiwifyEvent(body: any, userId: string, startTime: n
       await attributeSale(userId, {
         platform: 'kiwify',
         transactionId: String(orderId),
-        value: (body.amount || 0) / 100,
+        value: (Number(body.amount) || 0) / 100,
         product: body.product?.name || body.product_name || null,
         buyerEmail: body.customer?.email || body.email || null,
         buyerPhone: body.customer?.phone || body.customer?.mobile || body.phone || null,
@@ -440,7 +447,7 @@ export async function processKiwifyEvent(body: any, userId: string, startTime: n
 
 // ---------- EDUZZ ----------
 
-export async function processEduzzEvent(body: any, userId: string, startTime: number, endpoint: string) {
+export async function processEduzzEvent(body: EduzzBody, userId: string, startTime: number, endpoint: string) {
   if (await isIngestionBlockedForUser(userId)) {
     console.warn(`⛔ [account-status] plano vencido — ingestão Eduzz pausada para ${userId}`)
     return
@@ -478,7 +485,7 @@ export async function processEduzzEvent(body: any, userId: string, startTime: nu
       transactionId: String(transactionId),
       timestamp: new Date(),
       metadata: JSON.stringify({
-        amount: body.trans_value || body.amount || 0,
+        amount: Number(body.trans_value || body.amount) || 0,
         buyerEmail: body.cus_email || body.email,
         buyerName: body.cus_name || body.name,
         productName: body.con_title || body.product_name,
@@ -499,7 +506,7 @@ export async function processEduzzEvent(body: any, userId: string, startTime: nu
       await attributeSale(userId, {
         platform: 'eduzz',
         transactionId: String(transactionId),
-        value: body.trans_value || body.amount || 0,
+        value: Number(body.trans_value || body.amount) || 0,
         product: body.con_title || body.product_name || null,
         buyerEmail: body.cus_email || body.email || null,
         buyerPhone: body.cus_tel || body.cus_phone || body.phone || null,
@@ -514,7 +521,7 @@ export async function processEduzzEvent(body: any, userId: string, startTime: nu
 
 // ---------- MONETIZZE ----------
 
-export async function processMonetizzeEvent(body: any, userId: string, startTime: number, endpoint: string) {
+export async function processMonetizzeEvent(body: MonetizzeBody, userId: string, startTime: number, endpoint: string) {
   if (await isIngestionBlockedForUser(userId)) {
     console.warn(`⛔ [account-status] plano vencido — ingestão Monetizze pausada para ${userId}`)
     return
@@ -552,7 +559,7 @@ export async function processMonetizzeEvent(body: any, userId: string, startTime
       transactionId: String(transactionId),
       timestamp: new Date(),
       metadata: JSON.stringify({
-        amount: body.amount || body.price || 0,
+        amount: Number(body.amount || body.price) || 0,
         buyerEmail: body.buyer?.email || body.email,
         buyerName: body.buyer?.name || body.name,
         productName: body.product?.name || body.product_name,
@@ -573,7 +580,7 @@ export async function processMonetizzeEvent(body: any, userId: string, startTime
       await attributeSale(userId, {
         platform: 'monetizze',
         transactionId: String(transactionId),
-        value: body.amount || body.price || 0,
+        value: Number(body.amount || body.price) || 0,
         product: body.product?.name || body.product_name || null,
         buyerEmail: body.buyer?.email || body.comprador?.email || body.email || null,
         buyerPhone: body.buyer?.phone || body.comprador?.telefone || body.telefone || body.phone || null,
@@ -588,7 +595,7 @@ export async function processMonetizzeEvent(body: any, userId: string, startTime
 
 // ---------- PERFECT PAY ----------
 
-export async function processPerfectPayEvent(body: any, userId: string, startTime: number, endpoint: string) {
+export async function processPerfectPayEvent(body: PerfectPayBody, userId: string, startTime: number, endpoint: string) {
   if (await isIngestionBlockedForUser(userId)) {
     console.warn(`⛔ [account-status] plano vencido — ingestão Perfect Pay pausada para ${userId}`)
     return
@@ -614,7 +621,7 @@ export async function processPerfectPayEvent(body: any, userId: string, startTim
   const buyerName = body.customer?.name || body.buyer_name || ''
   const buyerEmail = body.customer?.email || body.buyer_email || ''
   const buyerPhone = body.customer?.phone || body.buyer_phone || ''
-  const amount = parseFloat(body.sale_amount || body.amount || '0')
+  const amount = Number(body.sale_amount || body.amount) || 0
 
   if (!mapped.stage) return
   const funnel = await ensureFunnelWithStages(userId)

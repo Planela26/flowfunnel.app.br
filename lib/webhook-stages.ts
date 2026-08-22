@@ -36,7 +36,10 @@ export type StageMapResult = {
   eventSuffix: string
 }
 
-export function mapPlatformStatusToStage(rawStatus: string | null | undefined): StageMapResult {
+// Aceita número porque a Perfect Pay manda `sale_status_enum` numérico. A
+// implementação já normalizava com String(); só o tipo estava mais estreito
+// que ela, e a diferença só aparecia depois que os payloads foram tipados.
+export function mapPlatformStatusToStage(rawStatus: string | number | null | undefined): StageMapResult {
   const s = String(rawStatus || '').toLowerCase().trim()
   if (!s) return { stage: null, isPaid: false, isLost: false, eventSuffix: 'unknown' }
   if (PAID.includes(s)) return { stage: 'Pago', isPaid: true, isLost: false, eventSuffix: 'purchase_complete' }
