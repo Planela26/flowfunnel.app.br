@@ -505,13 +505,24 @@ function buildMetrics(id: string, data: any): any[] | null {
     case 'kiwify':
     case 'eduzz':
     case 'monetizze':
+      // Ordem pela pergunta que a pessoa faz ao olhar um card de checkout:
+      // quantas vendas, quanto entrou, quanto vale cada uma. "Confirmados"
+      // vinha em terceiro e não dizia confirmados DE QUÊ — o número que
+      // importa não pode depender de interpretação.
       return [
-        { label: 'Checkouts', value: data.checkoutsIniciados || 0 },
-        { label: 'Abandonados', value: data.checkoutsNaoTerminados || 0 },
-        { label: 'Confirmados', value: data.pagamentosConfirmados || 0 },
-        { label: 'Taxa Conv.', value: data.taxaConversaoCheckout || '—' },
-        { label: 'Ticket Médio', value: data.ticketMedio || '—' },
+        { label: 'Vendas', value: data.pagamentosConfirmados || 0 },
         { label: 'Faturamento', value: data.faturamento || '—' },
+        { label: 'Ticket Médio', value: data.ticketMedio || '—' },
+        { label: 'Taxa Conv.', value: data.taxaConversaoCheckout || '—' },
+        { label: 'Checkouts', value: data.checkoutsIniciados || 0 },
+        // Aguardando pagamento é diferente de abandonado — um ainda pode virar
+        // venda, o outro já não vira — e os dois estavam somados num número só.
+        // Só a Hotmart separa os dois hoje; Eduzz e Monetizze contam apenas
+        // abandono, e para elas rotular "Aguardando: 0" seria afirmar algo que
+        // a rota não mediu.
+        data.checkoutsAguardando != null
+          ? { label: 'Aguardando', value: data.checkoutsAguardando }
+          : { label: 'Abandonados', value: data.checkoutsNaoTerminados ?? 0 },
       ]
     case 'stripe':
       return [

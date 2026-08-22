@@ -142,6 +142,10 @@ export async function GET(request: Request) {
     const response = {
       checkoutsIniciados,
       checkoutsNaoTerminados,
+      // PIX/boleto emitidos e ainda não pagos. Estavam sendo somados ao mesmo
+      // número dos abandonados, e são coisas opostas: um ainda pode virar
+      // venda, o outro já não vira.
+      checkoutsAguardando: checkoutsPendentes,
       pagamentosConfirmados,
       taxaConversaoCheckout: `${taxaConversao.toFixed(1)}%`,
       ticketMedio: formatCurrency(ticketMedio),
