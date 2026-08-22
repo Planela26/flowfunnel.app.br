@@ -704,7 +704,10 @@ model TrackedLead {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, leadId])
-  @@index([userId])
+  // A consulta dominante é `{ userId, createdAt: { gte } }` — nunca uma das
+  // duas sozinha. Com os índices separados o Postgres usava um só e varria o
+  // resto. O composto supera `@@index([userId])`, que por isso saiu.
+  @@index([userId, createdAt])
   @@index([leadId])
   @@index([visitorId])
   @@index([utmSource])
@@ -781,9 +784,18 @@ model TrackedEvent {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId])
-  @@index([leadId])
-  @@index([eventName])
+  // Toda LEITURA desta tabela filtra por userId — confirmado uma a uma. Os
+  // três compostos abaixo cobrem as três formas que existem, e substituem os
+  // avulsos de userId, leadId e eventName, que eram todos prefixo de um deles.
+  // O total de índices não muda: quatro antes, quatro agora — mas agora cada
+  // consulta encontra o seu, em vez de filtrar o resto varrendo.
+  @@index([userId, createdAt])
+  @@index([userId, leadId])
+  // Caminho da atribuição de venda (lib/attribution.ts): userId + eventName +
+  // janela de tempo, ordenado por data. Roda a cada venda.
+  @@index([userId, eventName, createdAt])
+  // Mantido para varredura entre contas (limpeza por retenção), que não filtra
+  // por usuário nenhum.
   @@index([createdAt])
 }
 
