@@ -3,7 +3,7 @@ import { mapPlatformStatusToStage, ensureFunnelWithStages, pickStage } from './w
 import { isDuplicateTransaction } from './webhook-dedup'
 import { isIngestionBlockedForUser } from './account-status'
 import { attributeSale } from './attribution'
-import { dataDeWebhook } from './webhook-time'
+import { dataDeWebhook, valorDaCompra } from './webhook-time'
 
 // Atualiza o LeadStatus do contato a partir do resultado de uma venda.
 // Usado por TODAS as plataformas (Hotmart/Kiwify/Eduzz/Monetizze/Perfect Pay)
@@ -95,7 +95,16 @@ export async function processHotmartEvent(
 
 async function hotmartPurchaseComplete(data: any, userId: string) {
   const transactionId = data?.purchase?.transaction
-  const price = data?.purchase?.price?.value || 0
+  // Três campos de preço possíveis; ver valorDaCompra em lib/webhook-time.ts.
+  const { valor: price, moeda, campo: campoDoPreco } = valorDaCompra(data?.purchase)
+  if (price === 0) {
+    // Venda gravada com valor zero contamina faturamento e ticket médio do
+    // período inteiro. Se nenhum dos três campos veio, isso precisa aparecer.
+    console.warn(
+      `⚠️ [hotmart] venda ${transactionId} sem valor: nenhum de ` +
+      `price/full_price/original_offer_price veio preenchido no payload.`,
+    )
+  }
   const approvedDate = data?.purchase?.approved_date
   // A Hotmart 2.0.0 manda milissegundos; ver lib/webhook-time.ts.
   const quandoAprovou = dataDeWebhook(approvedDate)
@@ -119,6 +128,16 @@ async function hotmartPurchaseComplete(data: any, userId: string) {
       productName: data?.product?.name,
       productId: data?.product?.id,
       price,
+      moeda,
+      // De qual dos três campos o valor saiu, e os três como vieram. Sem isto,
+      // um faturamento errado não tem como ser conferido depois: o payload
+      // original não fica guardado em lugar nenhum permanente.
+      campoDoPreco,
+      precosRecebidos: {
+        price: data?.purchase?.price?.value ?? null,
+        full_price: data?.purchase?.full_price?.value ?? null,
+        original_offer_price: data?.purchase?.original_offer_price?.value ?? null,
+      },
       status: data?.purchase?.status,
       approvedDate,
     }),
@@ -276,7 +295,7 @@ async function hotmartPurchaseDelayed(data: any, userId: string) {
         buyerEmail: data?.buyer?.email,
         buyerName: data?.buyer?.name,
         productName: data?.product?.name,
-        price: data?.purchase?.price?.value ?? 0,
+        price: valorDaCompra(data?.purchase).valor,
         status: 'delayed',
       }),
     },

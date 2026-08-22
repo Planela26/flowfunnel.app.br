@@ -56,8 +56,32 @@ export async function GET() {
       where: { userId, platform: 'HOTMART' },
       orderBy: { createdAt: 'desc' },
       take: 20,
-      select: { event: true, statusCode: true, endpoint: true, error: true, response: true, createdAt: true },
+      select: { event: true, statusCode: true, endpoint: true, error: true, response: true, payload: true, createdAt: true },
     })
+
+    // De onde veio (ou não veio) o valor da última venda. A Hotmart 2.0.0 manda
+    // três objetos de preço e nenhum é garantido; quando nenhum vem preenchido,
+    // a venda entra com faturamento zero e não havia como conferir o porquê —
+    // o payload original não fica guardado em lugar nenhum permanente.
+    const ultimaVenda = entregas.find(
+      (e) => e.statusCode < 400 && ['PURCHASE_APPROVED', 'PURCHASE_COMPLETE'].includes(e.event),
+    )
+    const precosRecebidos = (() => {
+      if (!ultimaVenda?.payload) return null
+      try {
+        const p = JSON.parse(ultimaVenda.payload)?.data?.purchase
+        return {
+          quando: ultimaVenda.createdAt,
+          evento: ultimaVenda.event,
+          price: p?.price?.value ?? null,
+          full_price: p?.full_price?.value ?? null,
+          original_offer_price: p?.original_offer_price?.value ?? null,
+          moeda: p?.price?.currency_value ?? p?.full_price?.currency_value ?? null,
+        }
+      } catch {
+        return null
+      }
+    })()
 
     const funis = await prisma.funnel.findMany({ where: { userId }, select: { id: true } })
     const funnelIds = funis.map((f) => f.id)
@@ -110,6 +134,7 @@ export async function GET() {
         erro: e.error,
       })),
       eventosGravados: { vendas, pendentes, abandonos, ultimoEvento },
+      precosRecebidos,
       veredito: veredito({
         urlTemDominio,
         pausa,
@@ -117,6 +142,11 @@ export async function GET() {
         entregasComErro: entregas.filter((e) => e.statusCode >= 400).length,
         vendas,
         eventos: vendas + pendentes + abandonos,
+        precoZerado:
+          precosRecebidos != null &&
+          !precosRecebidos.price &&
+          !precosRecebidos.full_price &&
+          !precosRecebidos.original_offer_price,
       }),
     })
   } catch (error) {
@@ -146,6 +176,7 @@ function veredito(f: {
   entregasComErro: number
   vendas: number
   eventos: number
+  precoZerado?: boolean
 }): string {
   if (!f.urlTemDominio) {
     return 'A URL do webhook está saindo sem domínio (NEXT_PUBLIC_APP_URL não está definida no servidor). A Hotmart não consegue chamar um caminho relativo. Corrija a variável no servidor e reconfigure a URL no painel da Hotmart.'
@@ -169,6 +200,9 @@ function veredito(f: {
   }
   if (f.vendas === 0) {
     return `Há ${f.eventos} eventos gravados, mas nenhuma venda confirmada. Só boletos pendentes ou carrinhos abandonados chegaram até agora.`
+  }
+  if (f.precoZerado) {
+    return `A venda foi registrada, mas a Hotmart mandou o payload SEM valor: price, full_price e original_offer_price vieram todos vazios (veja "precosRecebidos" abaixo). Por isso o faturamento aparece zerado. Isso é típico de evento de teste/simulador; numa venda real esses campos vêm preenchidos.`
   }
   return `Funcionando: ${f.vendas} venda(s) confirmada(s) gravada(s). Se o card ainda mostra zero, confira o período selecionado no dashboard e recarregue — a resposta fica em cache por 2 minutos.`
 }

@@ -22,6 +22,38 @@
 
 const LIMIAR_MS = 1e11
 
+/**
+ * Valor de uma compra da Hotmart.
+ *
+ * A 2.0.0 manda TRÊS objetos de preço e nenhum é garantido:
+ *
+ *   purchase.price               valor da oferta no momento da compra
+ *   purchase.full_price          total pago pelo comprador, com taxas e juros
+ *   purchase.original_offer_price valor da oferta principal
+ *
+ * O código lia só o primeiro e gravava 0 quando ele não vinha — uma venda
+ * registrada com faturamento zerado, que é pior do que não registrar, porque
+ * derruba o ticket médio e o faturamento de todo o período junto.
+ *
+ * A ordem abaixo é deliberada: `price` é o que a oferta custou, que é o que o
+ * produtor entende por "valor da venda". `full_price` inclui juros de
+ * parcelamento, então só entra quando o primeiro não veio.
+ */
+export function valorDaCompra(purchase: any): { valor: number; moeda: string | null; campo: string | null } {
+  const candidatos: [string, any][] = [
+    ['price', purchase?.price],
+    ['full_price', purchase?.full_price],
+    ['original_offer_price', purchase?.original_offer_price],
+  ]
+  for (const [campo, obj] of candidatos) {
+    const n = Number(obj?.value)
+    if (Number.isFinite(n) && n > 0) {
+      return { valor: n, moeda: obj?.currency_value ?? null, campo }
+    }
+  }
+  return { valor: 0, moeda: null, campo: null }
+}
+
 export function dataDeWebhook(valor: unknown, agora: Date = new Date()): Date {
   if (valor instanceof Date) return Number.isNaN(valor.getTime()) ? agora : valor
 
