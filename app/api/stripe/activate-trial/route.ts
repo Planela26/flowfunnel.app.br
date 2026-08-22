@@ -76,7 +76,15 @@ export async function POST(request: Request) {
           const pmDetails = await stripe.paymentMethods.retrieve(pmId) as any
           fingerprint = pmDetails?.card?.fingerprint ?? null
         }
-      } catch {}
+      } catch (e) {
+        // Consequência: sem fingerprint, a checagem de cartão já usado em outra
+        // conta não roda — o controle antifraude é DESLIGADO em silêncio.
+        // Falha aberta, e sem isto ninguém saberia que ela ocorreu.
+        console.error(
+          '🚨 [antifraude] não consegui ler o fingerprint do cartão; ' +
+          'a checagem de cartão duplicado NÃO será feita para esta ativação:', e,
+        )
+      }
     }
 
     // ── HARD GATE: o teste grátis SÓ pode ser ativado depois que o usuário
@@ -93,7 +101,12 @@ export async function POST(request: Request) {
           limit: 1,
         })
         hasRealCard = cardPms.data.length > 0
-      } catch {}
+      } catch (e) {
+        // `hasRealCard` permanece false. Registrar importa porque o motivo real
+        // ("não consegui perguntar à Stripe") é diferente do que o valor diz
+        // ("não tem cartão"), e os dois levam a decisões distintas.
+        console.error('🚨 [antifraude] não consegui listar os cartões do cliente na Stripe:', e)
+      }
     }
 
     if (!hasRealCard) {
@@ -129,7 +142,16 @@ export async function POST(request: Request) {
         // Cancel the fraudulent subscription
         try {
           await stripe.subscriptions.cancel(subscriptionId)
-        } catch {}
+        } catch (e) {
+          // A fraude foi DETECTADA e o cancelamento falhou: a assinatura
+          // fraudulenta continua ativa na Stripe. Este é o pior dos três —
+          // o sistema descobriu o problema e não conseguiu agir, calado.
+          console.error(
+            `🚨 [antifraude] cartão duplicado detectado, mas NÃO consegui cancelar ` +
+            `a assinatura ${subscriptionId}. Ela segue ATIVA na Stripe e precisa ` +
+            `ser cancelada à mão:`, e,
+          )
+        }
 
         await logAudit({
           action: 'billing.trial_fraud_detected',

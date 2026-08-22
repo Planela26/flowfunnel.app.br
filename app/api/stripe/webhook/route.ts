@@ -260,7 +260,15 @@ async function syncUserPlan(event: any, stripe: any, request: Request) {
         })
         const priceId = fullSession.line_items?.data?.[0]?.price?.id
         if (priceId) newPlan = getPlanFromPriceId(priceId)
-      } catch {}
+      } catch (e) {
+        // Consequência de cair aqui: `newPlan` fica nulo, o bloco da linha 395
+        // é PULADO e o cliente que acabou de pagar não recebe plano nenhum.
+        // A rota ainda responde 200, então a Stripe não reenvia.
+        console.error(
+          `🚨 [stripe] não consegui descobrir o plano da sessão ${session.id} pelos line_items. ` +
+          `O cliente pagou e o plano NÃO será atualizado:`, e,
+        )
+      }
     }
 
     if (session.subscription && customerId) {
@@ -334,9 +342,15 @@ async function syncUserPlan(event: any, stripe: any, request: Request) {
             select: { email: true, name: true, trialPlan: true },
           })
           if (user?.email && user.trialPlan) {
-            sendTrialConvertedEmail(user.email, user.name || '', newPlan ?? user.trialPlan).catch(() => {})
+            sendTrialConvertedEmail(user.email, user.name || '', newPlan ?? user.trialPlan).catch((e) =>
+              console.error('[stripe] e-mail de conversão de teste não enviado:', e),
+            )
           }
-        } catch {}
+        } catch (e) {
+          // Só e-mail: o plano já foi gravado acima. Não é dinheiro perdido,
+          // mas some sem rastro e o cliente fica sem a confirmação.
+          console.error('[stripe] falha ao preparar o e-mail de conversão de teste:', e)
+        }
       }
     }
   }
@@ -351,7 +365,14 @@ async function syncUserPlan(event: any, stripe: any, request: Request) {
         const priceId = sub.items?.data?.[0]?.price?.id
         if (priceId) newPlan = getPlanFromPriceId(priceId)
       }
-    } catch {}
+    } catch (e) {
+      // Mesma consequência do catch anterior: sem `newPlan`, a renovação é
+      // cobrada e o plano do usuário não é reafirmado.
+      console.error(
+        `🚨 [stripe] não consegui descobrir o plano da fatura do customer ${customerId}. ` +
+        `A cobrança ocorreu e o plano NÃO será atualizado:`, e,
+      )
+    }
   }
 
   if (event.type === 'invoice.payment_failed') {
@@ -568,9 +589,13 @@ async function syncUserPlan(event: any, stripe: any, request: Request) {
         select: { email: true, name: true },
       })
       if (user?.email) {
-        sendWelcomeEmail(user.email, user.name || '').catch(() => {})
+        sendWelcomeEmail(user.email, user.name || '').catch((e) =>
+          console.error('[stripe] e-mail de boas-vindas não enviado:', e),
+        )
       }
-    } catch {}
+    } catch (e) {
+      console.error('[stripe] falha ao preparar o e-mail de boas-vindas:', e)
+    }
   }
 }
 
