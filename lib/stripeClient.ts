@@ -28,19 +28,12 @@ export async function getStripeSecretKey() {
   return getSecretKey()
 }
 
-// StripeSync singleton for webhook processing and data sync
-let stripeSync: any = null
-
-export async function getStripeSync() {
-  if (!stripeSync) {
-    const { StripeSync } = await import('stripe-replit-sync')
-    stripeSync = new StripeSync({
-      poolConfig: {
-        connectionString: process.env.DATABASE_URL!,
-        max: 2,
-      },
-      stripeSecretKey: getSecretKey(),
-    })
-  }
-  return stripeSync
-}
+// Aqui existia `getStripeSync()`, resquício da época em que o projeto rodava no
+// Replit. Ninguém a chamava — conferido em todo o app, lib e components. Mas ela
+// arrastava `stripe-replit-sync` para dentro de cada build, que por sua vez traz
+// `pg-node-migrations` com `require` dinâmico: era a origem do aviso "Critical
+// dependency: the request of a dependency is an expression" que aparecia em todo
+// build, com rastro passando por lib/stripeClient.ts.
+//
+// E, se algum dia fosse chamada, abriria um SEGUNDO pool de conexões ao Postgres
+// (max: 2) em paralelo ao do Prisma, fora de qualquer controle deste projeto.

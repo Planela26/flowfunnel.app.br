@@ -31,48 +31,25 @@ export async function register() {
       setTimeout(warmupRoutes, 4000)
     }
 
-    try {
-      const databaseUrl = process.env.DATABASE_URL
-      const stripeSecretKey = process.env.STRIPE_SECRET_KEY
-
-      if (!databaseUrl || !stripeSecretKey) {
-        console.warn('⚠️ DATABASE_URL ou STRIPE_SECRET_KEY não configurados, pulando inicialização do Stripe')
-        return
-      }
-
-      // Em produção (Hostinger) o DATABASE_URL aponta para o Supabase direto,
-      // sem pgbouncer. As migrations do stripe-replit-sync e o syncBackfill
-      // usam prepared statements que quebram contra o Connection Pooler, e
-      // contra a conexão direta podem derrubar o processo se a porta/credenciais
-      // não estiverem alinhadas. Por segurança, em produção pulamos a
-      // inicialização automática — webhooks continuam funcionando via
-      // /api/stripe/webhook (handler manual em lib/webhook-handlers.ts).
-      if (process.env.NODE_ENV === 'production') {
-        console.log('⏭️ Stripe auto-init desabilitado em produção (webhooks via /api/stripe/webhook)')
-        return
-      }
-
-      const { runMigrations, StripeSync } = await import('stripe-replit-sync')
-      await runMigrations({ databaseUrl })
-
-      const stripeSync = new StripeSync({
-        poolConfig: { connectionString: databaseUrl, max: 2 },
-        stripeSecretKey,
-      })
-
-      const domain = process.env.REPLIT_DEV_DOMAIN
-        || process.env.REPLIT_DOMAINS?.split(',')[0]
-
-      if (domain) {
-        const webhookUrl = `https://${domain}/api/stripe/webhook`
-        await stripeSync.findOrCreateManagedWebhook(webhookUrl)
-        console.log(`✅ Stripe webhook registrado: ${webhookUrl}`)
-      }
-
-      await stripeSync.syncBackfill()
-      console.log('✅ Stripe inicializado com sucesso')
-    } catch (error: any) {
-      console.error('❌ Erro ao inicializar Stripe:', error.message)
-    }
+    // Aqui existia a auto-inicialização do Stripe via `stripe-replit-sync`,
+    // herdada de quando o projeto rodava no Replit. Removida porque não podia
+    // funcionar e podia atrapalhar:
+    //
+    //   Em produção ela já se desligava sozinha logo na entrada — o próprio
+    //   comentário do bloco explicava que as migrations do pacote usam prepared
+    //   statements que quebram contra o Connection Pooler e "podem derrubar o
+    //   processo". Os webhooks do Stripe nunca dependeram dela: quem os trata é
+    //   /api/stripe/webhook.
+    //
+    //   Em desenvolvimento ela rodava `runMigrations()` de um pacote de
+    //   terceiros CONTRA O DATABASE_URL a cada `next dev`, e depois um
+    //   `syncBackfill()` puxando a base do Stripe para dentro dele. O registro
+    //   do webhook, único efeito visível, dependia de REPLIT_DEV_DOMAIN ou
+    //   REPLIT_DOMAINS — variáveis que deixaram de existir quando o projeto saiu
+    //   do Replit. Então o que sobrava era só o risco.
+    //
+    //   De quebra, era o único uso de `stripe-replit-sync`, que arrastava
+    //   `pg-node-migrations` com `require` dinâmico e produzia o aviso "Critical
+    //   dependency: the request of a dependency is an expression" em todo build.
   }
 }
