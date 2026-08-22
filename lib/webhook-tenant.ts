@@ -64,9 +64,12 @@ export async function findSingleActiveIntegration(platform: IntegrationPlatform)
  * shares the same hottok — never attribute data to an arbitrary tenant.
  */
 export async function findHotmartIntegrationByHottok(hottok: string | null) {
-  if (!hottok) return { integration: null, ambiguous: false }
+  // Mesmo `.trim()` da rota tokenizada: o valor é colado à mão em dois painéis
+  // e um espaço em branco no fim não deve significar "tenant não existe".
+  const valor = hottok?.trim()
+  if (!valor) return { integration: null, ambiguous: false }
   const list = await prisma.integration.findMany({
-    where: { platform: 'HOTMART', isActive: true, accessToken: hottok },
+    where: { platform: 'HOTMART', isActive: true, accessToken: valor },
     take: 2,
   })
   if (list.length === 0) return { integration: null, ambiguous: false }

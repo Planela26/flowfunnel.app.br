@@ -30,6 +30,23 @@ export default function HotmartConnect() {
     webhookToken: '',
   })
   const [copied, setCopied] = useState(false)
+  const [diag, setDiag] = useState<any>(null)
+  const [diagLoading, setDiagLoading] = useState(false)
+
+  // Descobrir por que uma venda não apareceu exigia olhar o banco de produção
+  // e o painel da Hotmart ao mesmo tempo. O diagnóstico responde isso de dentro
+  // do app, com o mesmo cálculo que o webhook usa para decidir.
+  const rodarDiagnostico = async () => {
+    setDiagLoading(true)
+    try {
+      const r = await fetch('/api/integrations/hotmart/diagnostico')
+      setDiag(await r.json())
+    } catch {
+      setDiag({ veredito: 'Não foi possível rodar o diagnóstico. Verifique sua conexão e tente de novo.' })
+    } finally {
+      setDiagLoading(false)
+    }
+  }
 
   // Busca URL tokenizada do backend (ou cria se não existir)
   useEffect(() => {
@@ -249,6 +266,56 @@ export default function HotmartConnect() {
                 {regenerating ? 'Regenerando...' : 'Regenerar token (invalida URL antiga)'}
               </button>
             </InfoBox>
+
+            {/* Diagnóstico — "configurei e a venda não apareceu" tinha cinco
+                causas possíveis e nenhuma delas deixava rastro visível. */}
+            <div className="rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">A venda não apareceu no card?</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                    Confere a URL, o Hottok, as entregas recebidas e se a ingestão está ativa.
+                  </p>
+                </div>
+                <button
+                  onClick={rodarDiagnostico}
+                  disabled={diagLoading}
+                  className="shrink-0 px-3 py-2 rounded-lg text-xs font-semibold bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 hover:opacity-90 disabled:opacity-50 transition"
+                >
+                  {diagLoading ? 'Verificando...' : 'Rodar diagnóstico'}
+                </button>
+              </div>
+
+              {diag && (
+                <div className="mt-3 space-y-2">
+                  <p className="text-xs leading-relaxed text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
+                    {diag.veredito}
+                  </p>
+                  {diag.conectada && (
+                    <div className="grid grid-cols-2 gap-2 text-[11px] text-gray-600 dark:text-gray-400">
+                      <div>Entregas recebidas: <strong>{diag.entregas?.length ?? 0}</strong></div>
+                      <div>Ingestão: <strong>{diag.ingestao?.pausada ? 'PAUSADA' : 'ativa'}</strong></div>
+                      <div>Vendas gravadas: <strong>{diag.eventosGravados?.vendas ?? 0}</strong></div>
+                      <div>Hottok: <strong>{diag.integracao?.hottokConfigurado ? `${diag.integracao.hottokTamanho} caracteres` : 'não configurado'}</strong></div>
+                    </div>
+                  )}
+                  {diag.entregas?.length > 0 && (
+                    <details className="text-[11px] text-gray-600 dark:text-gray-400">
+                      <summary className="cursor-pointer select-none">Últimas entregas da Hotmart</summary>
+                      <ul className="mt-1.5 space-y-1">
+                        {diag.entregas.map((e: any, i: number) => (
+                          <li key={i} className="font-mono">
+                            {new Date(e.quando).toLocaleString('pt-BR')} · {e.status} · {e.evento}
+                            {e.ingerido === false && ' · NÃO GRAVADA'}
+                            {e.erro && ` · ${e.erro}`}
+                          </li>
+                        ))}
+                      </ul>
+                    </details>
+                  )}
+                </div>
+              )}
+            </div>
 
             <ol className="space-y-4">
               {[

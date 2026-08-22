@@ -15,7 +15,11 @@ export async function POST(request: Request) {
     const gate = await assertCanCreateIntegration(request)
     if (gate) return gate
 
-    const { hotmartId, webhookToken, email } = await request.json()
+    const bruto = await request.json()
+    const { hotmartId, email } = bruto
+    // Guardar já sem espaços: é aqui que o "\n" do copiar-e-colar entrava, e
+    // depois toda entrega da Hotmart batia 403 numa comparação exata.
+    const webhookToken = typeof bruto.webhookToken === 'string' ? bruto.webhookToken.trim() : bruto.webhookToken
 
     if (!hotmartId || !webhookToken) {
       return NextResponse.json(

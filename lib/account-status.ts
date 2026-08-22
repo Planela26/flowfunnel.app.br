@@ -50,7 +50,27 @@ export function isAccountExpired(user: AccountStatusFields | null): boolean {
 export async function isIngestionBlockedForUser(
   userId: string | null | undefined,
 ): Promise<boolean> {
-  if (!userId) return false
+  return (await motivoDaPausaDeIngestao(userId)) !== null
+}
+
+/**
+ * O MESMO cálculo, mas devolvendo o porquê.
+ *
+ * `isIngestionBlockedForUser` responde sim/não, e era só isso que existia: o
+ * webhook descartava o evento e nem ele nem a interface sabiam dizer a razão.
+ * A rota de diagnóstico precisa do motivo para explicar em português por que a
+ * venda não entrou. Um único cálculo, duas leituras — se fossem dois, um dia
+ * discordariam.
+ *
+ * Fail-open: em erro transitório de banco devolve `null` (não pausa), para não
+ * perder dados de cliente pagante por uma falha pontual.
+ */
+export type MotivoDaPausa = 'plano_vencido' | 'assinatura_inativa' | 'teste_expirado'
+
+export async function motivoDaPausaDeIngestao(
+  userId: string | null | undefined,
+): Promise<MotivoDaPausa | null> {
+  if (!userId) return null
   try {
     const user = await prismaAdmin.user.findUnique({
       where: { id: userId },
@@ -65,15 +85,21 @@ export async function isIngestionBlockedForUser(
         planExpiresAt: true,
       },
     })
+    if (!user) return null
     // ADMIN/OWNER nunca têm a ingestão pausada, pela mesma razão que passam
     // pelo portão comercial (lib/commercial-access.ts): a conta administrativa
     // não tem assinatura e cairia como "vencida" por um estado de teste que
     // nunca se aplicou a ela. Sem isto, os dois módulos discordam — o portão
     // deixa conectar a integração e a ingestão descarta tudo que ela recebe.
-    if (user?.role && PAPEIS_ADMIN.includes(user.role)) return false
-    return isAccountExpired(user)
+    if (user.role && PAPEIS_ADMIN.includes(user.role)) return null
+
+    // A ordem espelha `isAccountExpired`.
+    if (isPlanExpired(user)) return 'plano_vencido'
+    if (isSubscriptionBlocked(user.subscriptionStatus, user.gracePeriodEndsAt)) return 'assinatura_inativa'
+    if (isTrialExpiredForToken(user)) return 'teste_expirado'
+    return null
   } catch (e) {
     console.error('[account-status] erro ao checar ingestão; fail-open:', e)
-    return false
+    return null
   }
 }
