@@ -210,7 +210,11 @@ export async function GET(request: Request) {
               respCount++
             }
           }
-        } catch {}
+        } catch (e) {
+          // A média de tempo de resposta sai menor do que a real, ou zerada, e
+          // nada na tela indica que houve conversa que não pôde ser lida.
+          console.error('[whatsapp] não consegui ler as interações para calcular tempo de resposta:', e)
+        }
       }
 
       const last7Count = convs.filter((c) => c.timestamp >= last7).length

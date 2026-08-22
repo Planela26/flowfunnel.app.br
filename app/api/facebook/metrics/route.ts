@@ -71,13 +71,20 @@ export async function GET(request: Request) {
       let clicks = 0
       let spend = 0
       let impressions = 0
+      // Metadata ilegível fazia o evento ser pulado INTEIRO — some o clique,
+      // não só o gasto — e os números saíam menores que os reais sem nada
+      // indicar. Conta-se e registra-se uma vez, fora do laço.
+      let ilegiveis = 0
       for (const ev of events) {
         try {
           const meta = JSON.parse(ev.metadata || '{}')
           clicks += 1
           spend += Number(meta.cost || meta.spend || 0)
           impressions += Number(meta.impressions || 0)
-        } catch {}
+        } catch { ilegiveis++ }
+      }
+      if (ilegiveis > 0) {
+        console.error(`[facebook] ${ilegiveis} de ${events.length} eventos com metadata ilegível; cliques e gasto estão SUBESTIMADOS.`)
       }
       if (impressions === 0) impressions = clicks * 18
       const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0

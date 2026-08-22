@@ -34,7 +34,9 @@ export function broadcast(session: SessionInfo, event: string, data: object) {
   const payload = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`
   const enc = new TextEncoder().encode(payload)
   for (const ctrl of session.controllers) {
-    try { ctrl.enqueue(enc) } catch {}
+    // Vazio de propósito, pelo mesmo motivo do `send` em qr-stream: controller
+    // fechado lança, e fechado é o estado normal de quem fechou a aba.
+    try { ctrl.enqueue(enc) } catch { /* cliente desconectou */ }
   }
 }
 

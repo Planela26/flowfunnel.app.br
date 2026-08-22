@@ -99,6 +99,12 @@ export async function GET(request: Request) {
       .sort((a, b) => a.date.localeCompare(b.date))
 
     const profitSeriesMap: Record<string, { revenue: number; costs: number; profit: number; roi: number | null }> = {}
+    // Evento cujo metadata não abre é PULADO da soma. Sem contar quantos, o
+    // relatório sai com receita ou custo menor do que o real e nada indica
+    // isso — o mesmo "número errado com cara de certo" de sempre. Conta-se e
+    // registra-se uma vez ao final, em vez de logar dentro do laço, que numa
+    // conta ativa produziria milhares de linhas.
+    let eventosIlegiveis = 0
     for (const ev of funnelEvents) {
       const day = ev.timestamp.toISOString().slice(0, 10)
       if (!profitSeriesMap[day]) profitSeriesMap[day] = { revenue: 0, costs: 0, profit: 0, roi: null }
@@ -107,16 +113,22 @@ export async function GET(request: Request) {
         try {
           const meta = JSON.parse(ev.metadata || '{}')
           if (!isCanceledSale(meta)) entry.revenue += extractAmount(meta)
-        } catch {}
+        } catch { eventosIlegiveis++ }
       }
       if (['facebook_click', 'facebook_impression', 'meta_ad_click', 'meta_ad_impression'].includes(ev.eventType)) {
         try {
           const meta = JSON.parse(ev.metadata || '{}')
           entry.costs += Number(meta.cost || meta.spend || 0)
-        } catch {}
+        } catch { eventosIlegiveis++ }
       }
       entry.profit = entry.revenue - entry.costs
       entry.roi = entry.costs > 0 ? (entry.profit / entry.costs) * 100 : null
+    }
+    if (eventosIlegiveis > 0) {
+      console.error(
+        `[reports] ${eventosIlegiveis} de ${funnelEvents.length} eventos ficaram de fora ` +
+        `da série de lucro: metadata ilegível. Receita e custo do período estão SUBESTIMADOS.`,
+      )
     }
 
     // ── Fontes que existem de verdade ─────────────────────────────────────────

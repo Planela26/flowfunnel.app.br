@@ -132,7 +132,12 @@ export async function GET(request: Request) {
 
         // UTM source pode vir em qualquer payload
         utmSource = payload.utm_source || payload.utmSource || payload.source || payload.referrer || ''
-      } catch {}
+      } catch (e) {
+        // Consequência de cair aqui: o lead perde e-mail, valor, produto e UTM
+        // de uma vez — e aparece na lista como se a plataforma não tivesse
+        // mandado nada. É indistinguível de "o comprador não informou".
+        console.error(`[leads] payload de webhook ilegível (log ${log.id}); o lead vai sem dados:`, e)
+      }
 
       // Ignorar logs sem identificação (são cliques de ads sem dado de contato)
       if (!phone && !email) continue

@@ -31,9 +31,12 @@ export async function GET(request: NextRequest) {
   const stream = new ReadableStream({
     async start(controller) {
       const send = (event: string, data: object) => {
+        // Vazio de propósito: `enqueue` num controller fechado lança, e fechado
+        // é o estado normal de quem fechou a aba. Registrar aqui encheria o log
+        // de "erro" para cada visitante que sai da tela.
         try {
           controller.enqueue(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`))
-        } catch {}
+        } catch { /* cliente desconectou */ }
       }
 
       let existing = sessions.get(userId)
@@ -98,7 +101,12 @@ export async function GET(request: NextRequest) {
               sess.status = 'qr'
               sess.qr = qrDataUrl
               broadcast(sess, 'qr', { qr: qrDataUrl })
-            } catch {}
+            } catch (e) {
+              // Sem isto, a falha ao gerar o QR deixa a tela de pareamento
+              // esperando para sempre um código que nunca vai chegar, e não há
+              // onde descobrir por quê.
+              console.error(`[whatsapp] falha ao gerar o QR de pareamento para ${userId}:`, e)
+            }
           }
 
           if (connection === 'open') {
@@ -222,7 +230,12 @@ export async function DELETE(request: NextRequest) {
   const userId = session.user.id
   const sess = getSessions().get(userId)
   if (sess?.sock) {
-    try { await sess.sock.logout() } catch {}
+    // Logout que falha deixa a sessão pendurada do lado do WhatsApp: aqui ela
+    // some, lá ela continua aparecendo como aparelho conectado. Seguimos com a
+    // limpeza local de qualquer jeito, mas o motivo precisa ficar registrado.
+    try { await sess.sock.logout() } catch (e) {
+      console.error(`[whatsapp] logout falhou para ${userId}; a sessão pode continuar ativa no aparelho:`, e)
+    }
   }
   clearSessionFiles(userId)
   getSessions().delete(userId)

@@ -45,11 +45,17 @@ export async function GET() {
     let totalRevenue = 0
     let totalSales = paidEvents.length
 
+    // Venda cujo metadata não abre era pulada da soma em silêncio: o
+    // faturamento saía menor que o real, e o ticket médio junto com ele.
+    let vendasIlegiveis = 0
     for (const event of paidEvents) {
       try {
         const meta = JSON.parse(event.metadata || '{}')
         totalRevenue += meta.amount || 0
-      } catch {}
+      } catch { vendasIlegiveis++ }
+    }
+    if (vendasIlegiveis > 0) {
+      console.error(`[kiwify] ${vendasIlegiveis} de ${paidEvents.length} vendas com metadata ilegível; faturamento e ticket médio estão SUBESTIMADOS.`)
     }
 
     // Count checkouts (all kiwify events including pending)

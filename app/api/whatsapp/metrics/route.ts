@@ -184,11 +184,16 @@ export async function GET(request: Request) {
     const limitExceeded = monthlyLimit !== null && conversasEsteMes >= monthlyLimit
 
     let totalMessages = 0
+    // Conversa cujo metadata não abre era pulada da contagem em silêncio.
+    let conversasIlegiveis = 0
     for (const conv of allConversations) {
       try {
         const m = JSON.parse(conv.metadata || '{}')
         totalMessages += Array.isArray(m.interactions) ? m.interactions.length : 0
-      } catch {}
+      } catch { conversasIlegiveis++ }
+    }
+    if (conversasIlegiveis > 0) {
+      console.error(`[whatsapp] ${conversasIlegiveis} de ${allConversations.length} conversas com metadata ilegível; total de mensagens SUBESTIMADO.`)
     }
 
     const result = {
