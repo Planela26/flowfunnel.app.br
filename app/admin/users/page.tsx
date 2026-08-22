@@ -113,6 +113,9 @@ const TRIAL_STATUS_COLORS: Record<string, string> = {
 export default function AdminUsersPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
+  // Instante em que a tela abriu, capturado UMA vez. Usado pelo corte de
+  // "últimos 7 dias" mais abaixo, que antes chamava Date.now() no render.
+  const [abertoEm] = useState(() => Date.now())
   const [users, setUsers] = useState<User[]>([])
   const [stats, setStats] = useState<Stats | null>(null)
   const [trialStats, setTrialStats] = useState<TrialStats | null>(null)
@@ -146,14 +149,6 @@ export default function AdminUsersPage() {
     setActionError('')
   }
 
-  useEffect(() => {
-    if (status === 'unauthenticated') { router.push('/login'); return }
-    if (status === 'authenticated') {
-      if ((session?.user as any)?.role !== 'ADMIN') { router.push('/dashboard'); return }
-      fetchData()
-    }
-  }, [status, session])
-
   const fetchData = async () => {
     setLoading(true)
     try {
@@ -176,6 +171,19 @@ export default function AdminUsersPage() {
     }
     setLoading(false)
   }
+
+  // Este efeito ficava ACIMA de `fetchData`, que é um `const`. Funcionava por
+  // acaso: o corpo do efeito só roda depois da montagem, quando a constante já
+  // recebeu valor. Mas qualquer mudança que o fizesse rodar mais cedo
+  // encontraria a variável na zona morta temporal. Declarar antes de usar
+  // elimina a dependência dessa ordem.
+  useEffect(() => {
+    if (status === 'unauthenticated') { router.push('/login'); return }
+    if (status === 'authenticated') {
+      if ((session?.user as any)?.role !== 'ADMIN') { router.push('/dashboard'); return }
+      fetchData()
+    }
+  }, [status, session])
 
   /** Lê a mensagem do backend antes de decidir o que mostrar — o 409 de conta
    *  ativa traz o motivo exato (assinatura, carência ou teste), e engolir isso
@@ -250,9 +258,13 @@ export default function AdminUsersPage() {
   const convRate = stats && stats.total > 0 ? Math.round((pagantes / stats.total) * 100) : 0
   const arr = stats ? stats.mrr * 12 : 0
 
+  // `Date.now()` ficava dentro do filtro, ou seja, dentro do render: dois
+  // renders seguidos podiam produzir listas diferentes sem nada ter mudado.
+  // Fixando o instante no mount, o corte de 7 dias fica estável enquanto a
+  // tela estiver aberta — que é o comportamento que se espera de um painel.
   const last7 = users.filter(u => {
     const d = new Date(u.createdAt)
-    return (Date.now() - d.getTime()) < 7 * 24 * 60 * 60 * 1000
+    return (abertoEm - d.getTime()) < 7 * 24 * 60 * 60 * 1000
   })
 
   const maxPlanCount = stats ? Math.max(stats.byPlan.FREE, stats.byPlan.START, stats.byPlan.PRO, stats.byPlan.SCALE, 1) : 1

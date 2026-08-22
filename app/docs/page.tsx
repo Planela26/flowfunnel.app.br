@@ -218,7 +218,7 @@ export default function DocsPage() {
               <li>Não sabe quantas conversas WhatsApp vieram de cada anúncio</li>
               <li>Não consegue medir taxa de conversão por fonte de tráfego</li>
               <li>Decisions manuais baseadas em feeling, não em dados</li>
-              <li>Descobre "onde queimou dinheiro" apenas no final do mês</li>
+              <li>Descobre &quot;onde queimou dinheiro&quot; apenas no final do mês</li>
             </ul>
           </div>
           <div className="arch-box" style={{ borderColor: '#A7F3D0', background: '#ECFDF5' }}>

@@ -258,10 +258,10 @@ export default function FacebookConnect() {
               </div>
               <ol className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
                 <li className="flex gap-2"><span className="font-bold text-blue-600 shrink-0">1.</span> Acesse o <a href="https://business.facebook.com/settings/system-users" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">Meta Business Manager → Usuários do sistema</a></li>
-                <li className="flex gap-2"><span className="font-bold text-blue-600 shrink-0">2.</span> Clique em "Adicionar" e crie um usuário do sistema com função "Administrador"</li>
-                <li className="flex gap-2"><span className="font-bold text-blue-600 shrink-0">3.</span> Clique em "Gerar token" → selecione seu App</li>
+                <li className="flex gap-2"><span className="font-bold text-blue-600 shrink-0">2.</span> Clique em &quot;Adicionar&quot; e crie um usuário do sistema com função &quot;Administrador&quot;</li>
+                <li className="flex gap-2"><span className="font-bold text-blue-600 shrink-0">3.</span> Clique em &quot;Gerar token&quot; → selecione seu App</li>
                 <li className="flex gap-2"><span className="font-bold text-blue-600 shrink-0">4.</span> Marque as permissões: <code className="bg-gray-100 px-1 rounded">ads_read</code>, <code className="bg-gray-100 px-1 rounded">ads_management</code></li>
-                <li className="flex gap-2"><span className="font-bold text-blue-600 shrink-0">5.</span> Defina expiração como "Nunca expira" e clique em "Gerar token"</li>
+                <li className="flex gap-2"><span className="font-bold text-blue-600 shrink-0">5.</span> Defina expiração como &quot;Nunca expira&quot; e clique em &quot;Gerar token&quot;</li>
               </ol>
             </div>
 
@@ -270,9 +270,9 @@ export default function FacebookConnect() {
               <h3 className="font-bold text-gray-900 mb-3">Opção B — Token pelo Graph API Explorer (Teste)</h3>
               <ol className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
                 <li className="flex gap-2"><span className="font-bold text-gray-500 shrink-0">1.</span> Abra o <a href="https://developers.facebook.com/tools/explorer/" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">Graph API Explorer</a></li>
-                <li className="flex gap-2"><span className="font-bold text-gray-500 shrink-0">2.</span> Selecione seu App no menu "Meta App"</li>
-                <li className="flex gap-2"><span className="font-bold text-gray-500 shrink-0">3.</span> Clique em "Add a Permission" → adicione <code className="bg-white border rounded px-1">ads_read</code> e <code className="bg-white border rounded px-1">ads_management</code></li>
-                <li className="flex gap-2"><span className="font-bold text-gray-500 shrink-0">4.</span> Clique em "Generate Access Token" e autorize</li>
+                <li className="flex gap-2"><span className="font-bold text-gray-500 shrink-0">2.</span> Selecione seu App no menu &quot;Meta App&quot;</li>
+                <li className="flex gap-2"><span className="font-bold text-gray-500 shrink-0">3.</span> Clique em &quot;Add a Permission&quot; → adicione <code className="bg-white border rounded px-1">ads_read</code> e <code className="bg-white border rounded px-1">ads_management</code></li>
+                <li className="flex gap-2"><span className="font-bold text-gray-500 shrink-0">4.</span> Clique em &quot;Generate Access Token&quot; e autorize</li>
                 <li className="flex gap-2"><span className="font-bold text-gray-500 shrink-0">5.</span> Copie o token gerado (expira em ~1h)</li>
               </ol>
               <p className="text-xs text-yellow-700 bg-yellow-50 border border-yellow-200 rounded p-2 mt-3">

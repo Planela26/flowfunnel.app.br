@@ -700,7 +700,12 @@ function FunnelCanvas({
   const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const hasLocalEditsRef = useRef(false)   // usuário moveu algo nesta sessão
   const nodesRef = useRef<Node[]>([])      // snapshot p/ flush no unmount
-  nodesRef.current = nodes
+  // A atribuição acontecia direto no corpo do componente, durante o render.
+  // Escrever em ref no render quebra com renderização concorrente: renders
+  // descartados também gravavam, e o snapshot podia refletir um estado que
+  // nunca chegou à tela. No efeito, só render que foi de fato aplicado grava —
+  // e para o flush no unmount isso é o que se quer.
+  useEffect(() => { nodesRef.current = nodes }, [nodes])
 
   // Centraliza a visão no primeiro render
   useEffect(() => {

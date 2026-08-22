@@ -164,7 +164,11 @@ export default function HotmartConnect() {
             <ul className="space-y-1 mt-1">
               <li>• Acesso ao painel da Hotmart como <strong>Produtor</strong></li>
               <li>• O <strong>código do seu produto</strong> (Hotmart ID)</li>
-              <li>• Um <strong>token de segurança</strong> (você cria um)</li>
+              {/* Escapou da correção de b461bae: dizia "(você cria um)", que é
+                  justamente a orientação que levou ao 403 em toda entrega. Na
+                  Hotmart 2.0.0 o Hottok é gerado pela plataforma, um por conta,
+                  e fica em Ferramentas → Webhook → Autenticação. */}
+              <li>• O <strong>Hottok</strong> da sua conta, em Ferramentas → Webhook → Autenticação</li>
             </ul>
           </InfoBox>
 
@@ -538,7 +542,7 @@ export default function HotmartConnect() {
           </div>
 
           <InfoBox type="tip" title="Próximo passo: faça uma venda teste">
-            Faça uma venda teste (ou use o botão "Testar" na Hotmart) e verifique nos Webhooks do dashboard se o evento apareceu.
+            Faça uma venda teste (ou use o botão &quot;Testar&quot; na Hotmart) e verifique nos Webhooks do dashboard se o evento apareceu.
             <a href="/webhooks" className="ml-2 text-blue-600 hover:text-blue-800 underline">
               Ver logs de webhooks →
             </a>
