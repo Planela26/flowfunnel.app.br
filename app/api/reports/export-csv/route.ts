@@ -61,6 +61,9 @@ export async function GET(request: Request) {
       },
       orderBy: { createdAt: 'asc' },
       take: 1000,
+      // Só as colunas que o CSV imprime. payload, headers e response guardam o
+      // JSON inteiro de cada webhook e nenhum dos três vai para o arquivo.
+      select: { platform: true, event: true, statusCode: true, duration: true, error: true, createdAt: true },
     })
 
     const lines: string[] = []

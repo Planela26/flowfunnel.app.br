@@ -35,15 +35,21 @@ export async function GET(request: Request) {
       include: { stages: true },
     })
 
+    // Sem `select`, isto trazia TODAS as colunas — inclusive payload, headers e
+    // response, que guardam o JSON completo de cada webhook recebido. Numa conta
+    // ativa são megabytes de texto carregados para memória só para contar
+    // linhas e agrupar por plataforma. Nenhum dos três é lido aqui.
     const webhookLogs = await prisma.webhookLog.findMany({
       where: { userId: session.user.id, createdAt: { gte: since } },
       orderBy: { createdAt: 'desc' },
+      select: { platform: true, event: true, statusCode: true, createdAt: true },
     })
 
     const funnelEvents = funnel
       ? await prisma.funnelEvent.findMany({
           where: { funnelId: funnel.id, timestamp: { gte: since } },
           orderBy: { timestamp: 'desc' },
+          select: { eventType: true, metadata: true, timestamp: true },
         })
       : []
 

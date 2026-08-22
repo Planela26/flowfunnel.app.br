@@ -90,6 +90,9 @@ export async function GET(request: Request) {
     // Buscar vendas completas
     const vendasCompletas = await prisma.funnelEvent.findMany({
       where: { ...naJanela, eventType: 'hotmart_purchase_complete' },
+      // Só metadata é lido daqui (lerMeta); as demais colunas vinham de graça
+      // e custavam banda a cada carregamento do card.
+      select: { metadata: true },
     })
 
     const lerMeta = (venda: any) => {

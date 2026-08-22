@@ -34,6 +34,7 @@ export async function GET(request: Request) {
         eventType: { contains: 'eduzz' },
         timestamp: { gte: last30Days },
       },
+      select: { eventType: true, metadata: true },
     })
 
     const paidEvents = events.filter((e: any) => {

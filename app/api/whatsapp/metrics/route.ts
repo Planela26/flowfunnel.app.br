@@ -67,6 +67,9 @@ export async function GET(request: Request) {
         eventType: 'whatsapp_conversation_started',
         timestamp: { gte: last30Days },
       },
+      // `timestamp` entra porque a média dos últimos 7 dias filtra por ele mais
+      // abaixo — o `tsc` recusou o select sem ele, que é o ponto de tipar.
+      select: { metadata: true, timestamp: true },
     })
 
     // Filtrar por phoneNumberId do workspace (se especificado)

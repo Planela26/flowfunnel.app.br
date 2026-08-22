@@ -72,6 +72,8 @@ export async function GET(request: Request) {
           eventType: 'whatsapp_conversation_started',
           timestamp: { gte: startDate, lte: endDate },
         },
+        // O laço abaixo lê só metadata; as outras colunas não são tocadas.
+        select: { metadata: true },
       })
 
       let totalMessages = 0
@@ -137,6 +139,7 @@ export async function GET(request: Request) {
           eventType: 'hotmart_purchase_complete',
           timestamp: { gte: startDate, lte: endDate },
         },
+        select: { metadata: true },
       })
 
       const vendasAtivas = vendasCompletas.filter((v: any) => {
