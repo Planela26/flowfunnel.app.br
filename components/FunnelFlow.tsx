@@ -241,14 +241,25 @@ function IntegrationCardNode({ data }: NodeProps) {
             <span className="text-[10px] text-gray-500">Carregando...</span>
           </div>
         ) : metrics ? (
-          <div className="grid grid-cols-2 gap-1.5">
-            {metrics.map((m: any, i: number) => (
-              <div key={i} className="bg-gray-800/60 rounded-lg p-1.5">
-                <div className="text-[9px] text-gray-500 uppercase tracking-wide">{m.label}</div>
-                <div className="text-xs font-bold text-white">{m.value}</div>
-              </div>
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-2 gap-1.5">
+              {metrics.map((m: any, i: number) => (
+                <div key={i} className="bg-gray-800/60 rounded-lg p-1.5">
+                  <div className="text-[9px] text-gray-500 uppercase tracking-wide">{m.label}</div>
+                  <div className="text-xs font-bold text-white">{m.value}</div>
+                </div>
+              ))}
+            </div>
+            {/* Seis zeros podem significar "não vendeu nada" ou "nenhum evento
+                chegou ainda" — e o card afirmava a primeira sempre. A rota agora
+                distingue os dois casos, e aqui o card diz qual é. */}
+            {d.data?.aguardandoPrimeiroEvento && (
+              <p className="mt-2 text-[9px] leading-tight text-gray-500">
+                Nenhum evento recebido nesta janela ainda. Webhook não é retroativo:
+                só chegam vendas feitas depois de configurá-lo.
+              </p>
+            )}
+          </>
         ) : (
           <div className="flex flex-col items-center py-4 gap-3">
             {/* Dashed ring with icon — signals "empty slot" */}

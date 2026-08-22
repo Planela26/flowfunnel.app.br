@@ -76,7 +76,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: guard.error }, { status: guard.status })
     }
 
-    await processHotmartEvent(event, data, integration.userId)
+    const resultado = await processHotmartEvent(event, data, integration.userId)
 
     const requestId = request.headers.get('X-Request-ID') || undefined
     await logWebhook({
@@ -86,13 +86,18 @@ export async function POST(request: Request) {
       method: 'POST',
       endpoint: '/api/webhooks/hotmart',
       payload: sanitizeForLog(body),
-      response: { success: true },
+      response: { success: true, ingerido: resultado.ingerido },
       requestId,
       statusCode: 200,
       duration: Date.now() - startTime,
+      error: resultado.ingerido
+        ? undefined
+        : resultado.motivo === 'conta_vencida'
+          ? 'Evento recebido mas NÃO gravado: plano vencido, ingestão pausada'
+          : `Evento recebido mas NÃO gravado: "${event}" não é tratado`,
     })
 
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ success: true, ingerido: resultado.ingerido })
   } catch (error: any) {
     console.error('Erro no webhook Hotmart:', error)
     return NextResponse.json({ error: 'Erro ao processar webhook' }, { status: 500 })

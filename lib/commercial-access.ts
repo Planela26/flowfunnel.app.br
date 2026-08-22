@@ -27,7 +27,7 @@ import { isTrialActive, isTrialExpired, type TrialUser } from './trial'
  * Papéis com acesso administrativo. `role` é String livre no schema
  * (prisma/schema.prisma:19), então a lista fica aqui em vez de num enum.
  */
-const PAPEIS_ADMIN = ['ADMIN', 'OWNER']
+export const PAPEIS_ADMIN = ['ADMIN', 'OWNER']
 
 /**
  * Códigos de recusa. `account_deactivated` e `plan_expired` são os mesmos que o

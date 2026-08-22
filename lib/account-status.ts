@@ -11,6 +11,7 @@
 import { isSubscriptionBlocked } from './subscription'
 import { isTrialExpiredForToken } from './auth-trial'
 import { isPlanExpired } from './plan-expiry'
+import { PAPEIS_ADMIN } from './commercial-access'
 import { prismaAdmin } from './prisma'
 
 export type AccountStatusFields = {
@@ -54,6 +55,7 @@ export async function isIngestionBlockedForUser(
     const user = await prismaAdmin.user.findUnique({
       where: { id: userId },
       select: {
+        role: true,
         subscriptionStatus: true,
         gracePeriodEndsAt: true,
         trialStatus: true,
@@ -63,6 +65,12 @@ export async function isIngestionBlockedForUser(
         planExpiresAt: true,
       },
     })
+    // ADMIN/OWNER nunca têm a ingestão pausada, pela mesma razão que passam
+    // pelo portão comercial (lib/commercial-access.ts): a conta administrativa
+    // não tem assinatura e cairia como "vencida" por um estado de teste que
+    // nunca se aplicou a ela. Sem isto, os dois módulos discordam — o portão
+    // deixa conectar a integração e a ingestão descarta tudo que ela recebe.
+    if (user?.role && PAPEIS_ADMIN.includes(user.role)) return false
     return isAccountExpired(user)
   } catch (e) {
     console.error('[account-status] erro ao checar ingestão; fail-open:', e)

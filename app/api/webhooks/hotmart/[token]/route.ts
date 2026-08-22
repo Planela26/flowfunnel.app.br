@@ -29,6 +29,14 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
 
     const integration = await findIntegrationByWebhookToken('HOTMART', token)
     if (!integration) {
+      // Não há tenant para atribuir, então WebhookLog (que exige userId) não
+      // pode registrar isto. O console é o único lugar possível — mas sem ele
+      // uma URL errada no painel da Hotmart não deixava rastro NENHUM, nem no
+      // servidor. O prefixo do token permite casar com a URL configurada lá.
+      console.warn(
+        `❌ [hotmart] webhook recebido com token desconhecido: ${token.slice(0, 8)}… ` +
+        `(evento="${body?.event ?? '?'}") — a URL configurada na Hotmart não corresponde a nenhuma integração ativa`,
+      )
       return NextResponse.json({ error: 'Invalid webhook token' }, { status: 404 })
     }
 
@@ -77,9 +85,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
       return NextResponse.json({ error: guard.error }, { status: guard.status })
     }
 
-    await processHotmartEvent(event, data, integration.userId)
+    const resultado = await processHotmartEvent(event, data, integration.userId)
 
     const requestId = request.headers.get('X-Request-ID') || undefined
+    // A resposta para a Hotmart continua 200 — não queremos que ela reenvie um
+    // evento que decidimos não gravar. Mas o LOG precisa dizer a verdade: um
+    // evento descartado por conta vencida ficava indistinguível de um evento
+    // processado, e o card zerado não tinha explicação em lugar nenhum.
     await logWebhook({
       userId: integration.userId,
       platform: 'HOTMART',
@@ -88,12 +100,17 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
       endpoint: `/api/webhooks/hotmart/${token.slice(0, 8)}…`,
       requestId,
       payload: sanitizeForLog(body),
-      response: { success: true },
+      response: { success: true, ingerido: resultado.ingerido },
       statusCode: 200,
       duration: Date.now() - startTime,
+      error: resultado.ingerido
+        ? undefined
+        : resultado.motivo === 'conta_vencida'
+          ? 'Evento recebido mas NÃO gravado: plano vencido, ingestão pausada'
+          : `Evento recebido mas NÃO gravado: "${event}" não é tratado`,
     })
 
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ success: true, ingerido: resultado.ingerido })
   } catch (error: any) {
     console.error('Erro no webhook Hotmart (tokenized):', error)
     return NextResponse.json({ error: 'Erro ao processar webhook' }, { status: 500 })

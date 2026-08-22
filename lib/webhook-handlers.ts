@@ -3,6 +3,7 @@ import { mapPlatformStatusToStage, ensureFunnelWithStages, pickStage } from './w
 import { isDuplicateTransaction } from './webhook-dedup'
 import { isIngestionBlockedForUser } from './account-status'
 import { attributeSale } from './attribution'
+import { dataDeWebhook } from './webhook-time'
 
 // Atualiza o LeadStatus do contato a partir do resultado de uma venda.
 // Usado por TODAS as plataformas (Hotmart/Kiwify/Eduzz/Monetizze/Perfect Pay)
@@ -42,10 +43,27 @@ async function updateLeadStatusFromSale(
 
 // ---------- HOTMART ----------
 
-export async function processHotmartEvent(event: string, data: any, userId: string) {
+/**
+ * Resultado da ingestão, para que a rota registre o que REALMENTE aconteceu.
+ *
+ * Antes esta função devolvia `void`: quando a conta estava vencida ela
+ * descartava o evento e retornava, e a rota gravava `WebhookLog` com status 200
+ * e `{success:true}`. Entrega engolida ficava idêntica a entrega processada, e
+ * a única pista era um `console.warn` no PM2. Quem olhava a interface via o
+ * card zerado sem nenhuma explicação em lugar nenhum.
+ */
+export type ResultadoIngestao =
+  | { ingerido: true; evento: string }
+  | { ingerido: false; motivo: 'conta_vencida' | 'evento_nao_tratado'; evento: string }
+
+export async function processHotmartEvent(
+  event: string,
+  data: any,
+  userId: string,
+): Promise<ResultadoIngestao> {
   if (await isIngestionBlockedForUser(userId)) {
     console.warn(`⛔ [account-status] plano vencido — ingestão Hotmart pausada para ${userId}`)
-    return
+    return { ingerido: false, motivo: 'conta_vencida', evento: event }
   }
   switch (event) {
     case 'PURCHASE_COMPLETE':
@@ -57,68 +75,85 @@ export async function processHotmartEvent(event: string, data: any, userId: stri
       await hotmartPurchaseCanceled(data, userId, event)
       break
     case 'PURCHASE_DELAYED':
+    case 'PURCHASE_BILLET_PRINTED':
       await hotmartPurchaseDelayed(data, userId)
+      break
+    // Abandono de carrinho é evento próprio da Hotmart 2.0.0. Sem tratá-lo, o
+    // número de "abandonados" do card não tinha fonte nenhuma — era sempre 0.
+    case 'PURCHASE_OUT_OF_SHOPPING_CART':
+      await hotmartCartAbandoned(data, userId)
       break
     case 'PURCHASE_CHARGEBACK':
       console.log('⚠️ Chargeback recebido:', data?.purchase?.transaction)
       break
     default:
       console.log(`Evento Hotmart não tratado: ${event}`)
+      return { ingerido: false, motivo: 'evento_nao_tratado', evento: event }
   }
+  return { ingerido: true, evento: event }
 }
 
 async function hotmartPurchaseComplete(data: any, userId: string) {
   const transactionId = data?.purchase?.transaction
   const price = data?.purchase?.price?.value || 0
   const approvedDate = data?.purchase?.approved_date
+  // A Hotmart 2.0.0 manda milissegundos; ver lib/webhook-time.ts.
+  const quandoAprovou = dataDeWebhook(approvedDate)
 
-  let funnel = await prisma.funnel.findFirst({
-    where: { userId },
-    include: { stages: true },
-  })
+  // Usa o mesmo criador que os outros handlers. A versão que existia aqui
+  // criava um funil com apenas 4 estágios; quando ela rodava primeiro numa
+  // conta nova, 'Abandonado' e 'Recusado' nunca existiam, e os handlers que
+  // procuram por eles caíam no `stages[length-1]` — um carrinho abandonado
+  // acabava gravado no estágio 'Pago'.
+  const funnel = await ensureFunnelWithStages(userId)
 
-  if (!funnel) {
-    funnel = await prisma.funnel.create({
-      data: {
-        userId,
-        name: 'Funil Principal',
-        description: 'Funil de vendas criado automaticamente',
-        startDate: new Date(),
-        stages: {
-          create: [
-            { name: 'Lead', order: 1 },
-            { name: 'Qualificado', order: 2 },
-            { name: 'Checkout', order: 3 },
-            { name: 'Pago', order: 4 },
-          ],
-        },
-      },
-      include: { stages: true },
-    })
+  const paidStage = pickStage(funnel.stages, 'Pago')
+
+  const dados = {
+    stageId: paidStage.id,
+    eventType: 'hotmart_purchase_complete',
+    timestamp: quandoAprovou,
+    metadata: JSON.stringify({
+      buyerEmail: data?.buyer?.email,
+      buyerName: data?.buyer?.name,
+      productName: data?.product?.name,
+      productId: data?.product?.id,
+      price,
+      status: data?.purchase?.status,
+      approvedDate,
+    }),
   }
 
-  const paidStage = funnel.stages.find((s: any) => s.name === 'Pago') || funnel.stages[funnel.stages.length - 1]
-  if (await isDuplicateTransaction(funnel.id, transactionId, 'hotmart')) return
+  // A unicidade no banco é (funnelId, source, transactionId) — SEM eventType.
+  // Uma transação tem, portanto, UMA linha, que avança de estágio; é assim que
+  // `hotmartPurchaseCanceled` já a trata.
+  //
+  // Boleto e PIX expõem o problema disso: `PURCHASE_BILLET_PRINTED` grava a
+  // transação como 'hotmart_checkout_started' e, quando o pagamento é aprovado,
+  // o dedup encontrava essa linha e ABORTAVA — a venda nunca era registrada e o
+  // pedido ficava pendente para sempre. Aqui a linha é PROMOVIDA a venda, que é
+  // o que de fato aconteceu com ela.
+  const existente = transactionId
+    ? await prisma.funnelEvent.findFirst({
+        where: { funnelId: funnel.id, source: 'hotmart', transactionId: String(transactionId) },
+        select: { id: true, eventType: true },
+      })
+    : null
 
-  await prisma.funnelEvent.create({
-    data: {
-      funnelId: funnel.id,
-      stageId: paidStage.id,
-      eventType: 'hotmart_purchase_complete',
-      source: 'hotmart',
-      transactionId: String(transactionId),
-      timestamp: approvedDate ? new Date(approvedDate * 1000) : new Date(),
-      metadata: JSON.stringify({
-        buyerEmail: data?.buyer?.email,
-        buyerName: data?.buyer?.name,
-        productName: data?.product?.name,
-        productId: data?.product?.id,
-        price,
-        status: data?.purchase?.status,
-        approvedDate,
-      }),
-    },
-  })
+  if (existente?.eventType === 'hotmart_purchase_complete') return // reentrega real
+
+  if (existente) {
+    await prisma.funnelEvent.update({ where: { id: existente.id }, data: dados })
+  } else {
+    await prisma.funnelEvent.create({
+      data: {
+        funnelId: funnel.id,
+        source: 'hotmart',
+        transactionId: transactionId ? String(transactionId) : null,
+        ...dados,
+      },
+    })
+  }
 
   await updateLeadStatusFromSale(
     userId,
@@ -140,7 +175,7 @@ async function hotmartPurchaseComplete(data: any, userId: string) {
         product: data?.product?.name || null,
         buyerEmail: data?.buyer?.email || null,
         buyerPhone: data?.buyer?.checkout_phone || data?.buyer?.phone || null,
-        saleTime: approvedDate ? new Date(approvedDate * 1000) : new Date(),
+        saleTime: quandoAprovou,
         trackingParams: [
           data?.purchase?.origin?.sck,
           data?.purchase?.sckPaymentLink,
@@ -220,13 +255,14 @@ async function hotmartPurchaseCanceled(data: any, userId: string, event?: string
 
 async function hotmartPurchaseDelayed(data: any, userId: string) {
   const transactionId = data?.purchase?.transaction
-  const funnel = await prisma.funnel.findFirst({
-    where: { userId },
-    include: { stages: true },
-  })
-  if (!funnel) return
-  const checkoutStage = funnel.stages.find((s: any) => s.name === 'Checkout') || funnel.stages[2]
-  if (!checkoutStage) return
+  // `findFirst` sem funil devolvia silenciosamente: boleto emitido antes da
+  // primeira venda aprovada sumia sem deixar rastro.
+  const funnel = await ensureFunnelWithStages(userId)
+  const checkoutStage = pickStage(funnel.stages, 'Checkout')
+
+  // Sem dedup, uma reentrega da Hotmart violava a constraint única e a rota
+  // devolvia 500 — o que faz a Hotmart tentar de novo, em laço.
+  if (await isDuplicateTransaction(funnel.id, transactionId, 'hotmart')) return
 
   await prisma.funnelEvent.create({
     data: {
@@ -235,10 +271,51 @@ async function hotmartPurchaseDelayed(data: any, userId: string) {
       eventType: 'hotmart_checkout_started',
       source: 'hotmart',
       transactionId: String(transactionId),
-      timestamp: new Date(),
+      timestamp: dataDeWebhook(data?.purchase?.order_date),
       metadata: JSON.stringify({
         buyerEmail: data?.buyer?.email,
+        buyerName: data?.buyer?.name,
+        productName: data?.product?.name,
+        price: data?.purchase?.price?.value ?? 0,
         status: 'delayed',
+      }),
+    },
+  })
+}
+
+/**
+ * PURCHASE_OUT_OF_SHOPPING_CART — a pessoa chegou ao checkout e não concluiu.
+ *
+ * Este é o único evento que a Hotmart manda para abandono. Sem ele, o número
+ * "Abandonados" do card era calculado como `checkouts - confirmados`, e como
+ * `checkouts` só contava boletos pendentes, o resultado era sempre 0.
+ *
+ * O carrinho abandonado não tem `transaction` (não houve transação). A chave de
+ * dedup passa a ser o e-mail do comprador, que é o que a Hotmart manda aqui.
+ */
+async function hotmartCartAbandoned(data: any, userId: string) {
+  const funnel = await ensureFunnelWithStages(userId)
+  const abandonedStage = pickStage(funnel.stages, 'Abandonado')
+
+  const email = data?.buyer?.email || null
+  const produto = data?.product?.id ?? data?.product?.ucode ?? 'sem-produto'
+  // Sem transactionId, o par (e-mail, produto) é o que identifica a tentativa.
+  const chave = email ? `cart:${produto}:${email}` : null
+  if (chave && (await isDuplicateTransaction(funnel.id, chave, 'hotmart'))) return
+
+  await prisma.funnelEvent.create({
+    data: {
+      funnelId: funnel.id,
+      stageId: abandonedStage.id,
+      eventType: 'hotmart_cart_abandoned',
+      source: 'hotmart',
+      transactionId: chave,
+      timestamp: dataDeWebhook(data?.creation_date ?? data?.purchase?.order_date),
+      metadata: JSON.stringify({
+        buyerEmail: email,
+        buyerName: data?.buyer?.name,
+        productName: data?.product?.name,
+        status: 'abandoned',
       }),
     },
   })
