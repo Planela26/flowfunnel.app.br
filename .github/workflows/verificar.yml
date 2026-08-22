@@ -1,0 +1,84 @@
+# Verificação automática de cada commit.
+#
+# Por que isto existe: até agora nada rodava antes de um commit virar produção.
+# `tsc` e os testes só rodavam quando alguém lembrava — e ninguém lembrava. O
+# teste de preços dos planos ficou VERMELHO desde o commit 140959f sem que
+# nenhuma pessoa percebesse, porque não havia quem olhasse.
+#
+# O deploy é manual por SSH e o build leva 25 minutos. Descobrir um defeito
+# depois disso custa caro; descobrir aqui custa dois minutos.
+#
+# REGRA DESTE ARQUIVO: só entra aqui verificação DETERMINÍSTICA. Uma CI que
+# falha por motivo aleatório ensina a ignorar a CI, e aí ela é pior do que não
+# existir.
+
+name: Verificar
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+# Um push novo cancela a verificação do anterior no mesmo branch.
+concurrency:
+  group: verificar-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tipos-e-testes:
+    name: Tipos e testes
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Instalar dependências
+        run: npm ci
+
+      # Obrigatório ANTES do tsc: os tipos do @prisma/client são gerados a
+      # partir do schema. Sem isto, a checagem de tipos falha por tipo ausente,
+      # não por erro real no código.
+      - name: Gerar cliente Prisma
+        run: npx prisma generate
+
+      - name: Checagem de tipos
+        run: npx tsc --noEmit
+
+      # Só os testes que rodam SEM banco. Os cinco que precisam de Postgres
+      # (rls, webhook-failclosed, affiliate-wallet, affiliate-partial-refund,
+      # affiliate-webhook-integration) exigem um serviço com as migrations
+      # aplicadas — ficam de fora até isso ser montado, para não introduzir
+      # falha intermitente.
+      # Mesmo comando que roda na máquina de quem desenvolve (`npm run
+      # verificar`), para que a CI nunca discorde do que a pessoa acabou de
+      # ver passar localmente.
+      - name: Testes sem banco
+        run: npm run test:puros
+
+  lint:
+    name: Lint (informativo)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # NÃO bloqueia ainda: hoje são 45 erros e 50 avisos herdados. Bloquear
+    # agora deixaria a CI vermelha para sempre, que é o mesmo que desligá-la.
+    # O objetivo é zerar a dívida e então remover esta linha.
+    continue-on-error: true
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - run: npm ci
+
+      - name: ESLint
+        run: npx eslint .

@@ -38,9 +38,13 @@ eq('limite PRO = 3000', getPlanLimit('PRO'), 3000)
 eq('limite SCALE = -1 (ilimitado)', getPlanLimit('SCALE'), -1)
 eq('limite FREE = 0', getPlanLimit('FREE'), 0)
 ok('SCALE é ilimitado', isUnlimited('SCALE') === true)
-eq('preço START = 97', getPlanPriceBRL('START'), 97)
-eq('preço PRO = 147', getPlanPriceBRL('PRO'), 147)
-eq('preço SCALE = 297', getPlanPriceBRL('SCALE'), 297)
+// Preços atualizados em 140959f ("Planos: preço para 47,90/97,90/147,90"),
+// que mudou 11 arquivos e não passou por aqui. O teste ficou vermelho desde
+// então e ninguém viu, porque nada roda os testes automaticamente — é o
+// próprio motivo pelo qual a CI está sendo montada junto com esta correção.
+eq('preço START = 47,90', getPlanPriceBRL('START'), 47.9)
+eq('preço PRO = 97,90', getPlanPriceBRL('PRO'), 97.9)
+eq('preço SCALE = 147,90', getPlanPriceBRL('SCALE'), 147.9)
 eq('funis START = 1', getMaxFunnels('START'), 1)
 eq('funis PRO = 3', getMaxFunnels('PRO'), 3)
 eq('whatsapp PRO = 3', getMaxWhatsappNumbers('PRO'), 3)
