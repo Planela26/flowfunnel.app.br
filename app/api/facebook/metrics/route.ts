@@ -56,6 +56,7 @@ export async function GET(request: Request) {
       const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000)
       const funnel = await prisma.funnel.findFirst({
         where: { userId: session.user.id },
+        orderBy: { createdAt: 'asc' }, // mesmo funil que ensureFunnelWithStages grava
         select: { id: true },
       })
       const events = funnel

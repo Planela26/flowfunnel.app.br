@@ -86,7 +86,7 @@ export const SaraContextService = {
     // Parallel fetch — all queries fire at once
     const [
       user, snapshot, funnel, recentTickets, insights, kbArticles, vendas, campanhasMeta,
-      leadsHoje, sessoesHoje, eventosHoje, conversoesHoje, origensHoje,
+      leadsHoje, sessoesHoje, eventosHoje, conversoesHoje, origensHoje, funisDoUsuario,
     ] = await Promise.all([
       prisma.user.findUnique({
         where: { id: userId },
@@ -178,6 +178,20 @@ export const SaraContextService = {
         where: { userId, createdAt: { gte: inicioDoDia } },
         _count: { _all: true },
       }).catch(() => [] as Array<{ utmSource: string | null; _count: { _all: number } }>),
+
+      // O "funil" que a pessoa cria na interface é um WORKSPACE — o próprio
+      // schema chama assim (`Workspace.funnelLayout`, "layout do FunnelFlow por
+      // funil"). O modelo `Funnel` consultado acima é estrutura interna, criada
+      // sozinha pelo primeiro webhook que chega. Quem montou funis na tela e
+      // ainda não recebeu webhook nenhum não tem nenhuma linha em `Funnel`, e a
+      // Sara respondia "Nenhum funil configurado" para alguém olhando os funis
+      // dele na tela ao lado.
+      prisma.workspace.findMany({
+        where: { userId },
+        select: { name: true, emoji: true, checkoutSources: true, createdAt: true },
+        orderBy: { createdAt: 'asc' },
+        take: 20,
+      }).catch(() => [] as Array<{ name: string; emoji: string; checkoutSources: string; createdAt: Date }>),
     ])
 
     // ── Assemble context string ─────────────────────────────────────────────
@@ -330,11 +344,28 @@ export const SaraContextService = {
       ? campanhasMeta.map(c => `${c.name} [${c.status}${c.objective ? `, ${c.objective}` : ''}]`).join('; ')
       : 'Nenhuma campanha sincronizada.'
 
-    // Funnel stages with lead counts
-    let funnelStr = 'Nenhum funil configurado.'
-    if (funnel) {
-      const stageNames = funnel.stages.map(s => s.name).join(' → ')
-      funnelStr = `Funil: "${funnel.name}" | Etapas: ${stageNames}`
+    // Os funis do usuário são os WORKSPACES. As etapas vêm do modelo `Funnel`,
+    // que é interno e só existe depois do primeiro webhook — por isso as duas
+    // coisas são reportadas separadas, e a ausência de uma não nega a outra.
+    let funnelStr: string
+    if (funisDoUsuario.length > 0) {
+      const lista = funisDoUsuario.map(f => {
+        let checkouts: string[] = []
+        try { checkouts = JSON.parse(f.checkoutSources || '[]') } catch { checkouts = [] }
+        return `${f.emoji} "${f.name}"${checkouts.length ? ` (checkout: ${checkouts.join(', ')})` : ''}`
+      }).join('; ')
+      funnelStr = `${funisDoUsuario.length} funil(is): ${lista}`
+      if (funnel) {
+        funnelStr += ` | Etapas do rastreamento: ${funnel.stages.map(s => s.name).join(' → ')}`
+      } else {
+        // Distinção que importa: os funis EXISTEM, o que não chegou foi evento.
+        funnelStr += ' | Nenhuma etapa de rastreamento criada ainda — isso acontece' +
+          ' quando nenhum webhook de checkout chegou até agora. Os funis estão criados.'
+      }
+    } else if (funnel) {
+      funnelStr = `Funil interno: "${funnel.name}" | Etapas: ${funnel.stages.map(s => s.name).join(' → ')}`
+    } else {
+      funnelStr = 'Nenhum funil criado.'
     }
 
     // Open tickets

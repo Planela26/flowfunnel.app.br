@@ -53,6 +53,7 @@ export async function GET(request: Request) {
     // Buscar funil do usuário
     const funnel = await prisma.funnel.findFirst({
       where: { userId: session.user.id },
+      orderBy: { createdAt: 'asc' }, // mesmo funil que ensureFunnelWithStages grava
     })
 
     // --- Dados reais do WhatsApp ---

@@ -24,6 +24,7 @@ export async function GET() {
 
     const funnel = await prisma.funnel.findFirst({
       where: { userId: session.user.id },
+      orderBy: { createdAt: 'asc' }, // mesmo funil que ensureFunnelWithStages grava
       include: {
         events: {
           where: {
