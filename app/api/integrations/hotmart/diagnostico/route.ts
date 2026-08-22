@@ -97,6 +97,32 @@ export async function GET() {
       contar('hotmart_cart_abandoned'),
     ])
 
+    // Quanto as vendas gravadas somam. Sem isto o veredito dizia "Funcionando:
+    // 2 vendas" com faturamento zerado — que é justamente o estado em que a
+    // pessoa está olhando o diagnóstico.
+    const vendasGravadas = funnelIds.length
+      ? await prisma.funnelEvent.findMany({
+          where: { funnelId: { in: funnelIds }, eventType: 'hotmart_purchase_complete' },
+          select: { metadata: true },
+        })
+      : []
+    let faturamentoGravado = 0
+    let vendasSemValor = 0
+    for (const v of vendasGravadas) {
+      let m: any = {}
+      try { m = typeof v.metadata === 'string' ? JSON.parse(v.metadata) : v.metadata || {} } catch { m = {} }
+      const n = Number(m?.price)
+      if (Number.isFinite(n) && n > 0) faturamentoGravado += n
+      else vendasSemValor++
+    }
+
+    // Quantas das entregas recebidas são de evento que registra venda. Se a
+    // Hotmart mostra 3 transações e aqui só chegou 1, o que falta é marcar os
+    // eventos na configuração — não é defeito de leitura.
+    const entregasDeVenda = entregas.filter(
+      (e) => ['PURCHASE_APPROVED', 'PURCHASE_COMPLETE'].includes(e.event) && e.statusCode < 400,
+    ).length
+
     const ultimoEvento = funnelIds.length
       ? await prisma.funnelEvent.findFirst({
           where: { funnelId: { in: funnelIds }, source: 'hotmart' },
@@ -133,7 +159,10 @@ export async function GET() {
         ingerido: leIngerido(e.response),
         erro: e.error,
       })),
-      eventosGravados: { vendas, pendentes, abandonos, ultimoEvento },
+      eventosGravados: {
+        vendas, pendentes, abandonos, ultimoEvento,
+        faturamentoGravado, vendasSemValor, entregasDeVenda,
+      },
       precosRecebidos,
       veredito: veredito({
         urlTemDominio,
@@ -142,11 +171,8 @@ export async function GET() {
         entregasComErro: entregas.filter((e) => e.statusCode >= 400).length,
         vendas,
         eventos: vendas + pendentes + abandonos,
-        precoZerado:
-          precosRecebidos != null &&
-          !precosRecebidos.price &&
-          !precosRecebidos.full_price &&
-          !precosRecebidos.original_offer_price,
+        vendasSemValor,
+        precosRecebidos,
       }),
     })
   } catch (error) {
@@ -176,7 +202,8 @@ function veredito(f: {
   entregasComErro: number
   vendas: number
   eventos: number
-  precoZerado?: boolean
+  vendasSemValor?: number
+  precosRecebidos?: { price: number | null; full_price: number | null; original_offer_price: number | null } | null
 }): string {
   if (!f.urlTemDominio) {
     return 'A URL do webhook está saindo sem domínio (NEXT_PUBLIC_APP_URL não está definida no servidor). A Hotmart não consegue chamar um caminho relativo. Corrija a variável no servidor e reconfigure a URL no painel da Hotmart.'
@@ -201,8 +228,20 @@ function veredito(f: {
   if (f.vendas === 0) {
     return `Há ${f.eventos} eventos gravados, mas nenhuma venda confirmada. Só boletos pendentes ou carrinhos abandonados chegaram até agora.`
   }
-  if (f.precoZerado) {
-    return `A venda foi registrada, mas a Hotmart mandou o payload SEM valor: price, full_price e original_offer_price vieram todos vazios (veja "precosRecebidos" abaixo). Por isso o faturamento aparece zerado. Isso é típico de evento de teste/simulador; numa venda real esses campos vêm preenchidos.`
+  // Venda gravada sem valor: o card mostra a venda e R$ 0,00 de faturamento.
+  // Este ramo vem ANTES do "funcionando" porque é exatamente o estado em que
+  // alguém abre o diagnóstico — dizer "funcionando" aqui seria mentir.
+  if (f.vendasSemValor && f.vendasSemValor > 0) {
+    const p = f.precosRecebidos
+    const semNenhum = p != null && !p.price && !p.full_price && !p.original_offer_price
+    const base = `${f.vendasSemValor} de ${f.vendas} venda(s) estão gravadas com valor ZERO — por isso o faturamento e o ticket médio aparecem em R$ 0,00.`
+    if (semNenhum) {
+      return `${base} A Hotmart mandou o payload sem valor nenhum: price, full_price e original_offer_price vieram todos vazios. Isso é típico de evento de teste/simulador; numa venda real esses campos vêm preenchidos.`
+    }
+    if (p != null) {
+      return `${base} Mas a última entrega de venda TINHA valor (price=${p.price}, full_price=${p.full_price}, original_offer_price=${p.original_offer_price}). Ou seja, a linha foi gravada antes da correção de leitura de preço e ficou com o zero. Uma venda nova já grava certo.`
+    }
+    return `${base} Não há nenhuma entrega de PURCHASE_APPROVED/PURCHASE_COMPLETE entre as últimas recebidas para conferir o valor original — as vendas gravadas vieram de entregas mais antigas que essa janela.`
   }
   return `Funcionando: ${f.vendas} venda(s) confirmada(s) gravada(s). Se o card ainda mostra zero, confira o período selecionado no dashboard e recarregue — a resposta fica em cache por 2 minutos.`
 }

@@ -302,6 +302,30 @@ export default function HotmartConnect() {
                       <div>Ingestão: <strong>{diag.ingestao?.pausada ? 'PAUSADA' : 'ativa'}</strong></div>
                       <div>Vendas gravadas: <strong>{diag.eventosGravados?.vendas ?? 0}</strong></div>
                       <div>Hottok: <strong>{diag.integracao?.hottokConfigurado ? `${diag.integracao.hottokTamanho} caracteres` : 'não configurado'}</strong></div>
+                      <div>
+                        Faturamento gravado:{' '}
+                        <strong>
+                          {(diag.eventosGravados?.faturamentoGravado ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                        </strong>
+                      </div>
+                      <div>Entregas de venda: <strong>{diag.eventosGravados?.entregasDeVenda ?? 0}</strong></div>
+                    </div>
+                  )}
+
+                  {/* Os três campos de preço como a Hotmart mandou. É o dado
+                      que separa "ela não mandou valor" de "nós perdemos o
+                      valor" — sem ele o diagnóstico só sabia dizer que estava
+                      zerado, não o porquê. */}
+                  {diag.precosRecebidos && (
+                    <div className="text-[11px] text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-lg p-2.5">
+                      <div className="font-semibold mb-1">
+                        Valores na última entrega de venda ({diag.precosRecebidos.evento})
+                      </div>
+                      <ul className="font-mono space-y-0.5">
+                        <li>price: {String(diag.precosRecebidos.price ?? '—')}</li>
+                        <li>full_price: {String(diag.precosRecebidos.full_price ?? '—')}</li>
+                        <li>original_offer_price: {String(diag.precosRecebidos.original_offer_price ?? '—')}</li>
+                      </ul>
                     </div>
                   )}
                   {diag.entregas?.length > 0 && (
