@@ -205,10 +205,15 @@ export default function HotmartConnect() {
                 desc: 'E-mail com o qual você está cadastrado na Hotmart. Aparece nas configurações da conta.',
               },
               {
+                // Este passo mandava INVENTAR o token ("pode ser qualquer senha
+                // forte"). É a raiz do 403: a Hotmart gera um Hottok por conta e
+                // manda o DELA no cabeçalho. Qualquer valor inventado aqui
+                // nunca ia bater, e toda entrega era recusada.
                 n: 4,
-                title: 'Crie um token de segurança',
-                desc: 'Este é um valor que você cria — pode ser qualquer senha forte. Ex: "minha-hotmart-2026-seg". Você vai inserir o mesmo token no próximo passo E na Hotmart.',
-                highlight: 'Anote o token agora — você vai precisar dele em dois lugares',
+                title: 'Copie o Hottok da sua conta Hotmart',
+                desc: 'O Hottok já existe — a Hotmart gerou um para a sua conta e não é possível escolher o valor. Está em Ferramentas → Webhook (API e Notificações) → aba Autenticação, no botão "Mostrar Hottok".',
+                highlight: 'Não invente um valor: se não for o Hottok da sua conta, a Hotmart recebe 403 e nenhuma venda entra',
+                link: { href: 'https://app-vlc.hotmart.com/tools/webhook/auth', label: 'Abrir Autenticação (Mostrar Hottok)' },
               },
             ].map((item) => (
               <li key={item.n} className="flex gap-4">
@@ -336,14 +341,20 @@ export default function HotmartConnect() {
                   desc: `Cole: ${webhookUrl}`,
                 },
                 {
+                  // Este passo dizia "insira o mesmo token que você criou".
+                  // Não existe token para criar: o Hottok é da CONTA, a Hotmart
+                  // já o gerou, e fica numa aba separada. Quem inventava um
+                  // valor aqui recebia 403 em toda entrega, porque a Hotmart
+                  // manda o dela no cabeçalho X-HOTMART-HOTTOK.
                   n: 4,
-                  title: 'Insira o token de segurança (Hottok)',
-                  desc: 'No campo "Token" ou "Hottok", insira o mesmo token que você criou no passo anterior. Guarde este valor — você vai precisar dele aqui também.',
+                  title: 'Copie o Hottok da sua conta',
+                  desc: 'O Hottok NÃO é criado por você — a Hotmart já gerou um para a sua conta. Vá em Ferramentas → Webhook (API e Notificações) → aba Autenticação e clique em "Mostrar Hottok". Copie esse valor: é ele que você cola no próximo passo, aqui no FlowSara.',
+                  link: { href: 'https://app-vlc.hotmart.com/tools/webhook/auth', label: 'Abrir Autenticação (Mostrar Hottok)' },
                 },
                 {
                   n: 5,
                   title: 'Selecione os eventos',
-                  desc: 'Marque os eventos: Compra aprovada, Compra cancelada, Compra em análise (boleto). Quanto mais eventos, mais dados no dashboard.',
+                  desc: 'Marque no mínimo: Compra aprovada (PURCHASE_APPROVED) e Compra completa (PURCHASE_COMPLETE) — são estes que registram uma venda. Compra cancelada, reembolsada e em análise (boleto) completam o funil.',
                 },
                 {
                   n: 6,
@@ -369,9 +380,12 @@ export default function HotmartConnect() {
               ))}
             </ol>
 
-            <InfoBox type="warning" title="Mesmo token em dois lugares">
-              O token de segurança (Hottok) deve ser o <strong>mesmo valor</strong> que você vai inserir no próximo passo.
-              A Hotmart envia este token em cada requisição para que o sistema possa verificar que a notificação é legítima.
+            <InfoBox type="warning" title="O Hottok é da sua conta — você não escolhe o valor">
+              A Hotmart gera <strong>um Hottok por conta</strong> e o envia no cabeçalho <code>X-HOTMART-HOTTOK</code> de
+              toda requisição. Ele fica em <strong>Ferramentas → Webhook (API e Notificações) → Autenticação</strong>, no
+              botão <strong>Mostrar Hottok</strong> — não no formulário da configuração do webhook.
+              Se o valor gravado aqui for diferente do da sua conta, <strong>todas as entregas voltam 403</strong> e nenhuma
+              venda entra no dashboard. Cole exatamente como aparece lá, sem espaços.
             </InfoBox>
           </div>
 
@@ -429,7 +443,7 @@ export default function HotmartConnect() {
 
             <FormField
               label="Token de Segurança (Hottok)"
-              tooltip="O mesmo token que você inseriu no campo Hottok do webhook na Hotmart. Usado para verificar que as notificações são legítimas. Mínimo 8 caracteres."
+              tooltip="O Hottok da sua CONTA Hotmart, em Ferramentas → Webhook (API e Notificações) → Autenticação → Mostrar Hottok. Não é um valor que você escolhe: a Hotmart envia o dela em cada requisição, e se não bater, toda entrega volta 403."
               hint="Deve ser idêntico ao que você inseriu no painel Hotmart → Webhooks → Token de segurança."
               required
             >

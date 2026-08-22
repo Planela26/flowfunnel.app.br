@@ -754,7 +754,10 @@ export default function ConfigPage() {
                       data-lpignore="true"
                       className={inputCls}
                     />
-                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">O mesmo token inserido no campo Hottok do webhook na Hotmart (mín. 8 caracteres)</p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                      O Hottok da sua conta Hotmart — em Ferramentas → Webhook (API e Notificações) → Autenticação →
+                      &quot;Mostrar Hottok&quot;. Não é um valor que você inventa: se não for igual, toda entrega volta 403.
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-center justify-between mt-3">
