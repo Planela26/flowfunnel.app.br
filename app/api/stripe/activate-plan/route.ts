@@ -70,7 +70,12 @@ export async function POST(request: Request) {
         try {
           const retrieved = await stripe.paymentMethods.retrieve(pm)
           hasRealCard = retrieved?.type === 'card'
-        } catch {}
+        } catch (e) {
+          // `hasRealCard` fica false porque não deu para PERGUNTAR à Stripe,
+          // que é diferente de o cliente não ter cartão — e as duas situações
+          // levam a decisões distintas sobre ativar o plano.
+          console.error('🚨 [stripe] não consegui consultar o meio de pagamento na Stripe:', e)
+        }
       }
       if (!hasRealCard) {
         try {
@@ -80,7 +85,9 @@ export async function POST(request: Request) {
             limit: 1,
           })
           hasRealCard = cardPms.data.length > 0
-        } catch {}
+        } catch (e) {
+          console.error('🚨 [stripe] não consegui listar os cartões do cliente na Stripe:', e)
+        }
       }
 
       if (!hasRealCard) {
