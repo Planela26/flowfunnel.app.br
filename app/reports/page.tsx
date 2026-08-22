@@ -24,7 +24,10 @@ interface ReportData {
   }
   byPlatform: Record<string, { total: number; success: number; errors: number; events: string[] }>
   dailySeries: { date: string; count: number }[]
-  profitSeries?: { date: string; revenue: number; costs: number; profit: number; roi: number | null }[]
+  // `profit` e `roi` são NULOS quando não houve custo medido no período.
+  // Sem gasto da Meta, lucro é desconhecido — não é zero, e não é a receita.
+  profitSeries?: { date: string; revenue: number; costs: number; profit: number | null; roi: number | null }[]
+  custosRastreados?: boolean
   topEvents: Record<string, number>
 }
 
@@ -468,7 +471,7 @@ export default function ReportsPage() {
                           <div className="text-sm font-semibold text-gray-800 dark:text-white">
                             {new Date(day.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
                           </div>
-                          <div className={`text-xs font-bold ${day.profit >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                          <div className={`text-xs font-bold ${day.profit == null ? 'text-gray-400' : day.profit >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                             {day.roi != null ? `${day.roi.toFixed(1)}% ROI` : 'sem ROI'}
                           </div>
                         </div>
@@ -483,8 +486,12 @@ export default function ReportsPage() {
                           </div>
                           <div className="rounded-xl bg-white dark:bg-gray-900 p-3 border border-gray-200 dark:border-gray-800 col-span-2">
                             <div className="text-gray-500">Lucro</div>
-                            <div className={`font-black ${day.profit >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                              R$ {day.profit.toFixed(2)}
+                            {/* `null` significa que não houve gasto medido no dia —
+                                não que o lucro foi zero. Antes a API mandava
+                                `receita - 0` e este número era a receita com
+                                outro nome. */}
+                            <div className={`font-black ${day.profit == null ? 'text-gray-400 text-xs font-semibold' : day.profit >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                              {day.profit == null ? 'custo não rastreado' : `R$ ${day.profit.toFixed(2)}`}
                             </div>
                           </div>
                         </div>

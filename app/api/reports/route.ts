@@ -98,7 +98,10 @@ export async function GET(request: Request) {
       .map(([date, count]) => ({ date, count }))
       .sort((a, b) => a.date.localeCompare(b.date))
 
-    const profitSeriesMap: Record<string, { revenue: number; costs: number; profit: number; roi: number | null }> = {}
+    const profitSeriesMap: Record<string, { revenue: number; costs: number; profit: number | null; roi: number | null }> = {}
+    // Houve ALGUM custo medido no período? A resposta leva isso adiante para a
+    // tela poder dizer "custo não rastreado" em vez de desenhar lucro = receita.
+    let custosRastreados = false
     // Evento cujo metadata não abre é PULADO da soma. Sem contar quantos, o
     // relatório sai com receita ou custo menor do que o real e nada indica
     // isso — o mesmo "número errado com cara de certo" de sempre. Conta-se e
@@ -121,8 +124,9 @@ export async function GET(request: Request) {
           entry.costs += Number(meta.cost || meta.spend || 0)
         } catch { eventosIlegiveis++ }
       }
-      entry.profit = entry.revenue - entry.costs
-      entry.roi = entry.costs > 0 ? (entry.profit / entry.costs) * 100 : null
+      // Lucro e ROI NÃO são calculados aqui: o bloco da Meta, mais abaixo,
+      // ainda vai sobrescrever `costs` com o gasto real, e há um recálculo
+      // depois dele. Calcular agora seria trabalho jogado fora.
     }
     if (eventosIlegiveis > 0) {
       console.error(
@@ -197,13 +201,30 @@ export async function GET(request: Request) {
             }
           }
         }
-      } catch { /* relatório sem gasto é melhor que relatório nenhum */ }
+      } catch (e) {
+        // Relatório sem gasto continua sendo melhor que relatório nenhum — mas
+        // é ESTA falha que faz o custo ficar zerado e, antes, o lucro sair
+        // igual à receita. Sem registro, "token vencido" e "não gastei nada"
+        // eram a mesma tela.
+        console.error('[reports] não consegui ler o gasto diário na Meta; o período fica SEM custo:', e)
+      }
     }
 
     // Lucro e ROI recalculados depois de receita e custo terem as fontes certas.
+    //
+    // `profit` passa a ser NULO quando não houve custo medido. Antes saía
+    // `revenue - 0`, ou seja, a RECEITA desenhada num gráfico rotulado "Lucro"
+    // — a mesma invenção do `receita × 0.7` que saiu da exportação, só que mais
+    // discreta porque a conta parecia legítima.
+    //
+    // Custo só existe quando a Meta está conectada e o insight diário voltou.
+    // Sem isso — conta sem Meta, token vencido, ou a chamada que falha logo
+    // acima — não há como saber o lucro, e null é a resposta honesta.
     for (const entry of Object.values(profitSeriesMap)) {
-      entry.profit = +(entry.revenue - entry.costs).toFixed(2)
-      entry.roi = entry.costs > 0 ? +((entry.profit / entry.costs) * 100).toFixed(1) : null
+      const temCusto = entry.costs > 0
+      if (temCusto) custosRastreados = true
+      entry.profit = temCusto ? +(entry.revenue - entry.costs).toFixed(2) : null
+      entry.roi = temCusto ? +(((entry.revenue - entry.costs) / entry.costs) * 100).toFixed(1) : null
     }
 
     const profitSeries = Object.entries(profitSeriesMap)
@@ -229,6 +250,10 @@ export async function GET(request: Request) {
       byPlatform,
       dailySeries,
       profitSeries,
+      // Quando false, `profit` e `roi` vêm nulos em toda a série: não há gasto
+      // medido no período. A tela precisa dizer "custo não rastreado" em vez de
+      // desenhar uma linha de lucro que na prática é a receita.
+      custosRastreados,
       topEvents: webhookLogs
         .reduce((acc: Record<string, number>, l) => {
           acc[l.event] = (acc[l.event] || 0) + 1
