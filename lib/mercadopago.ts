@@ -56,6 +56,7 @@ export async function createPreference(preference: MercadoPagoPreference) {
   }
 
   const response = await fetch(`${API_BASE}/checkout/preferences`, {
+    signal: AbortSignal.timeout(20_000),
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${ACCESS_TOKEN}`,
@@ -126,7 +127,12 @@ export async function createPayment(
     throw new Error('MERCADOPAGO_ACCESS_TOKEN not configured')
   }
 
+  // 30s, mais folgado que as outras chamadas de propósito: abortar uma criação
+  // de pagamento que o Mercado Pago JÁ processou não desfaz a cobrança — só nos
+  // deixa sem saber o resultado dela. O prazo existe para não segurar a conexão
+  // indefinidamente, não para cortar cedo.
   const response = await fetch(`${API_BASE}/v1/payments`, {
+    signal: AbortSignal.timeout(30_000),
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${ACCESS_TOKEN}`,
@@ -150,6 +156,7 @@ export async function getPayment(paymentId: number): Promise<MercadoPagoPayment>
   }
 
   const response = await fetch(`${API_BASE}/v1/payments/${paymentId}`, {
+    signal: AbortSignal.timeout(15_000),
     headers: {
       'Authorization': `Bearer ${ACCESS_TOKEN}`,
     },

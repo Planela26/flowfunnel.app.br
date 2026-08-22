@@ -26,7 +26,7 @@ export async function POST(request: Request) {
     try {
       const response = await fetch(
         `${GRAPH_API_BASE}/${phoneNumberId}`,
-        { headers: { Authorization: `Bearer ${accessToken}` } }
+        { signal: AbortSignal.timeout(10_000), headers: { Authorization: `Bearer ${accessToken}` } }
       )
       const data = await response.json()
 
@@ -59,7 +59,7 @@ export async function POST(request: Request) {
     try {
       const response = await fetch(
         `${GRAPH_API_BASE}/${phoneNumberId}/message_templates?limit=1`,
-        { headers: { Authorization: `Bearer ${accessToken}` } }
+        { signal: AbortSignal.timeout(10_000), headers: { Authorization: `Bearer ${accessToken}` } }
       )
       const data = await response.json()
 

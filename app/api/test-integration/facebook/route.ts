@@ -26,7 +26,7 @@ export async function POST(request: Request) {
     try {
       const response = await fetch(
         `${GRAPH_API_BASE}/me`,
-        { headers: { Authorization: `Bearer ${accessToken}` } }
+        { signal: AbortSignal.timeout(10_000), headers: { Authorization: `Bearer ${accessToken}` } }
       )
       const data = await response.json()
 
@@ -60,7 +60,7 @@ export async function POST(request: Request) {
       const accountId = adAccountId.startsWith('act_') ? adAccountId : `act_${adAccountId}`
       const response = await fetch(
         `${GRAPH_API_BASE}/${accountId}?fields=name,account_id,account_status`,
-        { headers: { Authorization: `Bearer ${accessToken}` } }
+        { signal: AbortSignal.timeout(10_000), headers: { Authorization: `Bearer ${accessToken}` } }
       )
       const data = await response.json()
 
@@ -95,7 +95,7 @@ export async function POST(request: Request) {
       const accountId = adAccountId.startsWith('act_') ? adAccountId : `act_${adAccountId}`
       const response = await fetch(
         `${GRAPH_API_BASE}/${accountId}/campaigns?fields=id,name,status&limit=1`,
-        { headers: { Authorization: `Bearer ${accessToken}` } }
+        { signal: AbortSignal.timeout(10_000), headers: { Authorization: `Bearer ${accessToken}` } }
       )
       const data = await response.json()
 
@@ -129,7 +129,7 @@ export async function POST(request: Request) {
       const accountId = adAccountId.startsWith('act_') ? adAccountId : `act_${adAccountId}`
       const response = await fetch(
         `${GRAPH_API_BASE}/${accountId}/insights?fields=impressions,clicks,spend&date_preset=last_7d`,
-        { headers: { Authorization: `Bearer ${accessToken}` } }
+        { signal: AbortSignal.timeout(10_000), headers: { Authorization: `Bearer ${accessToken}` } }
       )
       const data = await response.json()
 

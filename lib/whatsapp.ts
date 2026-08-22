@@ -42,6 +42,7 @@ export async function sendWhatsAppMessage({
     }
 
     const response = await fetch(url, {
+      signal: AbortSignal.timeout(15_000),
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${accessToken}`,
@@ -96,6 +97,7 @@ export async function sendWhatsAppTemplate({
     }
 
     const response = await fetch(url, {
+      signal: AbortSignal.timeout(15_000),
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${accessToken}`,
@@ -140,6 +142,7 @@ export async function markMessageAsRead(
     }
 
     const response = await fetch(url, {
+      signal: AbortSignal.timeout(15_000),
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${accessToken}`,
@@ -172,6 +175,7 @@ export async function getBusinessProfile(
     const url = `${GRAPH_API_BASE}/${phoneNumberId}/whatsapp_business_profile?fields=about,address,description,email,profile_picture_url,websites,vertical`
 
     const response = await fetch(url, {
+      signal: AbortSignal.timeout(15_000),
       headers: {
         'Authorization': `Bearer ${accessToken}`,
       },
@@ -226,6 +230,7 @@ export async function sendInteractiveButtons(
     }
 
     const response = await fetch(url, {
+      signal: AbortSignal.timeout(15_000),
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${accessToken}`,

@@ -20,7 +20,10 @@ function notify(key: string) {
 async function revalidate<T>(url: string, init?: RequestInit): Promise<T | null> {
   const existing = inflight.get(url)
   if (existing) return existing as Promise<T | null>
-  const p = fetch(url, init)
+  // Prazo só quando quem chamou não trouxe o seu: sem isso, uma resposta que
+  // nunca chega deixa a entrada presa em `inflight` para sempre, e toda chamada
+  // seguinte à mesma URL passa a devolver essa promessa morta.
+  const p = fetch(url, { ...init, signal: init?.signal ?? AbortSignal.timeout(20_000) })
     .then(async (r) => {
       if (!r.ok) throw new Error(`HTTP ${r.status}`)
       return (await r.json()) as T

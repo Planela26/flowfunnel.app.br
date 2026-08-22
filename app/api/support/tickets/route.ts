@@ -102,10 +102,14 @@ export async function POST(request: Request) {
     })
 
     // Trigger Sara.AI analysis in background (fire-and-forget)
+    // 60s porque do outro lado há geração de texto por IA, que é lenta. E o
+    // catch ganha voz: engolido, o ticket ficava sem a análise da Sara sem que
+    // nada indicasse a falha — nem para quem abriu, nem para quem atende.
     fetch(`${process.env.NEXTAUTH_URL ?? ''}/api/support/tickets/${ticket.id}/ai`, {
+      signal: AbortSignal.timeout(60_000),
       method: 'POST',
       headers: { 'x-internal': process.env.CRON_SECRET ?? '' },
-    }).catch(() => {})
+    }).catch((e) => console.error(`[support] análise da Sara não disparou para o ticket ${ticket.id}:`, e))
 
     return NextResponse.json({ ticket }, { status: 201 })
   } catch (err) {

@@ -85,7 +85,10 @@ export async function GET(request: Request) {
           // `graphFetch` de lib/facebook.ts — então precisa descriptografar
           // aqui. `Integration.accessToken` vale `enc:...` no banco; mandar a
           // coluna crua rende 401 da Meta.
-          { headers: { Authorization: `Bearer ${decryptSecret(integration.accessToken) || integration.accessToken}` } }
+          {
+            signal: AbortSignal.timeout(15_000),
+            headers: { Authorization: `Bearer ${decryptSecret(integration.accessToken) || integration.accessToken}` },
+          }
         )
 
         if (!response.ok) {

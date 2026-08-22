@@ -51,6 +51,7 @@ export async function POST(request: Request) {
 
     const startTime = Date.now()
     const response = await fetch(retryUrl, {
+      signal: AbortSignal.timeout(15_000),
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-webhook-retry': '1' },
       body: JSON.stringify(payload),
