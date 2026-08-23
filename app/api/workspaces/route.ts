@@ -4,6 +4,33 @@ import { authOptions } from '@/lib/auth'
 import { prisma, withTenantTx } from '@/lib/prisma'
 import { getMaxFunnels, normalizePlan } from '@/lib/plans'
 
+/**
+ * Quais cards um funil mostra, deduzidos do que a pessoa configurou nele.
+ *
+ * O `id` de cada card em AVAILABLE_INTEGRATIONS é o mesmo nome usado nas
+ * fontes ('facebook', 'hotmart', …), então a dedução é direta.
+ *
+ * Antes, funil novo nascia com `'[]'` — sem card nenhum. A intenção era não
+ * herdar os cards do funil anterior, mas o resultado foi pior: quem escolhia a
+ * campanha do Meta e o produto da Hotmart na criação abria o funil e via uma
+ * tela VAZIA, sem relação com o que tinha acabado de configurar.
+ *
+ * `landing` entra sempre porque é o topo do funil: sem ele o fluxo começa no
+ * meio e parece quebrado.
+ */
+function cardsDoFunil(opts: {
+  trafficSources?: string[]
+  checkoutSources?: string[]
+  whatsappIntegrationId?: string | null
+}): string[] {
+  const ids = new Set<string>()
+  for (const t of opts.trafficSources ?? []) ids.add(t)
+  ids.add('landing')
+  if (opts.whatsappIntegrationId) ids.add('whatsapp')
+  for (const c of opts.checkoutSources ?? []) ids.add(c)
+  return [...ids]
+}
+
 // Buscar todos os workspaces do usuário (com dados das integrações)
 export async function GET() {
   try {
@@ -70,7 +97,7 @@ export async function POST(request: Request) {
     const session = await getServerSession(authOptions)
     if (!session?.user) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
-    const { name, emoji, whatsappIntegrationId, facebookCampaignId, checkoutSources } = await request.json()
+    const { name, emoji, whatsappIntegrationId, facebookCampaignId, checkoutSources, trafficSources } = await request.json()
     if (!name) return NextResponse.json({ error: 'Nome é obrigatório' }, { status: 400 })
 
     // Limite verificado e workspace criado na MESMA transação, com a linha do
@@ -95,15 +122,13 @@ export async function POST(request: Request) {
           whatsappIntegrationId: whatsappIntegrationId || null,
           facebookCampaignId: facebookCampaignId || null,
           checkoutSources: checkoutSources ? JSON.stringify(checkoutSources) : '["hotmart"]',
-          // Funil NOVO nasce sem card nenhum. Antes, `funnelVisibleIds` ficava
-          // null, o que significa "cai no arranjo do usuário" — e o arranjo do
-          // usuário tem todos os cards. Resultado: criar um funil trazia junto o
-          // card do Hotmart já preenchido com as vendas do funil anterior.
-          //
-          // `'[]'` é EXPLÍCITO, e é o que diferencia "escolhi não ter cards" de
-          // "ainda não escolhi". Só vale para quem nasce daqui em diante: os
-          // funis já criados continuam com null e seguem exatamente como estão.
-          funnelVisibleIds: '[]',
+          // Os cards saem do que a pessoa acabou de configurar, não de `null`
+          // (que herdaria o arranjo do usuário, com TODOS os cards e os números
+          // do funil anterior) nem de `'[]'` (que abria o funil vazio, sem
+          // relação com a campanha e o produto escolhidos na criação).
+          funnelVisibleIds: JSON.stringify(
+            cardsDoFunil({ trafficSources, checkoutSources, whatsappIntegrationId }),
+          ),
           isDefault: count === 0,
         },
       })
@@ -138,12 +163,19 @@ export async function PATCH(request: Request) {
     const session = await getServerSession(authOptions)
     if (!session?.user) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
-    const { id, name, emoji, whatsappIntegrationId, facebookCampaignId, checkoutSources, checkoutProductIds, setDefault } = await request.json()
+    const { id, name, emoji, whatsappIntegrationId, facebookCampaignId, checkoutSources, checkoutProductIds, trafficSources, setDefault } = await request.json()
     if (!id) return NextResponse.json({ error: 'ID é obrigatório' }, { status: 400 })
 
     // Verificar que o workspace pertence ao usuário
     const existing = await prisma.workspace.findFirst({ where: { id, userId: session.user.id } })
     if (!existing) return NextResponse.json({ error: 'Workspace não encontrado' }, { status: 404 })
+
+    // O que já estava salvo, para a dedução de cards não perder o que esta
+    // edição não mencionou. `trafficSources` não é coluna — vive no arranjo de
+    // cards — então 'facebook' é o padrão de quem não informou.
+    let existingCheckout: string[] = []
+    try { existingCheckout = JSON.parse(existing.checkoutSources || '[]') } catch {}
+    const existingTraffic: string[] = ['facebook']
 
     if (setDefault) {
       await prisma.workspace.updateMany({
@@ -152,9 +184,26 @@ export async function PATCH(request: Request) {
       })
     }
 
+    // Funil que está VAZIO se popula ao ser salvo, a partir do que foi
+    // configurado nele. Sem isto, quem criou um funil enquanto a versão
+    // anterior estava no ar ficaria com uma tela vazia para sempre, sem
+    // caminho óbvio de saída. Funil que já tem cards não é tocado: o arranjo
+    // é escolha da pessoa e não pode ser sobrescrito por uma edição de nome.
+    let visibleIdsDerivados: string | undefined
+    if (existing.funnelVisibleIds === '[]') {
+      visibleIdsDerivados = JSON.stringify(
+        cardsDoFunil({
+          trafficSources: trafficSources ?? existingTraffic,
+          checkoutSources: checkoutSources ?? existingCheckout,
+          whatsappIntegrationId: whatsappIntegrationId ?? existing.whatsappIntegrationId,
+        }),
+      )
+    }
+
     const workspace = await prisma.workspace.update({
       where: { id },
       data: {
+        ...(visibleIdsDerivados !== undefined && { funnelVisibleIds: visibleIdsDerivados }),
         ...(name !== undefined && { name: name.trim() }),
         ...(emoji !== undefined && { emoji }),
         ...(whatsappIntegrationId !== undefined && { whatsappIntegrationId }),
