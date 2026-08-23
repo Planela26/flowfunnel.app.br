@@ -47,6 +47,22 @@ export default function WorkspaceTabs({ onWorkspaceChange }: WorkspaceTabsProps)
   // Produtos que já apareceram em vendas, por plataforma. É o que permite
   // separar os números de um funil dos do outro.
   const [produtosPorPlataforma, setProdutosPorPlataforma] = useState<Record<string, Array<{ id: string; nome: string; vendas: number }>>>({})
+  // Um campo de digitação por plataforma, para colar o ID de um produto que
+  // ainda não vendeu e por isso não está na lista descoberta.
+  const [novoProdutoId, setNovoProdutoId] = useState<Record<string, string>>({})
+
+  const adicionarProdutoManual = (plataforma: string) => {
+    const bruto = (novoProdutoId[plataforma] ?? '').trim()
+    if (!bruto) return
+    setForm((f) => {
+      const atuais = f.checkoutProductIds[plataforma] || []
+      // Já vinculado é no-op, não duplicata: clicar duas vezes não pode criar
+      // duas entradas iguais e fazer a venda contar em dobro.
+      if (atuais.includes(bruto)) return f
+      return { ...f, checkoutProductIds: { ...f.checkoutProductIds, [plataforma]: [...atuais, bruto] } }
+    })
+    setNovoProdutoId((s) => ({ ...s, [plataforma]: '' }))
+  }
 
   const fetchWorkspaces = useCallback(async () => {
     try {
@@ -455,7 +471,10 @@ export default function WorkspaceTabs({ onWorkspaceChange }: WorkspaceTabsProps)
                   criar um funil novo trazia junto o faturamento do anterior. A
                   lista sai das vendas que já chegaram, então marcar um produto
                   reorganiza o histórico na hora, sem reprocessar nada. */}
-              {form.checkoutSources.some((p) => (produtosPorPlataforma[p]?.length ?? 0) > 0) && (
+              {/* Renderiza para toda plataforma selecionada, mesmo sem produto
+                  descoberto: a entrada manual de ID precisa existir justamente
+                  no caso em que o produto ainda não vendeu. */}
+              {form.checkoutSources.length > 0 && (
                 <div>
                   <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-1.5">
                     <span className="w-2 h-2 bg-orange-500 rounded-full" />
@@ -466,8 +485,12 @@ export default function WorkspaceTabs({ onWorkspaceChange }: WorkspaceTabsProps)
                   <div className="space-y-3">
                     {form.checkoutSources.map((plataforma) => {
                       const lista = produtosPorPlataforma[plataforma] || []
-                      if (lista.length === 0) return null
                       const marcados = form.checkoutProductIds[plataforma] || []
+                      // IDs digitados à mão: estão vinculados mas ainda não
+                      // apareceram em venda nenhuma, então não vêm na lista.
+                      // Sem renderizá-los à parte, sumiriam da tela e a pessoa
+                      // não teria como desmarcar o que acabou de adicionar.
+                      const soltos = marcados.filter((id) => !lista.some((p) => p.id === id))
                       return (
                         <div key={plataforma}>
                           <div className="text-[11px] uppercase tracking-wider text-gray-400 mb-1.5">{plataforma}</div>
@@ -508,6 +531,57 @@ export default function WorkspaceTabs({ onWorkspaceChange }: WorkspaceTabsProps)
                                 </button>
                               )
                             })}
+
+                            {soltos.map((id) => (
+                              <div
+                                key={id}
+                                className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg border border-orange-500 bg-orange-50 dark:bg-orange-900/25"
+                              >
+                                <span className="min-w-0">
+                                  <span className="block text-sm font-medium text-gray-800 dark:text-gray-100 truncate">ID {id}</span>
+                                  <span className="block text-[11px] text-gray-400">adicionado à mão · sem venda ainda</span>
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setForm((f) => {
+                                      const novos = (f.checkoutProductIds[plataforma] || []).filter((x) => x !== id)
+                                      const mapa = { ...f.checkoutProductIds }
+                                      if (novos.length === 0) delete mapa[plataforma]
+                                      else mapa[plataforma] = novos
+                                      return { ...f, checkoutProductIds: mapa }
+                                    })
+                                  }}
+                                  className="text-gray-400 hover:text-red-500 transition shrink-0"
+                                  aria-label={`Remover produto ${id}`}
+                                >
+                                  <X className="w-4 h-4" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* Entrada manual. Existe porque a lista acima só
+                              conhece produtos que JÁ venderam — um funil criado
+                              antes da primeira venda não teria o que marcar. */}
+                          <div className="flex gap-2 mt-2">
+                            <input
+                              type="text"
+                              inputMode="numeric"
+                              value={novoProdutoId[plataforma] ?? ''}
+                              onChange={(e) => setNovoProdutoId((s) => ({ ...s, [plataforma]: e.target.value }))}
+                              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); adicionarProdutoManual(plataforma) } }}
+                              placeholder="Colar o ID do produto"
+                              className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-orange-500 text-sm"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => adicionarProdutoManual(plataforma)}
+                              disabled={!(novoProdutoId[plataforma] ?? '').trim()}
+                              className="px-3 py-2 rounded-lg bg-orange-600 hover:bg-orange-700 text-white text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition"
+                            >
+                              Adicionar
+                            </button>
                           </div>
                         </div>
                       )
@@ -516,7 +590,7 @@ export default function WorkspaceTabs({ onWorkspaceChange }: WorkspaceTabsProps)
 
                   <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
                     {Object.keys(form.checkoutProductIds).length === 0
-                      ? 'Nenhum produto marcado: este funil mostra as vendas da conta inteira. Marque os produtos dele para separar os números.'
+                      ? 'Nenhum produto marcado: este funil mostra as vendas da conta inteira. Marque os da lista, ou cole o ID de um produto que ainda não vendeu.'
                       : 'Só as vendas destes produtos contam nos cards deste funil — inclusive as antigas.'}
                   </p>
                 </div>
