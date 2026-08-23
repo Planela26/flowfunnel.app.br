@@ -17,6 +17,8 @@ export interface Workspace {
   facebookCampaignStatus: string | null
   trafficSources?: string[]
   checkoutSources?: string[]
+  /** { hotmart: ['8365536'] } — vazio significa SEM filtro: mostra a conta toda. */
+  checkoutProductIds?: Record<string, string[]>
 }
 
 interface WorkspaceTabsProps {
@@ -35,13 +37,16 @@ export default function WorkspaceTabs({ onWorkspaceChange }: WorkspaceTabsProps)
   const [showEditId, setShowEditId] = useState<string | null>(null)
 
   // Dados para o modal de criação/edição
-  const [form, setForm] = useState({ name: '', emoji: '🚀', whatsappIntegrationId: '', facebookCampaignId: '', trafficSources: ['facebook'] as string[], checkoutSources: ['hotmart'] as string[] })
+  const [form, setForm] = useState({ name: '', emoji: '🚀', whatsappIntegrationId: '', facebookCampaignId: '', trafficSources: ['facebook'] as string[], checkoutSources: ['hotmart'] as string[], checkoutProductIds: {} as Record<string, string[]> })
   const [formLoading, setFormLoading] = useState(false)
   const [formError, setFormError] = useState('')
   const [planLimitInfo, setPlanLimitInfo] = useState<{ message: string; upgradeUrl: string; currentPlan?: string; limit?: number } | null>(null)
   const [availableNumbers, setAvailableNumbers] = useState<any[]>([])
   const [availableCampaigns, setAvailableCampaigns] = useState<any[]>([])
   const [loadingOptions, setLoadingOptions] = useState(false)
+  // Produtos que já apareceram em vendas, por plataforma. É o que permite
+  // separar os números de um funil dos do outro.
+  const [produtosPorPlataforma, setProdutosPorPlataforma] = useState<Record<string, Array<{ id: string; nome: string; vendas: number }>>>({})
 
   const fetchWorkspaces = useCallback(async () => {
     try {
@@ -62,6 +67,19 @@ export default function WorkspaceTabs({ onWorkspaceChange }: WorkspaceTabsProps)
     } catch {}
     finally { setLoading(false) }
   }, [selected, onWorkspaceChange])
+
+  // Lista os produtos que já apareceram em vendas. Sai do histórico e não da
+  // API da plataforma: funciona sem token válido e mostra só o que o filtro
+  // tem como separar de fato.
+  const fetchProdutos = async () => {
+    try {
+      const r = await fetch('/api/checkout/produtos')
+      const d = await r.json()
+      setProdutosPorPlataforma(d?.produtos || {})
+    } catch (e) {
+      console.error('[funil] não consegui listar os produtos:', e)
+    }
+  }
 
   const fetchOptions = async () => {
     setLoadingOptions(true)
@@ -97,10 +115,11 @@ export default function WorkspaceTabs({ onWorkspaceChange }: WorkspaceTabsProps)
   }
 
   const openNewModal = () => {
-    setForm({ name: '', emoji: '🚀', whatsappIntegrationId: '', facebookCampaignId: '', trafficSources: ['facebook'], checkoutSources: ['hotmart'] })
+    setForm({ name: '', emoji: '🚀', whatsappIntegrationId: '', facebookCampaignId: '', trafficSources: ['facebook'], checkoutSources: ['hotmart'], checkoutProductIds: {} })
     setFormError('')
     setShowNewModal(true)
     fetchOptions()
+    fetchProdutos()
   }
 
   const openEditModal = (ws: Workspace) => {
@@ -111,10 +130,12 @@ export default function WorkspaceTabs({ onWorkspaceChange }: WorkspaceTabsProps)
       facebookCampaignId: ws.facebookCampaignId || '',
       trafficSources: ws.trafficSources || ['facebook'],
       checkoutSources: ws.checkoutSources || ['hotmart'],
+      checkoutProductIds: ws.checkoutProductIds || {},
     })
     setFormError('')
     setShowEditId(ws.id)
     fetchOptions()
+    fetchProdutos()
   }
 
   const createWorkspace = async () => {
@@ -428,6 +449,78 @@ export default function WorkspaceTabs({ onWorkspaceChange }: WorkspaceTabsProps)
                   Cada plataforma selecionada aparece como card no funil. Remover do visual NÃO para de receber webhooks.
                 </p>
               </div>
+
+              {/* Produtos deste funil.
+                  Sem esta escolha, todo funil mostra as vendas da conta INTEIRA —
+                  criar um funil novo trazia junto o faturamento do anterior. A
+                  lista sai das vendas que já chegaram, então marcar um produto
+                  reorganiza o histórico na hora, sem reprocessar nada. */}
+              {form.checkoutSources.some((p) => (produtosPorPlataforma[p]?.length ?? 0) > 0) && (
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-1.5">
+                    <span className="w-2 h-2 bg-orange-500 rounded-full" />
+                    Produtos deste funil
+                    <span className="font-normal text-gray-400">(opcional)</span>
+                  </label>
+
+                  <div className="space-y-3">
+                    {form.checkoutSources.map((plataforma) => {
+                      const lista = produtosPorPlataforma[plataforma] || []
+                      if (lista.length === 0) return null
+                      const marcados = form.checkoutProductIds[plataforma] || []
+                      return (
+                        <div key={plataforma}>
+                          <div className="text-[11px] uppercase tracking-wider text-gray-400 mb-1.5">{plataforma}</div>
+                          <div className="space-y-1">
+                            {lista.map((prod) => {
+                              const ativo = marcados.includes(prod.id)
+                              return (
+                                <button
+                                  key={prod.id}
+                                  type="button"
+                                  onClick={() => {
+                                    setForm((f) => {
+                                      const atuais = f.checkoutProductIds[plataforma] || []
+                                      const novos = atuais.includes(prod.id)
+                                        ? atuais.filter((x) => x !== prod.id)
+                                        : [...atuais, prod.id]
+                                      const mapa = { ...f.checkoutProductIds }
+                                      // Lista vazia SAI do objeto: objeto vazio é o
+                                      // que a API entende como "sem filtro".
+                                      if (novos.length === 0) delete mapa[plataforma]
+                                      else mapa[plataforma] = novos
+                                      return { ...f, checkoutProductIds: mapa }
+                                    })
+                                  }}
+                                  className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg border text-left transition ${
+                                    ativo
+                                      ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/25'
+                                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                                  }`}
+                                >
+                                  <span className="min-w-0">
+                                    <span className="block text-sm font-medium text-gray-800 dark:text-gray-100 truncate">{prod.nome}</span>
+                                    <span className="block text-[11px] text-gray-400">
+                                      ID {prod.id} · {prod.vendas} {prod.vendas === 1 ? 'evento' : 'eventos'}
+                                    </span>
+                                  </span>
+                                  {ativo && <span className="text-orange-600 dark:text-orange-400 text-sm shrink-0">✓</span>}
+                                </button>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+
+                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
+                    {Object.keys(form.checkoutProductIds).length === 0
+                      ? 'Nenhum produto marcado: este funil mostra as vendas da conta inteira. Marque os produtos dele para separar os números.'
+                      : 'Só as vendas destes produtos contam nos cards deste funil — inclusive as antigas.'}
+                  </p>
+                </div>
+              )}
 
               {/* Campanha Facebook (só se selecionado) */}
               {form.trafficSources.includes('facebook') && (

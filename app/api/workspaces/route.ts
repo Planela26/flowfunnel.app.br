@@ -40,6 +40,12 @@ export async function GET() {
       try {
         checkoutSources = JSON.parse(ws.checkoutSources || '[]')
       } catch {}
+      // Já desserializado para a tela poder marcar o que está vinculado sem
+      // precisar interpretar JSON cru. `{}` quando não há vínculo.
+      let checkoutProductIds: Record<string, string[]> = {}
+      try {
+        checkoutProductIds = ws.checkoutProductIds ? JSON.parse(ws.checkoutProductIds) : {}
+      } catch {}
       return {
         ...ws,
         whatsappNickname,
@@ -47,6 +53,7 @@ export async function GET() {
         facebookCampaignName: campaign?.name ?? null,
         facebookCampaignStatus: campaign?.status ?? null,
         checkoutSources,
+        checkoutProductIds,
       }
     })
 
@@ -131,7 +138,7 @@ export async function PATCH(request: Request) {
     const session = await getServerSession(authOptions)
     if (!session?.user) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
-    const { id, name, emoji, whatsappIntegrationId, facebookCampaignId, checkoutSources, setDefault } = await request.json()
+    const { id, name, emoji, whatsappIntegrationId, facebookCampaignId, checkoutSources, checkoutProductIds, setDefault } = await request.json()
     if (!id) return NextResponse.json({ error: 'ID é obrigatório' }, { status: 400 })
 
     // Verificar que o workspace pertence ao usuário
@@ -153,6 +160,15 @@ export async function PATCH(request: Request) {
         ...(whatsappIntegrationId !== undefined && { whatsappIntegrationId }),
         ...(facebookCampaignId !== undefined && { facebookCampaignId }),
         ...(checkoutSources !== undefined && { checkoutSources: JSON.stringify(checkoutSources) }),
+        // Quais produtos ESTE funil acompanha, por plataforma. Objeto vazio
+        // vira null de propósito: null significa SEM filtro, e é como a
+        // pessoa desfaz o vínculo e volta a ver a conta inteira neste funil.
+        ...(checkoutProductIds !== undefined && {
+          checkoutProductIds:
+            checkoutProductIds && Object.keys(checkoutProductIds).length > 0
+              ? JSON.stringify(checkoutProductIds)
+              : null,
+        }),
         ...(setDefault && { isDefault: true }),
       },
     })
