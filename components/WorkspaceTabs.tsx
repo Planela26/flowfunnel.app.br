@@ -44,11 +44,7 @@ export default function WorkspaceTabs({ onWorkspaceChange }: WorkspaceTabsProps)
   const [availableNumbers, setAvailableNumbers] = useState<any[]>([])
   const [availableCampaigns, setAvailableCampaigns] = useState<any[]>([])
   const [loadingOptions, setLoadingOptions] = useState(false)
-  // Produtos que já apareceram em vendas, por plataforma. É o que permite
-  // separar os números de um funil dos do outro.
-  const [produtosPorPlataforma, setProdutosPorPlataforma] = useState<Record<string, Array<{ id: string; nome: string; vendas: number }>>>({})
-  // Um campo de digitação por plataforma, para colar o ID de um produto que
-  // ainda não vendeu e por isso não está na lista descoberta.
+  // Um campo de digitação por plataforma, para colar o ID do produto.
   const [novoProdutoId, setNovoProdutoId] = useState<Record<string, string>>({})
 
   const adicionarProdutoManual = (plataforma: string) => {
@@ -83,19 +79,6 @@ export default function WorkspaceTabs({ onWorkspaceChange }: WorkspaceTabsProps)
     } catch {}
     finally { setLoading(false) }
   }, [selected, onWorkspaceChange])
-
-  // Lista os produtos que já apareceram em vendas. Sai do histórico e não da
-  // API da plataforma: funciona sem token válido e mostra só o que o filtro
-  // tem como separar de fato.
-  const fetchProdutos = async () => {
-    try {
-      const r = await fetch('/api/checkout/produtos')
-      const d = await r.json()
-      setProdutosPorPlataforma(d?.produtos || {})
-    } catch (e) {
-      console.error('[funil] não consegui listar os produtos:', e)
-    }
-  }
 
   const fetchOptions = async () => {
     setLoadingOptions(true)
@@ -135,7 +118,6 @@ export default function WorkspaceTabs({ onWorkspaceChange }: WorkspaceTabsProps)
     setFormError('')
     setShowNewModal(true)
     fetchOptions()
-    fetchProdutos()
   }
 
   const openEditModal = (ws: Workspace) => {
@@ -151,7 +133,6 @@ export default function WorkspaceTabs({ onWorkspaceChange }: WorkspaceTabsProps)
     setFormError('')
     setShowEditId(ws.id)
     fetchOptions()
-    fetchProdutos()
   }
 
   const createWorkspace = async () => {
@@ -484,62 +465,18 @@ export default function WorkspaceTabs({ onWorkspaceChange }: WorkspaceTabsProps)
 
                   <div className="space-y-3">
                     {form.checkoutSources.map((plataforma) => {
-                      const lista = produtosPorPlataforma[plataforma] || []
                       const marcados = form.checkoutProductIds[plataforma] || []
-                      // IDs digitados à mão: estão vinculados mas ainda não
-                      // apareceram em venda nenhuma, então não vêm na lista.
-                      // Sem renderizá-los à parte, sumiriam da tela e a pessoa
-                      // não teria como desmarcar o que acabou de adicionar.
-                      const soltos = marcados.filter((id) => !lista.some((p) => p.id === id))
                       return (
                         <div key={plataforma}>
                           <div className="text-[11px] uppercase tracking-wider text-gray-400 mb-1.5">{plataforma}</div>
                           <div className="space-y-1">
-                            {lista.map((prod) => {
-                              const ativo = marcados.includes(prod.id)
-                              return (
-                                <button
-                                  key={prod.id}
-                                  type="button"
-                                  onClick={() => {
-                                    setForm((f) => {
-                                      const atuais = f.checkoutProductIds[plataforma] || []
-                                      const novos = atuais.includes(prod.id)
-                                        ? atuais.filter((x) => x !== prod.id)
-                                        : [...atuais, prod.id]
-                                      const mapa = { ...f.checkoutProductIds }
-                                      // Lista vazia SAI do objeto: objeto vazio é o
-                                      // que a API entende como "sem filtro".
-                                      if (novos.length === 0) delete mapa[plataforma]
-                                      else mapa[plataforma] = novos
-                                      return { ...f, checkoutProductIds: mapa }
-                                    })
-                                  }}
-                                  className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg border text-left transition ${
-                                    ativo
-                                      ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/25'
-                                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-                                  }`}
-                                >
-                                  <span className="min-w-0">
-                                    <span className="block text-sm font-medium text-gray-800 dark:text-gray-100 truncate">{prod.nome}</span>
-                                    <span className="block text-[11px] text-gray-400">
-                                      ID {prod.id} · {prod.vendas} {prod.vendas === 1 ? 'evento' : 'eventos'}
-                                    </span>
-                                  </span>
-                                  {ativo && <span className="text-orange-600 dark:text-orange-400 text-sm shrink-0">✓</span>}
-                                </button>
-                              )
-                            })}
-
-                            {soltos.map((id) => (
+                            {marcados.map((id) => (
                               <div
                                 key={id}
                                 className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg border border-orange-500 bg-orange-50 dark:bg-orange-900/25"
                               >
                                 <span className="min-w-0">
                                   <span className="block text-sm font-medium text-gray-800 dark:text-gray-100 truncate">ID {id}</span>
-                                  <span className="block text-[11px] text-gray-400">adicionado à mão · sem venda ainda</span>
                                 </span>
                                 <button
                                   type="button"
