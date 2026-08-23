@@ -32,6 +32,22 @@ export async function GET(request: Request) {
     const dias = Math.min(Number.isFinite(pedido) && pedido > 0 ? pedido : 30, maxDias)
     const desde = new Date(Date.now() - dias * 24 * 60 * 60 * 1000)
 
+    // Separação por funil, reusando a campanha que o funil já vincula.
+    // TrackedLead guarda `campaignId` (macro da Meta na URL do anúncio), e o
+    // Workspace guarda `facebookCampaignId` — o cruzamento não precisa de
+    // configuração nova. Sem campanha vinculada, segue sem filtro: é o
+    // comportamento de antes e o que mantém funil sem campanha funcionando.
+    const workspaceId = searchParams.get('workspaceId')
+    let campanhaDoFunil: string | null = null
+    if (workspaceId) {
+      const ws = await prisma.workspace.findFirst({
+        where: { id: workspaceId, userId },
+        select: { facebookCampaignId: true },
+      })
+      campanhaDoFunil = ws?.facebookCampaignId || null
+    }
+    const doFunil = campanhaDoFunil ? { campaignId: campanhaDoFunil } : {}
+
     const [
       sites,
       visitantes,
@@ -47,11 +63,11 @@ export async function GET(request: Request) {
       // depois da migration de alinhamento, então contamos leads distintos
       // como piso quando ele não existe.
       prisma.trackedLead.findMany({
-        where: { userId, createdAt: { gte: desde } },
+        where: { userId, createdAt: { gte: desde }, ...doFunil },
         select: { visitorId: true, leadId: true },
       }),
       prisma.trackedSession.count({ where: { userId, startedAt: { gte: desde } } }),
-      prisma.trackedLead.count({ where: { userId, createdAt: { gte: desde } } }),
+      prisma.trackedLead.count({ where: { userId, createdAt: { gte: desde }, ...doFunil } }),
       prisma.trackedEvent.groupBy({
         by: ['eventName'],
         where: { userId, createdAt: { gte: desde } },
@@ -64,11 +80,11 @@ export async function GET(request: Request) {
       }),
       prisma.trackedLead.groupBy({
         by: ['utmSource'],
-        where: { userId, createdAt: { gte: desde } },
+        where: { userId, createdAt: { gte: desde }, ...doFunil },
         _count: { _all: true },
       }),
       // Sem recorte de data — ver `connected` mais abaixo.
-      prisma.trackedLead.count({ where: { userId } }),
+      prisma.trackedLead.count({ where: { userId, ...doFunil } }),
     ])
 
     const eventos: Record<string, number> = {}
@@ -123,6 +139,15 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       connected,
+      // Mesma ideia do `filtroDeProdutos` do Hotmart: se este card está ou não
+      // recortado por funil precisa ser legível na tela. Sem isso, "mostra os
+      // visitantes do outro funil" e "este funil não tem campanha vinculada"
+      // são exatamente a mesma coisa aos olhos de quem olha.
+      filtroDeCampanha: {
+        workspaceId: workspaceId ?? null,
+        campanha: campanhaDoFunil,
+        aplicado: campanhaDoFunil !== null,
+      },
       periodoDias: dias,
       sitesCadastrados: sites,
       visitantes: visitantesUnicos,

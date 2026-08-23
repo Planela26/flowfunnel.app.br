@@ -196,7 +196,8 @@ export default function Dashboard() {
     const fetchLandingMetrics = async () => {
       try {
         setLoadingLanding(true)
-        const response = await fetch(`/api/landing/metrics?days=${dias}`)
+        const wsl = activeWorkspace?.id ? `&workspaceId=${activeWorkspace.id}` : ''
+        const response = await fetch(`/api/landing/metrics?days=${dias}${wsl}`)
         if (!response.ok) return // ver comentário abaixo
         setLandingData(await response.json())
       } catch (error) {
@@ -216,7 +217,10 @@ export default function Dashboard() {
     fetchLandingMetrics()
     const interval = setInterval(fetchLandingMetrics, 300000)
     return () => clearInterval(interval)
-  }, [dias])
+    // `activeWorkspace?.id` entra aqui pelo mesmo motivo do card do Hotmart:
+    // sem ele, trocar de funil deixava na tela os visitantes do funil anterior
+    // até a atualização automática de 5 minutos.
+  }, [dias, activeWorkspace?.id])
 
   // Buscar dados reais do Hotmart
   useEffect(() => {

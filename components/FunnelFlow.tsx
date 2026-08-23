@@ -259,6 +259,38 @@ function IntegrationCardNode({ data }: NodeProps) {
                 só chegam vendas feitas depois de configurá-lo.
               </p>
             )}
+            {/* Se o card está ou não filtrado por produto precisa ser visível
+                AQUI. Sem isso, "mostra as vendas do outro funil" e "este funil
+                não tem filtro" são a mesma tela, e a única forma de distinguir
+                era abrir o DevTools. */}
+            {d.data?.filtroDeCampanha && (
+              <p className="mt-2 text-[9px] leading-tight text-gray-500">
+                {d.data.filtroDeCampanha.aplicado ? (
+                  <>Só os visitantes da campanha {d.data.filtroDeCampanha.campanha}.</>
+                ) : (
+                  <span className="text-amber-500/90">
+                    Sem campanha vinculada — mostrando os visitantes da conta inteira.
+                    Vincule a campanha do Meta em Editar Funil para separar.
+                  </span>
+                )}
+              </p>
+            )}
+            {d.data?.filtroDeProdutos && (
+              <p className="mt-2 text-[9px] leading-tight text-gray-500">
+                {d.data.filtroDeProdutos.aplicado ? (
+                  <>
+                    Filtrado por {d.data.filtroDeProdutos.produtos.length}{' '}
+                    {d.data.filtroDeProdutos.produtos.length === 1 ? 'produto' : 'produtos'}
+                    {' '}({d.data.filtroDeProdutos.produtos.join(', ')}).
+                  </>
+                ) : (
+                  <span className="text-amber-500/90">
+                    Sem produto vinculado — mostrando a conta inteira. Abra Editar Funil
+                    e cole o ID do produto deste funil.
+                  </span>
+                )}
+              </p>
+            )}
           </>
         ) : (
           <div className="flex flex-col items-center py-4 gap-3">

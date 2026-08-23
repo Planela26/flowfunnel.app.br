@@ -49,6 +49,26 @@ export default function WorkspaceTabs({ onWorkspaceChange, onWorkspaceSaved }: W
   // Um campo de digitação por plataforma, para colar o ID do produto.
   const [novoProdutoId, setNovoProdutoId] = useState<Record<string, string>>({})
 
+  /**
+   * O vínculo de produto que vale AGORA, incluindo o que ainda está digitado e
+   * não foi confirmado com "Adicionar".
+   *
+   * Armadilha que isto remove: o campo é só um input — digitar não vinculava
+   * nada. Quem colava o ID e clicava direto em Salvar tinha o texto descartado
+   * e o funil salvo SEM filtro, mostrando as vendas de todos os produtos.
+   * Nada na tela indicava a perda; o ID continuava visível na caixa.
+   */
+  const vinculoEfetivo = () => {
+    const mapa: Record<string, string[]> = { ...form.checkoutProductIds }
+    for (const [plataforma, digitado] of Object.entries(novoProdutoId)) {
+      const id = (digitado ?? '').trim()
+      if (!id) continue
+      const atuais = mapa[plataforma] || []
+      if (!atuais.includes(id)) mapa[plataforma] = [...atuais, id]
+    }
+    return mapa
+  }
+
   const adicionarProdutoManual = (plataforma: string) => {
     const bruto = (novoProdutoId[plataforma] ?? '').trim()
     if (!bruto) return
@@ -146,7 +166,8 @@ export default function WorkspaceTabs({ onWorkspaceChange, onWorkspaceSaved }: W
       const res = await fetch('/api/workspaces', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        // `vinculoEfetivo()` aproveita o ID que ficou digitado sem "Adicionar".
+        body: JSON.stringify({ ...form, checkoutProductIds: vinculoEfetivo() }),
       })
       const data = await res.json()
       if (!res.ok) {
@@ -181,7 +202,7 @@ export default function WorkspaceTabs({ onWorkspaceChange, onWorkspaceSaved }: W
       const res = await fetch('/api/workspaces', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: showEditId, ...form }),
+        body: JSON.stringify({ id: showEditId, ...form, checkoutProductIds: vinculoEfetivo() }),
       })
       const data = await res.json()
       if (!res.ok) { setFormError(data.error || 'Erro ao salvar'); return }
