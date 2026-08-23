@@ -55,11 +55,24 @@ export async function GET(request: Request) {
       campanhaDoFunil = ws?.facebookCampaignId || null
     }
 
-    const doFunil = leadsDoLink !== null
-      ? { leadId: { in: leadsDoLink } }
-      : campanhaDoFunil
-        ? { campaignId: campanhaDoFunil }
-        : {}
+    // TUDO vira uma lista de leadId, inclusive o caminho da campanha.
+    //
+    // Antes o filtro por campanha era `{ campaignId }`, que só existe em
+    // TrackedLead — sessões, eventos e conversões não têm essa coluna e ficavam
+    // SEM recorte. O resultado na tela era incoerente: Visitantes filtrado e
+    // Sessões da conta inteira, no mesmo card. Com uma lista só, os quatro
+    // números saem do mesmo critério.
+    let leadsDoFunilFinal: string[] | null = leadsDoLink
+    if (leadsDoFunilFinal === null && campanhaDoFunil) {
+      const porCampanha = await prisma.trackedLead.findMany({
+        where: { userId, campaignId: campanhaDoFunil },
+        select: { leadId: true },
+        take: 20_000,
+      })
+      leadsDoFunilFinal = [...new Set(porCampanha.map((l) => l.leadId))]
+    }
+
+    const doFunil = leadsDoFunilFinal !== null ? { leadId: { in: leadsDoFunilFinal } } : {}
 
     const [
       sites,
@@ -79,15 +92,15 @@ export async function GET(request: Request) {
         where: { userId, createdAt: { gte: desde }, ...doFunil },
         select: { visitorId: true, leadId: true },
       }),
-      prisma.trackedSession.count({ where: { userId, startedAt: { gte: desde } } }),
+      prisma.trackedSession.count({ where: { userId, startedAt: { gte: desde }, ...doFunil } }),
       prisma.trackedLead.count({ where: { userId, createdAt: { gte: desde }, ...doFunil } }),
       prisma.trackedEvent.groupBy({
         by: ['eventName'],
-        where: { userId, createdAt: { gte: desde } },
+        where: { userId, createdAt: { gte: desde }, ...doFunil },
         _count: { _all: true },
       }),
       prisma.trackedConversion.aggregate({
-        where: { userId, createdAt: { gte: desde } },
+        where: { userId, createdAt: { gte: desde }, ...doFunil },
         _count: { _all: true },
         _sum: { value: true },
       }),
@@ -161,6 +174,7 @@ export async function GET(request: Request) {
         // Por qual critério este card foi recortado, ou null se por nenhum.
         por: leadsDoLink !== null ? 'link' : campanhaDoFunil ? 'campanha' : null,
         visitantesDoLink: leadsDoLink?.length ?? null,
+        leadsNoRecorte: leadsDoFunilFinal?.length ?? null,
         campanha: campanhaDoFunil,
         aplicado: leadsDoLink !== null || campanhaDoFunil !== null,
       },

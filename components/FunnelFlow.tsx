@@ -266,7 +266,10 @@ function IntegrationCardNode({ data }: NodeProps) {
             {d.data?.filtroDoFunil && (
               <p className="mt-2 text-[9px] leading-tight text-gray-500">
                 {d.data.filtroDoFunil.por === 'link' ? (
-                  <>Só quem chegou pelo link rastreável deste funil.</>
+                  // O número entra aqui de propósito: "o filtro está ativo" e
+                  // "o filtro pegou N visitantes" são coisas diferentes, e sem
+                  // o N não dá para saber se ele recortou ou deixou tudo passar.
+                  <>Só quem chegou pelo link deste funil — {d.data.filtroDoFunil.leadsNoRecorte ?? 0} visitante(s) no recorte.</>
                 ) : d.data.filtroDoFunil.por === 'campanha' ? (
                   <>Só os visitantes da campanha {d.data.filtroDoFunil.campanha}.</>
                 ) : (
