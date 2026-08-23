@@ -176,6 +176,17 @@ export async function GET(request: Request) {
       ticketMedio: formatCurrency(ticketMedio),
       faturamento: formatCurrency(faturamentoTotal),
       connected: true,
+      // O que o filtro de produto viu. Sem isto, "o card mostra as vendas do
+      // outro funil" não tem como ser diagnosticado de fora: as três causas
+      // possíveis — vínculo não gravado, workspaceId não recebido, produto sem
+      // correspondência — produzem exatamente a mesma tela.
+      filtroDeProdutos: {
+        workspaceId: workspaceId ?? null,
+        produtos,
+        aplicado: produtos !== null,
+        vendasAntesDoFiltro: vendasCompletas.length,
+        vendasDepoisDoFiltro: pagamentosConfirmados,
+      },
       // Nenhum evento Hotmart chegou ainda nesta janela — distinto de "houve
       // movimento e deu zero". O card diferencia os dois.
       aguardandoPrimeiroEvento:

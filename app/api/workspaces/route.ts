@@ -15,8 +15,9 @@ import { getMaxFunnels, normalizePlan } from '@/lib/plans'
  * campanha do Meta e o produto da Hotmart na criação abria o funil e via uma
  * tela VAZIA, sem relação com o que tinha acabado de configurar.
  *
- * `landing` entra sempre porque é o topo do funil: sem ele o fluxo começa no
- * meio e parece quebrado.
+ * Só o que foi escolhido entra. Eu havia forçado `landing` aqui achando que um
+ * funil sem o topo pareceria quebrado — mas card que aparece sem ter sido
+ * pedido é justamente o problema que este arquivo existe para resolver.
  */
 function cardsDoFunil(opts: {
   trafficSources?: string[]
@@ -25,7 +26,6 @@ function cardsDoFunil(opts: {
 }): string[] {
   const ids = new Set<string>()
   for (const t of opts.trafficSources ?? []) ids.add(t)
-  ids.add('landing')
   if (opts.whatsappIntegrationId) ids.add('whatsapp')
   for (const c of opts.checkoutSources ?? []) ids.add(c)
   return [...ids]
@@ -97,7 +97,7 @@ export async function POST(request: Request) {
     const session = await getServerSession(authOptions)
     if (!session?.user) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
-    const { name, emoji, whatsappIntegrationId, facebookCampaignId, checkoutSources, trafficSources } = await request.json()
+    const { name, emoji, whatsappIntegrationId, facebookCampaignId, checkoutSources, trafficSources, checkoutProductIds } = await request.json()
     if (!name) return NextResponse.json({ error: 'Nome é obrigatório' }, { status: 400 })
 
     // Limite verificado e workspace criado na MESMA transação, com a linha do
@@ -122,6 +122,14 @@ export async function POST(request: Request) {
           whatsappIntegrationId: whatsappIntegrationId || null,
           facebookCampaignId: facebookCampaignId || null,
           checkoutSources: checkoutSources ? JSON.stringify(checkoutSources) : '["hotmart"]',
+          // O vínculo de produto existia SÓ no PATCH. Quem colava o ID na tela
+          // de CRIAÇÃO tinha o valor descartado em silêncio pelo POST, e o funil
+          // novo nascia sem filtro — mostrando as vendas de todos os produtos,
+          // exatamente o que o campo existe para evitar.
+          checkoutProductIds:
+            checkoutProductIds && Object.keys(checkoutProductIds).length > 0
+              ? JSON.stringify(checkoutProductIds)
+              : null,
           // Os cards saem do que a pessoa acabou de configurar, não de `null`
           // (que herdaria o arranjo do usuário, com TODOS os cards e os números
           // do funil anterior) nem de `'[]'` (que abria o funil vazio, sem
