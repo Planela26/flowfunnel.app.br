@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { getHistoryLimitDays, normalizePlan } from '@/lib/plans'
+import { leadsDoFunil } from '@/lib/funil-produtos'
 
 /**
  * Métricas da Landing Page para o node do funil visual.
@@ -38,15 +39,27 @@ export async function GET(request: Request) {
     // configuração nova. Sem campanha vinculada, segue sem filtro: é o
     // comportamento de antes e o que mantém funil sem campanha funcionando.
     const workspaceId = searchParams.get('workspaceId')
+
+    // Preferência pelo LINK RASTREÁVEL, não pela campanha. O link é escolha
+    // explícita e funciona venha o clique de onde vier — anúncio, WhatsApp, bio
+    // ou e-mail. A campanha só separa quem chegou por anúncio COM as macros da
+    // Meta na URL, o que deixa de fora todo tráfego que não é pago.
+    const leadsDoLink = await leadsDoFunil(workspaceId, userId, desde)
+
     let campanhaDoFunil: string | null = null
-    if (workspaceId) {
+    if (workspaceId && leadsDoLink === null) {
       const ws = await prisma.workspace.findFirst({
         where: { id: workspaceId, userId },
         select: { facebookCampaignId: true },
       })
       campanhaDoFunil = ws?.facebookCampaignId || null
     }
-    const doFunil = campanhaDoFunil ? { campaignId: campanhaDoFunil } : {}
+
+    const doFunil = leadsDoLink !== null
+      ? { leadId: { in: leadsDoLink } }
+      : campanhaDoFunil
+        ? { campaignId: campanhaDoFunil }
+        : {}
 
     const [
       sites,
@@ -143,10 +156,13 @@ export async function GET(request: Request) {
       // recortado por funil precisa ser legível na tela. Sem isso, "mostra os
       // visitantes do outro funil" e "este funil não tem campanha vinculada"
       // são exatamente a mesma coisa aos olhos de quem olha.
-      filtroDeCampanha: {
+      filtroDoFunil: {
         workspaceId: workspaceId ?? null,
+        // Por qual critério este card foi recortado, ou null se por nenhum.
+        por: leadsDoLink !== null ? 'link' : campanhaDoFunil ? 'campanha' : null,
+        visitantesDoLink: leadsDoLink?.length ?? null,
         campanha: campanhaDoFunil,
-        aplicado: campanhaDoFunil !== null,
+        aplicado: leadsDoLink !== null || campanhaDoFunil !== null,
       },
       periodoDias: dias,
       sitesCadastrados: sites,

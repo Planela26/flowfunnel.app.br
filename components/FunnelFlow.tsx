@@ -263,14 +263,16 @@ function IntegrationCardNode({ data }: NodeProps) {
                 AQUI. Sem isso, "mostra as vendas do outro funil" e "este funil
                 não tem filtro" são a mesma tela, e a única forma de distinguir
                 era abrir o DevTools. */}
-            {d.data?.filtroDeCampanha && (
+            {d.data?.filtroDoFunil && (
               <p className="mt-2 text-[9px] leading-tight text-gray-500">
-                {d.data.filtroDeCampanha.aplicado ? (
-                  <>Só os visitantes da campanha {d.data.filtroDeCampanha.campanha}.</>
+                {d.data.filtroDoFunil.por === 'link' ? (
+                  <>Só quem chegou pelo link rastreável deste funil.</>
+                ) : d.data.filtroDoFunil.por === 'campanha' ? (
+                  <>Só os visitantes da campanha {d.data.filtroDoFunil.campanha}.</>
                 ) : (
                   <span className="text-amber-500/90">
-                    Sem campanha vinculada — mostrando os visitantes da conta inteira.
-                    Vincule a campanha do Meta em Editar Funil para separar.
+                    Sem link vinculado — mostrando os visitantes da conta inteira.
+                    Marque o link rastreável em Editar Funil para separar.
                   </span>
                 )}
               </p>

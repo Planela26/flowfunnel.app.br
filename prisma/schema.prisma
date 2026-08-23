@@ -411,6 +411,16 @@ model Workspace {
   // `null` ou objeto vazio = SEM filtro, mostra tudo. É o que mantém os funis
   // que já existem funcionando exatamente como antes desta coluna existir.
   checkoutProductIds    String?
+  // Quais links rastreáveis (TrackedSite) pertencem a este funil: ["cmxyz..."].
+  //
+  // É o vínculo mais direto que existe para o card da Landing Page: cada clique
+  // no link curto grava um evento `link_click` com `metadata.siteId`, então o
+  // visitante já carrega de qual link veio. Depender do `campaignId` da Meta
+  // exigiria que a URL do anúncio trouxesse as macros — aqui não depende de
+  // nada além de a pessoa ter usado o link.
+  //
+  // `null` ou lista vazia = SEM filtro, mostra a conta inteira.
+  trackedSiteIds        String?
   // Layout do FunnelFlow POR FUNIL. Antes vivia só em `User.funnelLayout` e
   // `User.funnelVisibleIds`: um arranjo por conta, compartilhado por todos os
   // funis. Arrastar um card num funil movia o card do outro, e esconder um

@@ -56,6 +56,57 @@ export async function produtosDoFunil(
  * metadata — como texto dos dois lados, porque a Hotmart manda número e o
  * vínculo guarda string.
  */
+/**
+ * Os `leadId` que chegaram por algum dos links rastreáveis deste funil.
+ *
+ * O elo existe porque cada clique no link curto grava um evento `link_click`
+ * com `metadata.siteId` (ver lib/tracking-link.ts). Como o dado já está lá, o
+ * vínculo vale RETROATIVAMENTE: escolher um link reorganiza o histórico na
+ * hora, sem reprocessar nada.
+ *
+ * Devolve `null` quando não há filtro a aplicar — funil sem link vinculado —
+ * e nesse caso quem chama mostra tudo, como antes desta coluna existir.
+ *
+ * Devolve lista VAZIA quando há vínculo mas nenhum visitante passou por ele.
+ * A diferença importa: vazio é uma medição ("ninguém veio ainda"), null é a
+ * ausência de pergunta.
+ */
+export async function leadsDoFunil(
+  workspaceId: string | null | undefined,
+  userId: string,
+  desde?: Date,
+): Promise<string[] | null> {
+  if (!workspaceId) return null
+  try {
+    const ws = await prismaAdmin.workspace.findFirst({
+      where: { id: workspaceId, userId },
+      select: { trackedSiteIds: true },
+    })
+    if (!ws?.trackedSiteIds) return null
+    const sites = JSON.parse(ws.trackedSiteIds) as string[]
+    if (!Array.isArray(sites) || sites.length === 0) return null
+
+    // `metadata.siteId` vive dentro do JSON, então a busca é por conteúdo. O id
+    // é um cuid — colisão com outro trecho do metadata é improvável o bastante
+    // para não justificar uma coluna nova e a migração de dados que ela pediria.
+    const eventos = await prismaAdmin.trackedEvent.findMany({
+      where: {
+        userId,
+        eventName: 'link_click',
+        ...(desde ? { createdAt: { gte: desde } } : {}),
+        OR: sites.map((id) => ({ metadata: { contains: id } })),
+      },
+      select: { leadId: true },
+      take: 20_000,
+    })
+    return [...new Set(eventos.map((e) => e.leadId))]
+  } catch (e) {
+    // Vínculo ilegível não pode esconder visitante: sem filtro é o padrão seguro.
+    console.error(`[funil-produtos] links do funil ${workspaceId} ilegíveis; seguindo SEM filtro:`, e)
+    return null
+  }
+}
+
 export function eventoDoFunil(meta: any, produtos: string[] | null): boolean {
   if (!produtos) return true
   const id = meta?.productId ?? meta?.product_id ?? meta?.produto_id

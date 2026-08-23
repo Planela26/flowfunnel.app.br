@@ -19,6 +19,8 @@ export interface Workspace {
   checkoutSources?: string[]
   /** { hotmart: ['8365536'] } — vazio significa SEM filtro: mostra a conta toda. */
   checkoutProductIds?: Record<string, string[]>
+  /** Ids de TrackedSite: quais links curtos pertencem a este funil. */
+  trackedSiteIds?: string[]
 }
 
 interface WorkspaceTabsProps {
@@ -39,13 +41,14 @@ export default function WorkspaceTabs({ onWorkspaceChange, onWorkspaceSaved }: W
   const [showEditId, setShowEditId] = useState<string | null>(null)
 
   // Dados para o modal de criação/edição
-  const [form, setForm] = useState({ name: '', emoji: '🚀', whatsappIntegrationId: '', facebookCampaignId: '', trafficSources: ['facebook'] as string[], checkoutSources: ['hotmart'] as string[], checkoutProductIds: {} as Record<string, string[]> })
+  const [form, setForm] = useState({ name: '', emoji: '🚀', whatsappIntegrationId: '', facebookCampaignId: '', trafficSources: ['facebook'] as string[], checkoutSources: ['hotmart'] as string[], checkoutProductIds: {} as Record<string, string[]>, trackedSiteIds: [] as string[] })
   const [formLoading, setFormLoading] = useState(false)
   const [formError, setFormError] = useState('')
   const [planLimitInfo, setPlanLimitInfo] = useState<{ message: string; upgradeUrl: string; currentPlan?: string; limit?: number } | null>(null)
   const [availableNumbers, setAvailableNumbers] = useState<any[]>([])
   const [availableCampaigns, setAvailableCampaigns] = useState<any[]>([])
   const [loadingOptions, setLoadingOptions] = useState(false)
+  const [sitesRastreados, setSitesRastreados] = useState<Array<{ id: string; slug: string; label: string; visitCount: number }>>([])
   // Um campo de digitação por plataforma, para colar o ID do produto.
   const [novoProdutoId, setNovoProdutoId] = useState<Record<string, string>>({})
 
@@ -105,14 +108,17 @@ export default function WorkspaceTabs({ onWorkspaceChange, onWorkspaceSaved }: W
   const fetchOptions = async () => {
     setLoadingOptions(true)
     try {
-      const [numRes, campRes] = await Promise.all([
+      const [numRes, campRes, sitesRes] = await Promise.all([
         fetch('/api/integrations/whatsapp'),
         fetch('/api/campaigns'),
+        fetch('/api/track/sites'),
       ])
       const numData = await numRes.json()
       const campData = await campRes.json()
       setAvailableNumbers(numData.numbers || [])
       setAvailableCampaigns(campData.campaigns || [])
+      const sitesData = await sitesRes.json()
+      setSitesRastreados(sitesData.sites || [])
     } catch {}
     finally { setLoadingOptions(false) }
   }
@@ -136,7 +142,7 @@ export default function WorkspaceTabs({ onWorkspaceChange, onWorkspaceSaved }: W
   }
 
   const openNewModal = () => {
-    setForm({ name: '', emoji: '🚀', whatsappIntegrationId: '', facebookCampaignId: '', trafficSources: ['facebook'], checkoutSources: ['hotmart'], checkoutProductIds: {} })
+    setForm({ name: '', emoji: '🚀', whatsappIntegrationId: '', facebookCampaignId: '', trafficSources: ['facebook'], checkoutSources: ['hotmart'], checkoutProductIds: {}, trackedSiteIds: [] })
     setFormError('')
     setShowNewModal(true)
     fetchOptions()
@@ -151,6 +157,7 @@ export default function WorkspaceTabs({ onWorkspaceChange, onWorkspaceSaved }: W
       trafficSources: ws.trafficSources || ['facebook'],
       checkoutSources: ws.checkoutSources || ['hotmart'],
       checkoutProductIds: ws.checkoutProductIds || {},
+      trackedSiteIds: ws.trackedSiteIds || [],
     })
     setFormError('')
     setShowEditId(ws.id)
@@ -475,6 +482,57 @@ export default function WorkspaceTabs({ onWorkspaceChange, onWorkspaceSaved }: W
                   Cada plataforma selecionada aparece como card no funil. Remover do visual NÃO para de receber webhooks.
                 </p>
               </div>
+
+              {/* Links rastreáveis deste funil.
+                  É o vínculo mais direto para o card da Landing Page: cada
+                  clique no link curto já grava de qual link veio, então marcar
+                  aqui separa os visitantes na hora, inclusive os antigos. */}
+              {sitesRastreados.length > 0 && (
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-1.5">
+                    <span className="w-2 h-2 bg-cyan-500 rounded-full" />
+                    Link rastreável deste funil
+                    <span className="font-normal text-gray-400">(opcional)</span>
+                  </label>
+                  <div className="space-y-1">
+                    {sitesRastreados.map((site) => {
+                      const ativo = form.trackedSiteIds.includes(site.id)
+                      return (
+                        <button
+                          key={site.id}
+                          type="button"
+                          onClick={() => {
+                            setForm((f) => ({
+                              ...f,
+                              trackedSiteIds: f.trackedSiteIds.includes(site.id)
+                                ? f.trackedSiteIds.filter((x) => x !== site.id)
+                                : [...f.trackedSiteIds, site.id],
+                            }))
+                          }}
+                          className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg border text-left transition ${
+                            ativo
+                              ? 'border-cyan-500 bg-cyan-50 dark:bg-cyan-900/25'
+                              : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                          }`}
+                        >
+                          <span className="min-w-0">
+                            <span className="block text-sm font-medium text-gray-800 dark:text-gray-100 truncate">{site.label}</span>
+                            <span className="block text-[11px] text-gray-400">
+                              /r/{site.slug} · {site.visitCount} {site.visitCount === 1 ? 'visita' : 'visitas'}
+                            </span>
+                          </span>
+                          {ativo && <span className="text-cyan-600 dark:text-cyan-400 text-sm shrink-0">✓</span>}
+                        </button>
+                      )
+                    })}
+                  </div>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
+                    {form.trackedSiteIds.length === 0
+                      ? 'Nenhum link marcado: o card da Landing Page mostra os visitantes da conta inteira.'
+                      : 'Só quem chegou por estes links conta neste funil — inclusive as visitas antigas.'}
+                  </p>
+                </div>
+              )}
 
               {/* Produtos deste funil.
                   Sem esta escolha, todo funil mostra as vendas da conta INTEIRA —

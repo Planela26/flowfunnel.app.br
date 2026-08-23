@@ -69,6 +69,8 @@ export async function GET() {
       } catch {}
       // Já desserializado para a tela poder marcar o que está vinculado sem
       // precisar interpretar JSON cru. `{}` quando não há vínculo.
+      let trackedSiteIds: string[] = []
+      try { trackedSiteIds = ws.trackedSiteIds ? JSON.parse(ws.trackedSiteIds) : [] } catch {}
       let checkoutProductIds: Record<string, string[]> = {}
       try {
         checkoutProductIds = ws.checkoutProductIds ? JSON.parse(ws.checkoutProductIds) : {}
@@ -81,6 +83,7 @@ export async function GET() {
         facebookCampaignStatus: campaign?.status ?? null,
         checkoutSources,
         checkoutProductIds,
+        trackedSiteIds,
       }
     })
 
@@ -97,7 +100,7 @@ export async function POST(request: Request) {
     const session = await getServerSession(authOptions)
     if (!session?.user) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
-    const { name, emoji, whatsappIntegrationId, facebookCampaignId, checkoutSources, trafficSources, checkoutProductIds } = await request.json()
+    const { name, emoji, whatsappIntegrationId, facebookCampaignId, checkoutSources, trafficSources, checkoutProductIds, trackedSiteIds } = await request.json()
     if (!name) return NextResponse.json({ error: 'Nome é obrigatório' }, { status: 400 })
 
     // Limite verificado e workspace criado na MESMA transação, com a linha do
@@ -129,6 +132,12 @@ export async function POST(request: Request) {
           checkoutProductIds:
             checkoutProductIds && Object.keys(checkoutProductIds).length > 0
               ? JSON.stringify(checkoutProductIds)
+              : null,
+          // Links rastreáveis deste funil — o vínculo que separa o card da
+          // Landing Page. Lista vazia vira null: null significa SEM filtro.
+          trackedSiteIds:
+            Array.isArray(trackedSiteIds) && trackedSiteIds.length > 0
+              ? JSON.stringify(trackedSiteIds)
               : null,
           // Os cards saem do que a pessoa acabou de configurar, não de `null`
           // (que herdaria o arranjo do usuário, com TODOS os cards e os números
@@ -171,7 +180,7 @@ export async function PATCH(request: Request) {
     const session = await getServerSession(authOptions)
     if (!session?.user) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
-    const { id, name, emoji, whatsappIntegrationId, facebookCampaignId, checkoutSources, checkoutProductIds, trafficSources, setDefault } = await request.json()
+    const { id, name, emoji, whatsappIntegrationId, facebookCampaignId, checkoutSources, checkoutProductIds, trafficSources, trackedSiteIds, setDefault } = await request.json()
     if (!id) return NextResponse.json({ error: 'ID é obrigatório' }, { status: 400 })
 
     // Verificar que o workspace pertence ao usuário
@@ -220,6 +229,12 @@ export async function PATCH(request: Request) {
         // Quais produtos ESTE funil acompanha, por plataforma. Objeto vazio
         // vira null de propósito: null significa SEM filtro, e é como a
         // pessoa desfaz o vínculo e volta a ver a conta inteira neste funil.
+        ...(trackedSiteIds !== undefined && {
+          trackedSiteIds:
+            Array.isArray(trackedSiteIds) && trackedSiteIds.length > 0
+              ? JSON.stringify(trackedSiteIds)
+              : null,
+        }),
         ...(checkoutProductIds !== undefined && {
           checkoutProductIds:
             checkoutProductIds && Object.keys(checkoutProductIds).length > 0
