@@ -59,7 +59,13 @@ const getStorageKey = (userId: string, workspaceId?: string | null) =>
  *    (≤1/s), seguro ir direto. Posições de drag continuam debounced em
  *    FunnelFlow.tsx.
  */
-export function useFunnelView(userId: string | undefined, workspaceId?: string | null) {
+/**
+ * @param versao Contador que força recarregar do servidor mesmo com o
+ *   `workspaceId` igual. Existe porque criar e editar um funil mudam quais
+ *   cards ele mostra, e editar NÃO muda o id — sem este gatilho, os cards
+ *   recém-configurados só apareciam depois de recarregar a página.
+ */
+export function useFunnelView(userId: string | undefined, workspaceId?: string | null, versao = 0) {
   const [visibleIds, setVisibleIds] = useState<string[]>(AVAILABLE_INTEGRATIONS.map(i => i.id))
 
   // Dois gates separados:
@@ -158,7 +164,7 @@ export function useFunnelView(userId: string | undefined, workspaceId?: string |
     })()
 
     return () => { cancelled = true }
-  }, [userId, workspaceId])
+  }, [userId, workspaceId, versao])
 
   // ─── SAVE ────────────────────────────────────────────────────────────────
   // serverLoaded garante que o GET completou antes de qualquer POST.

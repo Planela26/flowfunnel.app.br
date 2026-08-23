@@ -23,11 +23,13 @@ export interface Workspace {
 
 interface WorkspaceTabsProps {
   onWorkspaceChange: (workspace: Workspace | null) => void
+  /** Disparado ao criar ou salvar um funil, para o canvas reler os cards. */
+  onWorkspaceSaved?: () => void
 }
 
 const EMOJIS = ['🚀', '🎯', '💡', '📣', '🔥', '⚡', '💎', '🌟', '📦', '🎪']
 
-export default function WorkspaceTabs({ onWorkspaceChange }: WorkspaceTabsProps) {
+export default function WorkspaceTabs({ onWorkspaceChange, onWorkspaceSaved }: WorkspaceTabsProps) {
   const { info: planInfo } = usePlan()
   const isProOrScale = planInfo.plan === 'PRO' || planInfo.plan === 'SCALE'
   const [workspaces, setWorkspaces] = useState<Workspace[]>([])
@@ -164,6 +166,9 @@ export default function WorkspaceTabs({ onWorkspaceChange }: WorkspaceTabsProps)
       await fetchWorkspaces()
       setSelected(data.workspace.id)
       onWorkspaceChange(data.workspace)
+      // O funil novo já vem com os cards deduzidos do que foi configurado;
+      // avisar aqui faz o canvas lê-los na hora, sem recarregar a página.
+      onWorkspaceSaved?.()
     } catch { setFormError('Erro de conexão') }
     finally { setFormLoading(false) }
   }
@@ -182,6 +187,9 @@ export default function WorkspaceTabs({ onWorkspaceChange }: WorkspaceTabsProps)
       if (!res.ok) { setFormError(data.error || 'Erro ao salvar'); return }
       setShowEditId(null)
       await fetchWorkspaces()
+      // Salvar NÃO muda o id do funil, então sem este aviso o canvas ficaria
+      // com os cards antigos até a página ser recarregada.
+      onWorkspaceSaved?.()
     } catch { setFormError('Erro de conexão') }
     finally { setFormLoading(false) }
   }

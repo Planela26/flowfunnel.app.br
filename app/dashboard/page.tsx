@@ -48,12 +48,17 @@ export default function Dashboard() {
   const [customDateRange, setCustomDateRange] = useState({ start: '', end: '' })
   const [selectedCampaign, setSelectedCampaign] = useState<string | null>(null)
   const [activeWorkspace, setActiveWorkspace] = useState<Workspace | null>(null)
+  // Criar ou salvar um funil muda quais cards ele mostra, e SALVAR não muda o
+  // id — então o efeito de useFunnelView não reagiria sozinho. Este contador é
+  // o gatilho: sobe a cada mudança e força a releitura do servidor, para o
+  // canvas refletir a configuração na hora, sem recarregar a página.
+  const [versaoDoFunil, setVersaoDoFunil] = useState(0)
   const { data: session } = useSession()
   const userId = session?.user?.id as string | undefined
   // O funil aberto entra aqui: arranjo e cards visíveis são POR FUNIL. Sem
   // isto, os dois funis liam e gravavam o mesmo registro, e mexer num mexia no
   // outro.
-  const { visibleIds, addCard, removeCard } = useFunnelView(userId, activeWorkspace?.id ?? null)
+  const { visibleIds, addCard, removeCard } = useFunnelView(userId, activeWorkspace?.id ?? null, versaoDoFunil)
   const [whatsappData, setWhatsappData] = useState<any>(null)
   const [facebookData, setFacebookData] = useState<any>(null)
   const [googleData, setGoogleData] = useState<any>(null)
@@ -381,6 +386,10 @@ export default function Dashboard() {
     setActiveWorkspace(ws)
   }, [])
 
+  const handleWorkspaceSaved = useCallback(() => {
+    setVersaoDoFunil((v) => v + 1)
+  }, [])
+
   return (
     <div className="min-h-screen bg-blue-50 dark:bg-gray-900 transition-colors">
 
@@ -445,7 +454,7 @@ export default function Dashboard() {
       </header>
 
       {/* Abas de Funis/Workspaces */}
-      <WorkspaceTabs onWorkspaceChange={handleWorkspaceChange} />
+      <WorkspaceTabs onWorkspaceChange={handleWorkspaceChange} onWorkspaceSaved={handleWorkspaceSaved} />
 
       <main className="container mx-auto px-4 py-4">
         {/* Período dos cards.
