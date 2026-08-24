@@ -19,6 +19,27 @@ import { prismaAdmin } from './prisma'
 export type ProdutosPorPlataforma = Record<string, string[]>
 
 /**
+ * A URL sem query string e sem barra final, para servir de prefixo de busca.
+ *
+ * `https://site.com/pagina/?utm_source=fb` e `https://site.com/pagina` são a
+ * mesma página. Comparar as duas por igualdade exata deixaria de fora
+ * justamente o tráfego de anúncio, que nunca chega sem parâmetro.
+ *
+ * Devolve `null` para URL inválida — melhor não filtrar do que filtrar por um
+ * prefixo lixo, que casaria com nada e zeraria o card em silêncio.
+ */
+function normalizarUrl(bruta: string | null | undefined): string | null {
+  if (!bruta) return null
+  try {
+    const u = new URL(bruta)
+    const caminho = u.pathname.replace(/\/+$/, '')
+    return `${u.origin}${caminho}`
+  } catch {
+    return null
+  }
+}
+
+/**
  * Lê o vínculo de um funil. Devolve `null` quando não há filtro a aplicar —
  * funil sem vínculo, plataforma não listada, ou lista vazia. `null` significa
  * "mostre tudo", que é o comportamento de antes desta coluna existir e o que
@@ -83,23 +104,62 @@ export async function leadsDoFunil(
       select: { trackedSiteIds: true },
     })
     if (!ws?.trackedSiteIds) return null
-    const sites = JSON.parse(ws.trackedSiteIds) as string[]
-    if (!Array.isArray(sites) || sites.length === 0) return null
+    const ids = JSON.parse(ws.trackedSiteIds) as string[]
+    if (!Array.isArray(ids) || ids.length === 0) return null
 
-    // `metadata.siteId` vive dentro do JSON, então a busca é por conteúdo. O id
-    // é um cuid — colisão com outro trecho do metadata é improvável o bastante
-    // para não justificar uma coluna nova e a migração de dados que ela pediria.
+    const sites = await prismaAdmin.trackedSite.findMany({
+      where: { id: { in: ids }, userId },
+      select: { id: true, destinationUrl: true },
+    })
+    if (sites.length === 0) return null
+
+    const encontrados = new Set<string>()
+
+    // CAMINHO 1 — quem passou pelo link encurtado. `metadata.siteId` vive
+    // dentro do JSON, então a busca é por conteúdo; o id é um cuid, e colisão
+    // com outro trecho do metadata é improvável o bastante para não justificar
+    // uma coluna nova.
     const eventos = await prismaAdmin.trackedEvent.findMany({
       where: {
         userId,
         eventName: 'link_click',
         ...(desde ? { createdAt: { gte: desde } } : {}),
-        OR: sites.map((id) => ({ metadata: { contains: id } })),
+        OR: ids.map((id) => ({ metadata: { contains: id } })),
       },
       select: { leadId: true },
       take: 20_000,
     })
-    return [...new Set(eventos.map((e) => e.leadId))]
+    for (const e of eventos) encontrados.add(e.leadId)
+
+    // CAMINHO 2 — quem chegou pela URL cadastrada, SEM encurtador.
+    //
+    // Quem usa o próprio domínio e instala o rastreador na página não passa por
+    // /r/<slug>, então não gera `link_click` e ficaria de fora do caminho 1.
+    // Mas `firstUrl` é gravado nos dois casos e aponta para a MESMA página — no
+    // link encurtado é o destino, na visita direta é a própria URL. Casar por
+    // ela cobre os dois sem exigir encurtador de ninguém.
+    //
+    // A comparação ignora query string: o mesmo endereço com ?utm_source=... é
+    // a mesma página, e exigir igualdade exata deixaria de fora justamente o
+    // tráfego de anúncio, que sempre carrega parâmetros.
+    const prefixos = sites
+      .map((s) => normalizarUrl(s.destinationUrl))
+      .filter((u): u is string => Boolean(u))
+
+    if (prefixos.length > 0) {
+      const porUrl = await prismaAdmin.trackedLead.findMany({
+        where: {
+          userId,
+          ...(desde ? { createdAt: { gte: desde } } : {}),
+          OR: prefixos.map((p) => ({ firstUrl: { startsWith: p } })),
+        },
+        select: { leadId: true },
+        take: 20_000,
+      })
+      for (const l of porUrl) encontrados.add(l.leadId)
+    }
+
+    return [...encontrados]
   } catch (e) {
     // Vínculo ilegível não pode esconder visitante: sem filtro é o padrão seguro.
     console.error(`[funil-produtos] links do funil ${workspaceId} ilegíveis; seguindo SEM filtro:`, e)

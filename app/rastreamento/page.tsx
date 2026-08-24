@@ -200,6 +200,14 @@ export default function RastreamentoPage() {
                       >
                         {s.destinationUrl} <ExternalLink className="h-3 w-3 shrink-0" />
                       </a>
+                      {/* Deixa explícito que o link curto é OPCIONAL. Quem tem
+                          domínio próprio e instala o rastreador na página é
+                          reconhecido pela URL, sem passar por /r/. Sem esta
+                          linha, a tela dá a entender que encurtar é obrigatório. */}
+                      <p className="mt-1 text-[11px] leading-tight text-gray-400 dark:text-gray-500">
+                        Use o link curto abaixo <strong>ou</strong> o seu próprio endereço com o
+                        rastreador instalado — as visitas contam nos dois casos.
+                      </p>
                     </div>
                     <button
                       onClick={() => remover(s.id)}
