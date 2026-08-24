@@ -5,7 +5,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { cache, generateCacheKey, CacheTTL } from '@/lib/cache'
 import { isCanceledSale, extractAmount } from '@/lib/sale-events'
-import { produtosDoFunil, eventoDoFunil } from '@/lib/funil-produtos'
+import { produtosDoFunil, eventoDoFunil, vendasDoFunil } from '@/lib/funil-produtos'
 
 // Buscar métricas do Hotmart para o dashboard
 export async function GET(request: Request) {
@@ -79,9 +79,22 @@ export async function GET(request: Request) {
     const desde = desdeQuando(request) // janela escolhida no dashboard; 30 dias por padrão
     const naJanela = { funnelId: { in: funnelIds }, timestamp: { gte: desde } }
 
-    // Produtos que ESTE funil acompanha. `null` = sem vínculo, mostra tudo —
-    // o comportamento de sempre, que mantém os funis já criados intactos.
+    // Dois recortes possíveis, e a ordem importa.
+    //
+    // A ATRIBUIÇÃO vem primeiro porque não custa nada a quem usa: a venda feita
+    // por quem clicou no link do funil já sabe de qual funil é. Vincular produto
+    // à mão funciona, mas exige saber o ID e lembrar de preencher em cada funil
+    // — e foi justamente esse passo esquecido que fez os números vazarem.
+    //
+    // O produto continua como reforço: se estiver vinculado, a venda precisa
+    // passar pelos DOIS filtros. Serve para quem vende produtos diferentes pelo
+    // mesmo link, onde só a atribuição não separaria.
     const produtos = await produtosDoFunil(workspaceId, 'hotmart', session.user.id)
+    const transacoes = await vendasDoFunil(workspaceId, session.user.id, 'hotmart')
+
+    // `transacoes` restringe no BANCO — `transactionId` é coluna, e faz parte
+    // do índice único (funnelId, source, transactionId).
+    const porAtribuicao = transacoes !== null ? { transactionId: { in: transacoes } } : {}
 
     const lerMeta = (linha: { metadata: string | null }) => {
       try {
@@ -95,9 +108,9 @@ export async function GET(request: Request) {
     // do JSON de metadata. Busca-se e filtra-se aqui, com a mesma regra que as
     // vendas usam, para os três números saírem do mesmo critério.
     const contarPorTipo = async (eventType: string) => {
-      if (!produtos) return prisma.funnelEvent.count({ where: { ...naJanela, eventType } })
+      if (!produtos) return prisma.funnelEvent.count({ where: { ...naJanela, ...porAtribuicao, eventType } })
       const linhas = await prisma.funnelEvent.findMany({
-        where: { ...naJanela, eventType },
+        where: { ...naJanela, ...porAtribuicao, eventType },
         select: { metadata: true },
       })
       return linhas.filter((l) => eventoDoFunil(lerMeta(l), produtos)).length
@@ -114,7 +127,7 @@ export async function GET(request: Request) {
 
     // Buscar vendas completas
     const vendasCompletas = await prisma.funnelEvent.findMany({
-      where: { ...naJanela, eventType: 'hotmart_purchase_complete' },
+      where: { ...naJanela, ...porAtribuicao, eventType: 'hotmart_purchase_complete' },
       // Só metadata é lido daqui (lerMeta); as demais colunas vinham de graça
       // e custavam banda a cada carregamento do card.
       select: { metadata: true },
@@ -183,7 +196,10 @@ export async function GET(request: Request) {
       filtroDeProdutos: {
         workspaceId: workspaceId ?? null,
         produtos,
-        aplicado: produtos !== null,
+        // Por atribuição = automático, pelo link. Por produto = manual.
+        porAtribuicao: transacoes !== null,
+        vendasAtribuidas: transacoes?.length ?? null,
+        aplicado: produtos !== null || transacoes !== null,
         vendasAntesDoFiltro: vendasCompletas.length,
         vendasDepoisDoFiltro: pagamentosConfirmados,
       },

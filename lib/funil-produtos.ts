@@ -107,6 +107,46 @@ export async function leadsDoFunil(
   }
 }
 
+/**
+ * As transações que pertencem a este funil, pela ATRIBUIÇÃO.
+ *
+ * A corrente já existia inteira e ninguém a estava usando:
+ *
+ *   funil → link rastreável → visitante (leadId)
+ *        → SaleAttribution.leadId → transactionId → a venda
+ *
+ * O `sck` que o tracker injeta no link do checkout volta no webhook, e
+ * `attributeSale()` grava a venda amarrada ao lead. Quer dizer que uma compra
+ * feita por quem clicou no link do funil 1 JÁ SABE que é do funil 1 — sem
+ * ninguém colar ID de produto em lugar nenhum.
+ *
+ * É por isso que esta função existe: vincular produto à mão funciona, mas
+ * exige que a pessoa saiba o ID e lembre de preencher em cada funil. Aqui a
+ * separação sai de graça de algo que ela já fez — marcar o link.
+ *
+ * `null` = sem como atribuir (funil sem link), e quem chama não filtra.
+ * Lista vazia = há link, mas nenhuma venda veio por ele. São diferentes.
+ */
+export async function vendasDoFunil(
+  workspaceId: string | null | undefined,
+  userId: string,
+  plataforma: string,
+): Promise<string[] | null> {
+  // Sem recorte de data aqui de propósito: a venda pode acontecer semanas
+  // depois da visita, e o corte por período é aplicado no evento, não na
+  // atribuição. Limitar aqui esconderia venda legítima de visitante antigo.
+  const leads = await leadsDoFunil(workspaceId, userId)
+  if (leads === null) return null
+  if (leads.length === 0) return []
+
+  const atribuicoes = await prismaAdmin.saleAttribution.findMany({
+    where: { userId, platform: plataforma, leadId: { in: leads } },
+    select: { transactionId: true },
+    take: 20_000,
+  })
+  return [...new Set(atribuicoes.map((a) => a.transactionId))]
+}
+
 export function eventoDoFunil(meta: any, produtos: string[] | null): boolean {
   if (!produtos) return true
   const id = meta?.productId ?? meta?.product_id ?? meta?.produto_id

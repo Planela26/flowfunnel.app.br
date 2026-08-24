@@ -282,7 +282,17 @@ function IntegrationCardNode({ data }: NodeProps) {
             )}
             {d.data?.filtroDeProdutos && (
               <p className="mt-2 text-[9px] leading-tight text-gray-500">
-                {d.data.filtroDeProdutos.aplicado ? (
+                {d.data.filtroDeProdutos.porAtribuicao ? (
+                  // Caminho automático: a venda veio pelo link deste funil.
+                  <>
+                    Só as vendas que vieram pelo link deste funil
+                    {d.data.filtroDeProdutos.vendasAtribuidas != null &&
+                      ` — ${d.data.filtroDeProdutos.vendasAtribuidas} atribuída(s)`}
+                    {d.data.filtroDeProdutos.produtos?.length
+                      ? `, limitadas ao produto ${d.data.filtroDeProdutos.produtos.join(', ')}.`
+                      : '.'}
+                  </>
+                ) : d.data.filtroDeProdutos.aplicado ? (
                   <>
                     Filtrado por {d.data.filtroDeProdutos.produtos.length}{' '}
                     {d.data.filtroDeProdutos.produtos.length === 1 ? 'produto' : 'produtos'}
@@ -290,8 +300,8 @@ function IntegrationCardNode({ data }: NodeProps) {
                   </>
                 ) : (
                   <span className="text-amber-500/90">
-                    Sem produto vinculado — mostrando a conta inteira. Abra Editar Funil
-                    e cole o ID do produto deste funil.
+                    Mostrando a conta inteira. Marque o link rastreável deste funil em
+                    Editar Funil — as vendas que vierem por ele passam a contar só aqui.
                   </span>
                 )}
               </p>
