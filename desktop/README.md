@@ -63,6 +63,40 @@ Para uma versão sem instalação, que roda direto do arquivo:
 npm run build:portable
 ```
 
+## Publicar para download
+
+O instalador sai como `FlowSara-Setup.exe`, **sem a versão no nome**. Isso é
+deliberado: o botão do rodapé da landing aponta para
+
+```
+https://github.com/Planela26/flowfunnel.app.br/releases/latest/download/FlowSara-Setup.exe
+```
+
+e o GitHub resolve o `latest` sozinho. Com a versão no nome, cada release nova
+exigiria editar a landing page — e esquecer disso deixaria o botão apontando
+para um arquivo que não existe mais, com 404 para quem clicasse. O número da
+versão continua visível na página da release.
+
+### Passo a passo
+
+1. `npm.cmd run build` → gera `dist/FlowSara-Setup.exe`
+2. Abrir **github.com/Planela26/flowfunnel.app.br/releases** → *Draft a new release*
+3. Tag: `desktop-v1.0.0` · Título: `FlowSara para Windows 1.0.0`
+4. Arrastar o `FlowSara-Setup.exe` para os anexos
+5. *Publish release*
+
+**Não mude o nome do arquivo ao subir.** É ele que o link do site procura.
+
+### Por que GitHub Releases e não o próprio servidor
+
+A Hostinger não serve `public/`, e os arquivos chegam ao servidor pelo
+`git clone`. Hospedar o instalador no site significaria versionar 79 MB no
+repositório — e cada versão somaria outros 79 MB PARA SEMPRE, porque o git
+guarda o histórico. Em cinco versões o clone passa de 400 MB.
+
+Além disso, enquanto alguém baixa 79 MB do VPS, ele está ocupado com isso em
+vez de receber webhook de venda.
+
 ## ⚠️ Assinatura de código
 
 **Sem um certificado, o Windows vai mostrar "O Windows protegeu o computador"

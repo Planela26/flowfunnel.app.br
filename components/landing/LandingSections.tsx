@@ -943,6 +943,25 @@ export default function LandingSections() {
             <Link href="/lgpd" className="text-slate-500 transition hover:text-white">
               LGPD
             </Link>
+            {/* Download do app de Windows.
+                Fica no RODAPÉ, não em destaque, e o motivo é concreto: o
+                executável ainda não é assinado, então o Windows mostra "O
+                Windows protegeu o computador" na primeira execução. Um aviso
+                de segurança disparado por um botão grande na página de vendas
+                trabalha contra a conversão — no rodapé, quem clica é quem
+                procurou.
+                Aponta para /releases/latest/, que o GitHub resolve para a
+                versão mais nova sozinho: publicar uma release nova não exige
+                tocar neste arquivo. */}
+            <a
+              href="https://github.com/Planela26/flowfunnel.app.br/releases/latest/download/FlowSara-Setup.exe"
+              className="inline-flex items-center gap-1.5 text-slate-500 transition hover:text-white"
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                <path d="M3 5.5 10 4.5v7H3v-6zM11 4.3 21 3v8.5H11v-7.2zM3 12.5h7v7L3 18.5v-6zM11 12.5h10V21l-10-1.3v-7.2z" />
+              </svg>
+              Baixar para Windows
+            </a>
           </div>
           <p className="text-[13px] text-slate-600">© {new Date().getFullYear()} FlowSara</p>
         </div>

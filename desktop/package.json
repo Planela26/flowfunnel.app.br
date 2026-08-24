@@ -33,6 +33,7 @@
       ],
       "icon": "icone.ico"
     },
+    "artifactName": "FlowSara-Setup.exe",
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
