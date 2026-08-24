@@ -1,0 +1,44 @@
+{
+  "name": "flowsara-desktop",
+  "productName": "FlowSara",
+  "version": "1.0.0",
+  "description": "FlowSara — rastreamento de funil de vendas",
+  "main": "main.js",
+  "author": "FlowSara",
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "dev": "electron .",
+    "build": "electron-builder --win",
+    "build:portable": "electron-builder --win portable"
+  },
+  "devDependencies": {
+    "electron": "^34.0.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "br.com.flowsara.desktop",
+    "productName": "FlowSara",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "icone.ico"
+    ],
+    "win": {
+      "target": [
+        { "target": "nsis", "arch": ["x64"] }
+      ],
+      "icon": "icone.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "FlowSara"
+    }
+  }
+}

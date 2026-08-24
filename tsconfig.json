@@ -40,6 +40,7 @@
   "exclude": [
     "node_modules",
     "artifacts/mockup-sandbox",
+    "desktop",
     "__tests__"
   ]
 }

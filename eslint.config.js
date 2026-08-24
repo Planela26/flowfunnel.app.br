@@ -9,7 +9,7 @@ export default [
     // build, não é importado por nada da aplicação, e ninguém vai corrigir
     // lint dele. Enquanto era varrido, respondia por 4 dos erros e inflava o
     // número que decide se a CI pode virar bloqueante.
-    ignores: ['artifacts/**'],
+    ignores: ['artifacts/**', 'desktop/**'],
   },
 
   {

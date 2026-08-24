@@ -185,3 +185,9 @@ test-connection.js
 run-tests.js
 run-integration-tests.js
 *.backup-lp-antiga
+
+# Electron (FlowSara para Windows) — o build sai daqui e nao vai para o repositorio.
+# O instalador tem ~85 MB por causa do Chromium embutido; versionar isso
+# incharia o clone de todo mundo por um arquivo que se gera com um comando.
+desktop/node_modules/
+desktop/dist/
