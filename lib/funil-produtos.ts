@@ -33,6 +33,17 @@ function normalizarUrl(bruta: string | null | undefined): string | null {
   try {
     const u = new URL(bruta)
     const caminho = u.pathname.replace(/\/+$/, '')
+
+    // RAIZ DE DOMÍNIO NÃO VIRA PREFIXO. `https://site.com` casaria com QUALQUER
+    // página do domínio — inclusive o painel, o checkout e tudo mais — e o
+    // funil vinculado a ela engoliria o tráfego inteiro da conta em vez de
+    // separar coisa alguma. Foi o que quase aconteceu com um link cadastrado
+    // apontando para a raiz, com 792 visitas acumuladas.
+    //
+    // Esses cadastros continuam funcionando pelo LINK CURTO, que é preciso:
+    // cada clique grava o siteId e não depende de comparar endereço.
+    if (caminho === '') return null
+
     return `${u.origin}${caminho}`
   } catch {
     return null
