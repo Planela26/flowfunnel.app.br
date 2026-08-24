@@ -1,18 +1,13 @@
 import { pareceRobo } from '@/lib/bot-detection'
+import { corsPublico } from '@/lib/cors-publico'
 import { NextResponse } from 'next/server'
 import { prismaAdmin as prisma } from '@/lib/prisma'
 import { checkRateLimit } from '@/lib/security-utils'
 import { isIngestionBlockedForUser } from '@/lib/account-status'
 
-const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
-  'Access-Control-Max-Age': '86400',
-}
 
-export async function OPTIONS() {
-  return new NextResponse(null, { status: 204, headers: CORS_HEADERS })
+export async function OPTIONS(request: Request) {
+  return new NextResponse(null, { status: 204, headers: corsPublico(request) })
 }
 
 function clientIp(req: Request): string | null {
@@ -23,37 +18,37 @@ function clientIp(req: Request): string | null {
 
 export async function POST(request: Request) {
   const rl = await checkRateLimit(`track:event:${request.headers.get('x-forwarded-for') || 'anon'}`, 60, 60_000)
-  if (!rl.ok) return NextResponse.json({ error: 'rate_limited' }, { status: 429, headers: CORS_HEADERS })
+  if (!rl.ok) return NextResponse.json({ error: 'rate_limited' }, { status: 429, headers: corsPublico(request) })
 
   // Este endpoint é público (é o que o tracker.js do site do cliente chama),
   // então recebe tudo que passeia pela internet. Sem este filtro, cada
   // rastreador vira um "visitante" e infla as métricas de quem paga anúncio.
   if (pareceRobo(request.headers.get('user-agent'))) {
-    return NextResponse.json({ ok: true }, { status: 200, headers: CORS_HEADERS })
+    return NextResponse.json({ ok: true }, { status: 200, headers: corsPublico(request) })
   }
   let body: any
   try {
     body = await request.json()
   } catch {
-    return NextResponse.json({ error: 'invalid_json' }, { status: 400, headers: CORS_HEADERS })
+    return NextResponse.json({ error: 'invalid_json' }, { status: 400, headers: corsPublico(request) })
   }
 
   const siteId = String(body?.site || '').trim()
   const leadId = String(body?.lead_id || '').trim()
   const event = String(body?.event || '').trim()
   if (!siteId || !leadId || !event) {
-    return NextResponse.json({ error: 'missing_fields' }, { status: 400, headers: CORS_HEADERS })
+    return NextResponse.json({ error: 'missing_fields' }, { status: 400, headers: corsPublico(request) })
   }
 
   // Confirma que site (= userId) existe
   const user = await prisma.user.findUnique({ where: { id: siteId }, select: { id: true } })
   if (!user) {
-    return NextResponse.json({ error: 'invalid_site' }, { status: 404, headers: CORS_HEADERS })
+    return NextResponse.json({ error: 'invalid_site' }, { status: 404, headers: corsPublico(request) })
   }
 
   // Modo somente leitura: plano vencido → não ingere novos eventos de tracking.
   if (await isIngestionBlockedForUser(user.id)) {
-    return NextResponse.json({ skipped: true, reason: 'subscription_expired' }, { status: 200, headers: CORS_HEADERS })
+    return NextResponse.json({ skipped: true, reason: 'subscription_expired' }, { status: 200, headers: corsPublico(request) })
   }
 
   const utm = body.utm || {}
@@ -129,9 +124,9 @@ export async function POST(request: Request) {
       },
     })
 
-    return NextResponse.json({ ok: true }, { headers: CORS_HEADERS })
+    return NextResponse.json({ ok: true }, { headers: corsPublico(request) })
   } catch (err: any) {
     console.error('[track/event] erro:', err?.message)
-    return NextResponse.json({ error: 'server_error' }, { status: 500, headers: CORS_HEADERS })
+    return NextResponse.json({ error: 'server_error' }, { status: 500, headers: corsPublico(request) })
   }
 }
