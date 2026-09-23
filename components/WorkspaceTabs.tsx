@@ -48,6 +48,8 @@ export default function WorkspaceTabs({ onWorkspaceChange, onWorkspaceSaved }: W
   const [availableNumbers, setAvailableNumbers] = useState<any[]>([])
   const [availableCampaigns, setAvailableCampaigns] = useState<any[]>([])
   const [loadingOptions, setLoadingOptions] = useState(false)
+  const [reorganizando, setReorganizando] = useState(false)
+  const [resultadoReorganizar, setResultadoReorganizar] = useState('')
   const [sitesRastreados, setSitesRastreados] = useState<Array<{ id: string; slug: string; label: string; visitCount: number }>>([])
   // Um campo de digitação por plataforma, para colar o ID do produto.
   const [novoProdutoId, setNovoProdutoId] = useState<Record<string, string>>({})
@@ -164,6 +166,31 @@ export default function WorkspaceTabs({ onWorkspaceChange, onWorkspaceSaved }: W
     fetchOptions()
   }
 
+  /**
+   * Repassa o porteiro sobre o histórico já gravado.
+   *
+   * Salvar o vínculo já faz isso sozinho. O botão existe para o que o salvar
+   * não cobre: vendas que chegaram antes de a separação existir, e a simples
+   * necessidade de CONFERIR — ver o número de vendas movidas é o que dá para
+   * confiar que o funil está certo.
+   */
+  const reorganizarHistorico = async () => {
+    setReorganizando(true)
+    setResultadoReorganizar('')
+    try {
+      const res = await fetch('/api/funnel/reorganizar', { method: 'POST' })
+      const data = await res.json()
+      setResultadoReorganizar(
+        res.ok ? (data.mensagem || 'Pronto.') : (data.message || 'Não foi possível reorganizar.'),
+      )
+      if (res.ok) onWorkspaceSaved?.()
+    } catch {
+      setResultadoReorganizar('Erro de conexão.')
+    } finally {
+      setReorganizando(false)
+    }
+  }
+
   const createWorkspace = async () => {
     if (!form.name.trim()) { setFormError('Nome obrigatório'); return }
     setFormLoading(true)
@@ -187,7 +214,9 @@ export default function WorkspaceTabs({ onWorkspaceChange, onWorkspaceSaved }: W
           })
           return
         }
-        setFormError(data.error || 'Erro ao criar')
+        // Conflito de produto: a mensagem diz EM QUAL funil o id já está, e é
+        // ela que a pessoa precisa ler — `data.error` seria só o código.
+        setFormError(data.message || data.error || 'Erro ao criar')
         return
       }
       setShowNewModal(false)
@@ -212,7 +241,7 @@ export default function WorkspaceTabs({ onWorkspaceChange, onWorkspaceSaved }: W
         body: JSON.stringify({ id: showEditId, ...form, checkoutProductIds: vinculoEfetivo() }),
       })
       const data = await res.json()
-      if (!res.ok) { setFormError(data.error || 'Erro ao salvar'); return }
+      if (!res.ok) { setFormError(data.message || data.error || 'Erro ao salvar'); return }
       setShowEditId(null)
       await fetchWorkspaces()
       // Salvar NÃO muda o id do funil, então sem este aviso o canvas ficaria
@@ -614,9 +643,23 @@ export default function WorkspaceTabs({ onWorkspaceChange, onWorkspaceSaved }: W
 
                   <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
                     {Object.keys(form.checkoutProductIds).length === 0
-                      ? 'Nenhum produto marcado: este funil mostra as vendas da conta inteira. Marque os da lista, ou cole o ID de um produto que ainda não vendeu.'
-                      : 'Só as vendas destes produtos contam nos cards deste funil — inclusive as antigas.'}
+                      ? 'Sem produto marcado, este funil fica aguardando: os cards dizem que falta vincular, em vez de mostrar as vendas dos outros funis.'
+                      : 'Cada venda é separada na CHEGADA pelo ID do produto — e o histórico antigo vem junto.'}
                   </p>
+
+                  <div className="mt-2 flex items-center gap-2 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={reorganizarHistorico}
+                      disabled={reorganizando}
+                      className="px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 text-xs font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 transition"
+                    >
+                      {reorganizando ? 'Reorganizando…' : 'Reorganizar histórico'}
+                    </button>
+                    {resultadoReorganizar && (
+                      <span className="text-xs text-gray-500 dark:text-gray-400">{resultadoReorganizar}</span>
+                    )}
+                  </div>
                 </div>
               )}
 

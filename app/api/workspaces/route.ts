@@ -3,6 +3,55 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma, withTenantTx } from '@/lib/prisma'
 import { getMaxFunnels, normalizePlan } from '@/lib/plans'
+import { normalizarIdProduto, reorganizarHistoricoHotmart } from '@/lib/porteiro-funil'
+
+/**
+ * O id do produto é o CRACHÁ que leva a venda ao funil certo (ver
+ * lib/porteiro-funil.ts), e crachá repetido não identifica ninguém: se o mesmo
+ * produto estivesse em dois funis, a mesma venda teria dois donos e o
+ * faturamento apareceria em dobro ao olhar os dois.
+ *
+ * Por isso a exclusividade é checada aqui, na hora de salvar — e não na
+ * chegada da venda, quando já seria tarde para avisar quem digitou.
+ *
+ * Devolve a mensagem do conflito, ou `null` quando está tudo livre.
+ * `ignorarFunilId` é o próprio funil sendo editado: reeditar sem mudar o id
+ * não pode acusar conflito consigo mesmo.
+ */
+async function conflitoDeProduto(
+  userId: string,
+  vinculo: Record<string, string[]> | null | undefined,
+  ignorarFunilId?: string,
+): Promise<string | null> {
+  if (!vinculo || Object.keys(vinculo).length === 0) return null
+
+  const outros = await prisma.workspace.findMany({
+    where: { userId, ...(ignorarFunilId ? { id: { not: ignorarFunilId } } : {}) },
+    select: { id: true, name: true, checkoutProductIds: true },
+  })
+
+  for (const [plataforma, ids] of Object.entries(vinculo)) {
+    if (!Array.isArray(ids)) continue
+    const meus = new Set(ids.map(normalizarIdProduto).filter(Boolean) as string[])
+    if (meus.size === 0) continue
+
+    for (const outro of outros) {
+      if (!outro.checkoutProductIds) continue
+      let dele: Record<string, string[]>
+      try { dele = JSON.parse(outro.checkoutProductIds) } catch { continue }
+      const idsDele = Array.isArray(dele?.[plataforma]) ? dele[plataforma] : []
+      for (const bruto of idsDele) {
+        const id = normalizarIdProduto(bruto)
+        if (id && meus.has(id)) {
+          return `O produto ${id} (${plataforma}) já está vinculado ao funil "${outro.name}". ` +
+            `Um produto pertence a um funil só — remova de lá para usar aqui.`
+        }
+      }
+    }
+  }
+
+  return null
+}
 
 /**
  * Quais cards um funil mostra, deduzidos do que a pessoa configurou nele.
@@ -103,6 +152,11 @@ export async function POST(request: Request) {
     const { name, emoji, whatsappIntegrationId, facebookCampaignId, checkoutSources, trafficSources, checkoutProductIds, trackedSiteIds } = await request.json()
     if (!name) return NextResponse.json({ error: 'Nome é obrigatório' }, { status: 400 })
 
+    const conflito = await conflitoDeProduto(session.user.id, checkoutProductIds)
+    if (conflito) {
+      return NextResponse.json({ error: 'produto_ja_vinculado', message: conflito }, { status: 409 })
+    }
+
     // Limite verificado e workspace criado na MESMA transação, com a linha do
     // usuário travada — sem isso, requisições concorrentes furam o limite.
     const outcome = await withTenantTx(async (tx) => {
@@ -167,6 +221,18 @@ export async function POST(request: Request) {
       )
     }
 
+    // O vínculo vale PARA TRÁS: cadastrar o id do produto aqui puxa para este
+    // funil as vendas antigas dele, sem reprocessar webhook nenhum. Falhar
+    // nisto não pode derrubar a criação do funil — o botão "reorganizar"
+    // continua disponível.
+    if (checkoutProductIds && Object.keys(checkoutProductIds).length > 0) {
+      try {
+        await reorganizarHistoricoHotmart(session.user.id)
+      } catch (e) {
+        console.error('[porteiro] reorganização após criar funil falhou:', e)
+      }
+    }
+
     return NextResponse.json({ workspace: outcome.workspace })
   } catch (error) {
     console.error('Erro ao criar workspace:', error)
@@ -186,6 +252,13 @@ export async function PATCH(request: Request) {
     // Verificar que o workspace pertence ao usuário
     const existing = await prisma.workspace.findFirst({ where: { id, userId: session.user.id } })
     if (!existing) return NextResponse.json({ error: 'Workspace não encontrado' }, { status: 404 })
+
+    if (checkoutProductIds !== undefined) {
+      const conflito = await conflitoDeProduto(session.user.id, checkoutProductIds, id)
+      if (conflito) {
+        return NextResponse.json({ error: 'produto_ja_vinculado', message: conflito }, { status: 409 })
+      }
+    }
 
     // O que já estava salvo, para a dedução de cards não perder o que esta
     // edição não mencionou. `trafficSources` não é coluna — vive no arranjo de
@@ -244,6 +317,17 @@ export async function PATCH(request: Request) {
         ...(setDefault && { isDefault: true }),
       },
     })
+
+    // Mudou o vínculo de produtos: o histórico é recarimbado na hora. Isso
+    // cobre os dois sentidos — id adicionado traz as vendas para cá, id
+    // removido as devolve para "Sem funil".
+    if (checkoutProductIds !== undefined) {
+      try {
+        await reorganizarHistoricoHotmart(session.user.id)
+      } catch (e) {
+        console.error('[porteiro] reorganização após editar funil falhou:', e)
+      }
+    }
 
     return NextResponse.json({ workspace })
   } catch (error) {

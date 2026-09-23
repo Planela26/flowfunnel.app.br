@@ -240,6 +240,24 @@ function IntegrationCardNode({ data }: NodeProps) {
             <div className="w-5 h-5 border-2 rounded-full animate-spin" style={{ borderColor: c, borderTopColor: 'transparent' }} />
             <span className="text-[10px] text-gray-500">Carregando...</span>
           </div>
+        ) : d.data?.aguardandoIntegracoes ? (
+          /* FUNIL AINDA NÃO CONFIGURADO. Antes ele mostrava os números da conta
+             inteira — era daí que vinha "os dois funis mostram o mesmo". Número
+             de outro funil é pior que número nenhum: aqui o card diz o que está
+             faltando, em vez de exibir um zero que parece medição. */
+          <div className="flex flex-col items-center py-4 gap-2 text-center">
+            <div
+              className="w-10 h-10 rounded-xl flex items-center justify-center text-base border-2 border-dashed"
+              style={{ borderColor: `${c}60`, backgroundColor: `${c}12` }}
+            >
+              <span style={{ color: c }}>{card.icon}</span>
+            </div>
+            <p className="text-[11px] font-semibold text-gray-300">Aguardando integrações</p>
+            <p className="text-[9px] text-gray-500 leading-tight px-1">
+              Este funil ainda não tem produto nem link vinculado. Abra Editar Funil e
+              cole o ID do produto — as vendas dele, inclusive as antigas, vêm para cá.
+            </p>
+          </div>
         ) : metrics ? (
           <>
             <div className="grid grid-cols-2 gap-1.5">
@@ -280,9 +298,32 @@ function IntegrationCardNode({ data }: NodeProps) {
                 )}
               </p>
             )}
+            {/* Venda que não coube em funil nenhum precisa APARECER. Sem isto,
+                o "Sem funil" seria um buraco silencioso: o dinheiro entra, some
+                de todas as telas, e a pessoa descobre estranhando o total. */}
+            {d.data?.vendasSemFunil > 0 && (
+              <p className="mt-2 text-[9px] leading-tight text-amber-500/90">
+                {d.data.vendasSemFunil} venda(s) fora de qualquer funil
+                {d.data.produtosSemFunil?.length
+                  ? ' — produto(s) ' + d.data.produtosSemFunil.join(', ') + ' sem vínculo.'
+                  : '.'}
+                {' '}Cole o ID em Editar Funil para trazê-las.
+              </p>
+            )}
             {d.data?.filtroDeProdutos && (
               <p className="mt-2 text-[9px] leading-tight text-gray-500">
-                {d.data.filtroDeProdutos.porAtribuicao ? (
+                {d.data.filtroDeProdutos.porCarimbo ? (
+                  // Caminho do porteiro: a venda chegou já sabendo de qual funil
+                  // é, pelo ID do produto. Dizer isso aqui é o que permite
+                  // confiar no número sem abrir o DevTools.
+                  <>
+                    Só as vendas dos produtos deste funil
+                    {d.data.filtroDeProdutos.produtos?.length
+                      ? ` (${d.data.filtroDeProdutos.produtos.join(', ')})`
+                      : ''}
+                    , separadas na chegada.
+                  </>
+                ) : d.data.filtroDeProdutos.porAtribuicao ? (
                   // Caminho automático: a venda veio pelo link deste funil.
                   <>
                     Só as vendas que vieram pelo link deste funil

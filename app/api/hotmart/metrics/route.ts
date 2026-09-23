@@ -7,6 +7,9 @@ import { cache, generateCacheKey, CacheTTL } from '@/lib/cache'
 import { isCanceledSale, extractAmount } from '@/lib/sale-events'
 import { produtosDoFunil, eventoDoFunil, vendasDoFunil } from '@/lib/funil-produtos'
 
+const formatCurrency = (value: number) =>
+  new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
+
 // Buscar métricas do Hotmart para o dashboard
 export async function GET(request: Request) {
   try {
@@ -92,9 +95,56 @@ export async function GET(request: Request) {
     const produtos = await produtosDoFunil(workspaceId, 'hotmart', session.user.id)
     const transacoes = await vendasDoFunil(workspaceId, session.user.id, 'hotmart')
 
-    // `transacoes` restringe no BANCO — `transactionId` é coluna, e faz parte
-    // do índice único (funnelId, source, transactionId).
-    const porAtribuicao = transacoes !== null ? { transactionId: { in: transacoes } } : {}
+    // O CARIMBO. Com produto vinculado, o evento já chegou sabendo de qual
+    // funil é: o porteiro decidiu isso na porta (lib/porteiro-funil.ts) e
+    // gravou em `workspaceId`. A pergunta vira uma coluna indexada, e o filtro
+    // por metadata — que precisava ler o JSON de cada linha — sai de cena.
+    //
+    // "sem-funil" é o lugar visível das vendas cujo produto não está em funil
+    // nenhum. Elas existem de propósito: nenhuma venda é descartada por falta
+    // de vínculo, ela só fica esperando em um lugar onde dá para vê-la.
+    const verSemFunil = workspaceId === 'sem-funil'
+    const usarCarimbo = verSemFunil || (Boolean(workspaceId) && produtos !== null)
+    const porCarimbo = usarCarimbo ? { workspaceId: verSemFunil ? null : workspaceId } : {}
+
+    // A atribuição pelo link continua atendendo o funil que tem link mas ainda
+    // não tem produto vinculado. Com carimbo ela é desnecessária: o carimbo já
+    // é a resposta, e mais restritivo.
+    const porAtribuicao = !usarCarimbo && transacoes !== null ? { transactionId: { in: transacoes } } : {}
+
+    // Com carimbo, o filtro por metadata deixa de valer — ele já foi aplicado
+    // na chegada. Passar `null` adiante é o que diz "não filtre de novo".
+    const produtosParaFiltrar = usarCarimbo ? null : produtos
+
+    // FUNIL SEM NADA VINCULADO. Antes, ele caía no "sem filtro" e mostrava as
+    // vendas da conta INTEIRA — era esta a origem de "os dois funis mostram o
+    // mesmo número". Mostrar os números de outro funil é pior do que não
+    // mostrar nenhum: o card agora diz que está esperando ser configurado.
+    if (workspaceId && !verSemFunil && produtos === null && transacoes === null) {
+      const aguardando = {
+        checkoutsIniciados: 0,
+        checkoutsNaoTerminados: 0,
+        checkoutsAguardando: 0,
+        pagamentosConfirmados: 0,
+        taxaConversaoCheckout: '0%',
+        ticketMedio: formatCurrency(0),
+        faturamento: formatCurrency(0),
+        connected: true,
+        aguardandoIntegracoes: true,
+        filtroDeProdutos: {
+          workspaceId,
+          produtos: null,
+          porAtribuicao: false,
+          vendasAtribuidas: null,
+          aplicado: false,
+          vendasAntesDoFiltro: 0,
+          vendasDepoisDoFiltro: 0,
+        },
+        raw: { totalSales: 0, totalRevenue: 0, averageTicket: 0 },
+      }
+      cache.set(cacheKey, aguardando, CacheTTL.SHORT)
+      return NextResponse.json(aguardando)
+    }
 
     const lerMeta = (linha: { metadata: string | null }) => {
       try {
@@ -108,12 +158,14 @@ export async function GET(request: Request) {
     // do JSON de metadata. Busca-se e filtra-se aqui, com a mesma regra que as
     // vendas usam, para os três números saírem do mesmo critério.
     const contarPorTipo = async (eventType: string) => {
-      if (!produtos) return prisma.funnelEvent.count({ where: { ...naJanela, ...porAtribuicao, eventType } })
+      if (!produtosParaFiltrar) {
+        return prisma.funnelEvent.count({ where: { ...naJanela, ...porCarimbo, ...porAtribuicao, eventType } })
+      }
       const linhas = await prisma.funnelEvent.findMany({
-        where: { ...naJanela, ...porAtribuicao, eventType },
+        where: { ...naJanela, ...porCarimbo, ...porAtribuicao, eventType },
         select: { metadata: true },
       })
-      return linhas.filter((l) => eventoDoFunil(lerMeta(l), produtos)).length
+      return linhas.filter((l) => eventoDoFunil(lerMeta(l), produtosParaFiltrar)).length
     }
 
     // Boletos/PIX emitidos e ainda não pagos.
@@ -127,7 +179,7 @@ export async function GET(request: Request) {
 
     // Buscar vendas completas
     const vendasCompletas = await prisma.funnelEvent.findMany({
-      where: { ...naJanela, ...porAtribuicao, eventType: 'hotmart_purchase_complete' },
+      where: { ...naJanela, ...porCarimbo, ...porAtribuicao, eventType: 'hotmart_purchase_complete' },
       // Só metadata é lido daqui (lerMeta); as demais colunas vinham de graça
       // e custavam banda a cada carregamento do card.
       select: { metadata: true },
@@ -141,10 +193,42 @@ export async function GET(request: Request) {
     // deste funil não conta aqui nem no faturamento.
     const vendasAtivas = vendasCompletas.filter((venda) => {
       const meta = lerMeta(venda)
-      return !isCanceledSale(meta) && eventoDoFunil(meta, produtos)
+      return !isCanceledSale(meta) && eventoDoFunil(meta, produtosParaFiltrar)
     })
 
     const pagamentosConfirmados = vendasAtivas.length
+
+    // AS VENDAS SEM DONO. O "Sem funil" só serve se for visível: uma venda que
+    // não entra em funil nenhum some da tela inteira, e a pessoa descobre
+    // estranhando o faturamento semanas depois. Aqui ela vira um aviso com os
+    // ids prontos para cadastrar.
+    //
+    // Só é calculado quando há funil aberto — na visão da conta inteira não há
+    // nada de que essas vendas estejam "faltando".
+    let vendasSemFunil = 0
+    let produtosSemFunil: string[] = []
+    if (workspaceId && !verSemFunil) {
+      const orfas = await prisma.funnelEvent.findMany({
+        where: {
+          funnelId: { in: funnelIds },
+          workspaceId: null,
+          timestamp: { gte: desde },
+          eventType: 'hotmart_purchase_complete',
+        },
+        select: { metadata: true },
+        take: 5_000,
+      })
+      const ativas = orfas.filter((o) => !isCanceledSale(lerMeta(o)))
+      vendasSemFunil = ativas.length
+      produtosSemFunil = [
+        ...new Set(
+          ativas
+            .map((o) => lerMeta(o)?.productId ?? lerMeta(o)?.product_id)
+            .filter((id: unknown) => id != null)
+            .map((id: unknown) => String(id)),
+        ),
+      ].slice(0, 5)
+    }
 
     // Calcular faturamento total
     let faturamentoTotal = 0
@@ -169,14 +253,6 @@ export async function GET(request: Request) {
       ? (pagamentosConfirmados / checkoutsIniciados) * 100
       : 0
 
-    // Formatar valores
-    const formatCurrency = (value: number) => {
-      return new Intl.NumberFormat('pt-BR', {
-        style: 'currency',
-        currency: 'BRL',
-      }).format(value)
-    }
-
     const response = {
       checkoutsIniciados,
       checkoutsNaoTerminados,
@@ -195,6 +271,8 @@ export async function GET(request: Request) {
       // correspondência — produzem exatamente a mesma tela.
       filtroDeProdutos: {
         workspaceId: workspaceId ?? null,
+        // Por carimbo = o porteiro decidiu na chegada (o caminho novo).
+        porCarimbo: usarCarimbo,
         produtos,
         // Por atribuição = automático, pelo link. Por produto = manual.
         porAtribuicao: transacoes !== null,
@@ -207,6 +285,9 @@ export async function GET(request: Request) {
       // movimento e deu zero". O card diferencia os dois.
       aguardandoPrimeiroEvento:
         pagamentosConfirmados === 0 && checkoutsPendentes === 0 && carrinhosAbandonados === 0,
+      // Vendas que chegaram e não couberam em funil nenhum, nesta janela.
+      vendasSemFunil,
+      produtosSemFunil,
       // Dados brutos para cálculos
       raw: {
         totalSales: pagamentosConfirmados,

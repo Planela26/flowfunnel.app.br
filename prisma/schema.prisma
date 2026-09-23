@@ -267,6 +267,17 @@ model FunnelStage {
 model FunnelEvent {
   id            String   @id @default(cuid())
   funnelId      String
+  // De qual FUNIL (Workspace) este evento é — decidido na CHEGADA pelo porteiro
+  // (lib/porteiro-funil.ts), a partir do id do produto que o webhook trouxe.
+  //
+  // Antes desta coluna a pergunta "de quem é este dado?" era refeita a cada
+  // LEITURA, por cada rota, com o filtro que ela lembrasse de aplicar — e as que
+  // não lembravam mostravam a conta inteira. Carimbar na porta faz a resposta
+  // existir UMA vez, e toda tela herda.
+  //
+  // `null` = nenhum funil reivindicou o produto. Não é erro: é o "Sem funil",
+  // que aparece na tela de propósito, para venda nenhuma sumir em silêncio.
+  workspaceId   String?
   stageId       String
   leadId        String?
   eventType     String
@@ -280,6 +291,8 @@ model FunnelEvent {
 
   @@unique([funnelId, source, transactionId], name: "idx_funnel_event_dedup")
   @@index([funnelId, timestamp])
+  // A consulta de todo card de funil: "eventos deste funil, neste período".
+  @@index([workspaceId, timestamp])
   @@index([stageId])
   @@index([timestamp])
 }

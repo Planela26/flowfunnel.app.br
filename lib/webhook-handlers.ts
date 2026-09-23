@@ -3,6 +3,7 @@ import { mapPlatformStatusToStage, ensureFunnelWithStages, pickStage } from './w
 import { isDuplicateTransaction } from './webhook-dedup'
 import { isIngestionBlockedForUser } from './account-status'
 import { attributeSale } from './attribution'
+import { funilDaVendaHotmart, avisarProdutoSemFunil } from './porteiro-funil'
 import { dataDeWebhook, valorDaCompra } from './webhook-time'
 import type {
   HotmartData, KiwifyBody, EduzzBody, MonetizzeBody, PerfectPayBody,
@@ -119,9 +120,15 @@ async function hotmartPurchaseComplete(data: HotmartData, userId: string) {
   // acabava gravado no estágio 'Pago'.
   const funnel = await ensureFunnelWithStages(userId)
 
+  // O PORTEIRO. De qual funil é esta venda? Respondido AQUI, na chegada, pelo
+  // id do produto — e não mais a cada leitura, por cada tela que lembrasse de
+  // perguntar. Ver lib/porteiro-funil.ts. `null` = "Sem funil".
+  const workspaceId = await funilDaVendaHotmart(userId, data?.product)
+
   const paidStage = pickStage(funnel.stages, 'Pago')
 
   const dados = {
+    workspaceId,
     stageId: paidStage.id,
     eventType: 'hotmart_purchase_complete',
     timestamp: quandoAprovou,
@@ -193,6 +200,12 @@ async function hotmartPurchaseComplete(data: HotmartData, userId: string) {
         ...dados,
       },
     })
+  }
+
+  // Venda que não achou funil não pode ficar só no silêncio do "Sem funil":
+  // sem aviso, a pessoa só descobre quando estranha o faturamento.
+  if (!workspaceId) {
+    await avisarProdutoSemFunil(userId, 'hotmart', data?.product?.id ?? data?.product?.ucode, data?.product?.name)
   }
 
   await updateLeadStatusFromSale(
@@ -267,11 +280,18 @@ async function hotmartPurchaseCanceled(data: HotmartData, userId: string, event?
         : (existingEvent.metadata as unknown as Record<string, any>) || {}
     } catch { metadata = {} }
 
+    // O carimbo de funil é REVISADO aqui, mas nunca apagado: o payload de
+    // cancelamento às vezes vem sem o bloco do produto, e sobrescrever com
+    // `null` mudaria a venda de funil no meio do caminho — o estorno sumiria
+    // do lugar onde a venda está.
+    const funilDoEstorno = await funilDaVendaHotmart(userId, data?.product)
+
     // Move o evento para o estágio Reembolsado/Recusado e marca o status
     // (isCanceledSale passa a excluí-lo de receita em todos os relatórios).
     await prisma.funnelEvent.update({
       where: { id: existingEvent.id },
       data: {
+        ...(funilDoEstorno ? { workspaceId: funilDoEstorno } : {}),
         stageId: targetStage.id,
         metadata: JSON.stringify({
           ...metadata,
@@ -302,6 +322,7 @@ async function hotmartPurchaseDelayed(data: HotmartData, userId: string) {
   // `findFirst` sem funil devolvia silenciosamente: boleto emitido antes da
   // primeira venda aprovada sumia sem deixar rastro.
   const funnel = await ensureFunnelWithStages(userId)
+  const workspaceId = await funilDaVendaHotmart(userId, data?.product)
   const checkoutStage = pickStage(funnel.stages, 'Checkout')
 
   // Sem dedup, uma reentrega da Hotmart violava a constraint única e a rota
@@ -311,6 +332,7 @@ async function hotmartPurchaseDelayed(data: HotmartData, userId: string) {
   await prisma.funnelEvent.create({
     data: {
       funnelId: funnel.id,
+      workspaceId,
       stageId: checkoutStage.id,
       eventType: 'hotmart_checkout_started',
       source: 'hotmart',
@@ -319,6 +341,11 @@ async function hotmartPurchaseDelayed(data: HotmartData, userId: string) {
       metadata: JSON.stringify({
         buyerEmail: data?.buyer?.email,
         buyerName: data?.buyer?.name,
+        // `productId` passou a ser gravado aqui (e no abandono) porque é o que
+        // o porteiro lê para reorganizar o histórico depois. Sem ele, só a
+        // venda aprovada era reorganizável, e boleto e carrinho ficavam presos
+        // em "Sem funil" para sempre.
+        productId: data?.product?.id ?? data?.product?.ucode ?? null,
         productName: data?.product?.name,
         price: valorDaCompra(data?.purchase).valor,
         status: 'delayed',
@@ -343,6 +370,7 @@ async function hotmartCartAbandoned(data: HotmartData, userId: string) {
 
   const email = data?.buyer?.email || null
   const produto = data?.product?.id ?? data?.product?.ucode ?? 'sem-produto'
+  const workspaceId = await funilDaVendaHotmart(userId, data?.product)
   // Sem transactionId, o par (e-mail, produto) é o que identifica a tentativa.
   const chave = email ? `cart:${produto}:${email}` : null
   if (chave && (await isDuplicateTransaction(funnel.id, chave, 'hotmart'))) return
@@ -350,6 +378,7 @@ async function hotmartCartAbandoned(data: HotmartData, userId: string) {
   await prisma.funnelEvent.create({
     data: {
       funnelId: funnel.id,
+      workspaceId,
       stageId: abandonedStage.id,
       eventType: 'hotmart_cart_abandoned',
       source: 'hotmart',
@@ -358,6 +387,7 @@ async function hotmartCartAbandoned(data: HotmartData, userId: string) {
       metadata: JSON.stringify({
         buyerEmail: email,
         buyerName: data?.buyer?.name,
+        productId: data?.product?.id ?? data?.product?.ucode ?? null,
         productName: data?.product?.name,
         status: 'abandoned',
       }),
