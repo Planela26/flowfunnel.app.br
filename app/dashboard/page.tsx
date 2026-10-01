@@ -36,6 +36,7 @@ import UpgradeTriggers from '@/components/UpgradeTriggers'
 import { usePlan } from '@/components/usePlan'
 import Link from 'next/link'
 import SaraInsightsPanel from '@/components/SaraInsightsPanel'
+import { RASTREAMENTO_LANDING_ATIVO } from '@/lib/rastreamento-landing'
 
 const estimateWhatsAppConversations = (clicks: number) => Math.max(0, Math.round(clicks * 0.18))
 
@@ -212,6 +213,15 @@ export default function Dashboard() {
       } finally {
         setLoadingLanding(false)
       }
+    }
+
+    // Com o rastreador em conserto o card não existe, e ninguém lê o que esta
+    // busca traz. Parar aqui evita bater no servidor a cada 5 minutos por um
+    // número que não vai para lugar nenhum — e volta sozinha quando o
+    // interruptor em `lib/rastreamento-landing` voltar a `true`.
+    if (!RASTREAMENTO_LANDING_ATIVO) {
+      setLoadingLanding(false)
+      return
     }
 
     fetchLandingMetrics()

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { RASTREAMENTO_LANDING_ATIVO } from '@/lib/rastreamento-landing'
 
 export type IntegrationCard = {
   id: string
@@ -14,9 +15,14 @@ export type IntegrationCard = {
   borderColor: string
   connectHref?: string
   connectLabel?: string
+  // Quando preenchido, o card aparece no funil mas não é utilizável, e este
+  // texto é o motivo mostrado na tela. Serve para ferramenta em conserto:
+  // sumir com o card faria parecer defeito, e deixar clicável prometeria algo
+  // que não funciona.
+  indisponivel?: string
 }
 
-export const AVAILABLE_INTEGRATIONS: IntegrationCard[] = [
+const TODAS_AS_INTEGRACOES: IntegrationCard[] = [
   { id: 'facebook', label: 'Meta Ads', type: 'traffic', icon: 'f', color: '#1877f2', borderColor: 'border-blue-500/50', connectHref: '/facebook-connect' },
   { id: 'google', label: 'Google Ads', type: 'traffic', icon: 'G', color: '#ea4335', borderColor: 'border-red-500/50', connectHref: '/settings', connectLabel: 'Configurar Google Ads' },
   { id: 'tiktok', label: 'TikTok Ads', type: 'traffic', icon: '\u266A', color: '#ff0050', borderColor: 'border-pink-500/50', connectHref: '/settings', connectLabel: 'Configurar TikTok Ads' },
@@ -31,6 +37,21 @@ export const AVAILABLE_INTEGRATIONS: IntegrationCard[] = [
   { id: 'stripe', label: 'Stripe', type: 'payment', icon: 'S', color: '#635bff', borderColor: 'border-violet-500/50', connectHref: '/settings' },
   { id: 'crm', label: 'CRM', type: 'crm', icon: 'CRM', color: '#64748b', borderColor: 'border-slate-500/50', connectHref: '/settings' },
 ]
+
+/**
+ * Os cards do funil, com a Landing Page marcada como indisponível enquanto o
+ * rastreador de site está em conserto — ver `lib/rastreamento-landing`.
+ *
+ * O card CONTINUA no funil, no lugar de sempre, com as setas de sempre. Só
+ * não dá para usar, e diz por quê. Tirar o card mudaria o desenho do funil de
+ * quem já o tinha, sem explicar nada — e some hoje, volta amanhã, sem aviso
+ * nenhum nas duas vezes.
+ */
+export const AVAILABLE_INTEGRATIONS: IntegrationCard[] = TODAS_AS_INTEGRACOES.map(i =>
+  i.id === 'landing' && !RASTREAMENTO_LANDING_ATIVO
+    ? { ...i, indisponivel: 'Em manutenção' }
+    : i
+)
 
 // A chave inclui o FUNIL. Sem isso, o cache local de um funil era lido pelo
 // outro e os cards apareciam com o arranjo errado antes mesmo do servidor

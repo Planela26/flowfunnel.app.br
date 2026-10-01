@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useSession } from 'next-auth/react'
 import { useNavigation } from './NavigationContext'
+import { RASTREAMENTO_LANDING_ATIVO } from '@/lib/rastreamento-landing'
 import {
   Settings, LayoutDashboard, Phone, Megaphone, Webhook,
   BarChart2, Users2, UserCog, Users, FileText, CreditCard,
@@ -19,6 +20,10 @@ type NavItem = {
   icon: React.ElementType
   exact?: boolean
   adminOnly?: boolean
+  // Quando preenchido, o item aparece no menu mas não leva a lugar nenhum, e
+  // este texto explica o porquê. É para ferramenta em conserto: tirar do menu
+  // faria a pessoa procurar por algo que sumiu sem explicação.
+  indisponivel?: string
 }
 
 type NavGroup = {
@@ -50,7 +55,13 @@ const navGroups: NavGroup[] = [
       { href: '/whatsapp-numbers', label: 'Meus Números', icon: Phone },
       { href: '/campaigns', label: 'Campanhas', icon: Megaphone },
       { href: '/leads', label: 'Leads', icon: Users },
-      { href: '/rastreamento', label: 'Rastreamento', icon: Link2 },
+      {
+        href: '/rastreamento',
+        label: 'Rastreamento',
+        icon: Link2,
+        // Em conserto — ver `lib/rastreamento-landing`.
+        ...(RASTREAMENTO_LANDING_ATIVO ? {} : { indisponivel: 'Em manutenção' }),
+      },
       { href: '/webhooks', label: 'Webhooks', icon: Webhook },
     ],
   },
@@ -114,8 +125,29 @@ export default function DashboardSidebar() {
             <div className="space-y-0.5">
               {group.items
                 .filter(item => !item.adminOnly || isAdmin)
-                .map(({ href, label, icon: Icon, exact }) => {
+                .map(({ href, label, icon: Icon, exact, indisponivel }) => {
                   const isActive = exact ? activePath === href : activePath.startsWith(href)
+
+                  // Em manutenção: continua à vista, apagado e sem link. O
+                  // motivo vai no título e no selo ao lado, para a pessoa não
+                  // achar que quebrou nem ficar clicando.
+                  if (indisponivel) {
+                    return (
+                      <div
+                        key={href}
+                        title={indisponivel}
+                        aria-disabled="true"
+                        className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-400 dark:text-gray-600 cursor-not-allowed"
+                      >
+                        <Icon className="w-4 h-4 flex-shrink-0" />
+                        <span className="truncate">{label}</span>
+                        <span className="ml-auto text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-gray-200 text-gray-500 dark:bg-gray-800 dark:text-gray-500">
+                          Manutenção
+                        </span>
+                      </div>
+                    )
+                  }
+
                   return (
                     <Link
                       key={href}

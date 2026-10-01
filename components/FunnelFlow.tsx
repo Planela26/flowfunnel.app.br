@@ -24,7 +24,7 @@ import {
   type Connection,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
-import { CheckCircle, XCircle, DollarSign, Lightbulb, Plus, X } from 'lucide-react'
+import { CheckCircle, XCircle, DollarSign, Lightbulb, Plus, X, Wrench } from 'lucide-react'
 import Link from 'next/link'
 import { AVAILABLE_INTEGRATIONS, type IntegrationCard } from '@/hooks/useFunnelView'
 
@@ -191,9 +191,15 @@ function IntegrationCardNode({ data }: NodeProps) {
   const onRemove = d.onRemove
   const onInsight = d.onInsight
 
+  // Ferramenta em conserto: o card fica no funil, apagado, dizendo o motivo.
+  // Sem número, porque número de ferramenta quebrada é justamente o problema.
+  const indisponivel = card.indisponivel
+
   return (
     <div
-      className="w-52 bg-gray-900 border-2 rounded-2xl shadow-2xl overflow-hidden select-none relative"
+      className={`w-52 bg-gray-900 border-2 rounded-2xl shadow-2xl overflow-hidden select-none relative ${
+        indisponivel ? 'opacity-60 grayscale' : ''
+      }`}
       style={borderColor}
     >
       {/* Remove button */}
@@ -223,19 +229,38 @@ function IntegrationCardNode({ data }: NodeProps) {
           </div>
           <div className="text-xs font-bold text-white">{card.label}</div>
         </div>
-        {connected && (
+        {/* A bolinha pulsando quer dizer "recebendo agora". Card em manutenção
+            não recebe, então ela não aparece mesmo que a integração conste
+            como conectada. */}
+        {connected && !indisponivel && (
           <div className="ml-auto">
             <div className="w-2 h-2 rounded-full animate-pulse" style={dotColor} />
           </div>
         )}
-        {loading && (
+        {loading && !indisponivel && (
           <div className="ml-auto w-4 h-4 border-2 rounded-full animate-spin" style={{ borderColor: c, borderTopColor: 'transparent' }} />
         )}
       </div>
 
       {/* Body */}
       <div className="p-3">
-        {loading ? (
+        {indisponivel ? (
+          /* FERRAMENTA EM CONSERTO. Vem antes de tudo, inclusive do loading:
+             um card em manutenção não pode girar carregando nem mostrar
+             número velho — era medindo errado que ele foi parar aqui. */
+          <div className="flex flex-col items-center py-4 gap-2 text-center">
+            <div
+              className="w-10 h-10 rounded-xl flex items-center justify-center text-base border-2 border-dashed border-gray-600 bg-gray-800/60"
+            >
+              <Wrench className="w-4 h-4 text-gray-400" />
+            </div>
+            <p className="text-[11px] font-semibold text-gray-300">{indisponivel}</p>
+            <p className="text-[9px] text-gray-500 leading-tight px-1">
+              O rastreamento de site está sendo refeito. Volta a funcionar aqui
+              mesmo, sem você precisar reinstalar nada.
+            </p>
+          </div>
+        ) : loading ? (
           <div className="flex flex-col items-center py-3 gap-2">
             <div className="w-5 h-5 border-2 rounded-full animate-spin" style={{ borderColor: c, borderTopColor: 'transparent' }} />
             <span className="text-[10px] text-gray-500">Carregando...</span>

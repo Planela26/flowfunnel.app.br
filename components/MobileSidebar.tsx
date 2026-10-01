@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { useNavigation } from './NavigationContext'
+import { RASTREAMENTO_LANDING_ATIVO } from '@/lib/rastreamento-landing'
 import {
   Settings, LayoutDashboard, Phone,
   Megaphone, Webhook, BarChart2, Users2, UserCog, X,
@@ -21,6 +22,9 @@ type NavItem = {
   icon: React.ElementType
   exact?: boolean
   adminOnly?: boolean
+  // Ver o comentário equivalente em DashboardSidebar: item que aparece mas
+  // não leva a lugar nenhum, com o motivo à vista.
+  indisponivel?: string
 }
 
 type NavGroup = {
@@ -52,7 +56,13 @@ const navGroups: NavGroup[] = [
       { href: '/whatsapp-numbers', label: 'Meus Números', icon: Phone },
       { href: '/campaigns', label: 'Campanhas', icon: Megaphone },
       { href: '/leads', label: 'Leads', icon: Users },
-      { href: '/rastreamento', label: 'Rastreamento', icon: Link2 },
+      {
+        href: '/rastreamento',
+        label: 'Rastreamento',
+        icon: Link2,
+        // Em conserto — ver `lib/rastreamento-landing`.
+        ...(RASTREAMENTO_LANDING_ATIVO ? {} : { indisponivel: 'Em manutenção' }),
+      },
       { href: '/webhooks', label: 'Webhooks', icon: Webhook },
     ],
   },
@@ -146,8 +156,25 @@ export default function MobileSidebar({ open, onClose }: Props) {
               <div className="space-y-0.5">
                 {group.items
                   .filter(item => !item.adminOnly || isAdmin)
-                  .map(({ href, label, icon: Icon, exact }) => {
+                  .map(({ href, label, icon: Icon, exact, indisponivel }) => {
                     const isActive = exact ? activePath === href : activePath.startsWith(href)
+
+                    if (indisponivel) {
+                      return (
+                        <div
+                          key={href}
+                          aria-disabled="true"
+                          className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-gray-400 dark:text-gray-600 cursor-not-allowed"
+                        >
+                          <Icon className="w-5 h-5 flex-shrink-0" />
+                          <span className="truncate">{label}</span>
+                          <span className="ml-auto text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-gray-200 text-gray-500 dark:bg-gray-800 dark:text-gray-500">
+                            Manutenção
+                          </span>
+                        </div>
+                      )
+                    }
+
                     return (
                       <Link
                         key={href}

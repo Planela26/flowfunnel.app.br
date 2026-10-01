@@ -3,8 +3,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import {
   Link2, Copy, Check, Plus, Trash2, Code2, ChevronDown, ChevronUp,
-  CircleDot, Loader2, ExternalLink, AlertCircle,
+  CircleDot, Loader2, ExternalLink, AlertCircle, Wrench,
 } from 'lucide-react'
+import { RASTREAMENTO_LANDING_ATIVO } from '@/lib/rastreamento-landing'
 
 type Site = {
   id: string
@@ -111,6 +112,28 @@ export default function RastreamentoPage() {
           Descubra de onde vem cada visita, lead e venda.
         </p>
       </div>
+
+      {/* Esta página saiu do menu enquanto a ferramenta é refeita, mas o
+          endereço continua funcionando — quem chegar por link salvo precisa
+          saber que os números daqui não são confiáveis agora. Avisar sem
+          bloquear: é nesta tela que o conserto acontece. */}
+      {!RASTREAMENTO_LANDING_ATIVO && (
+        <div className="mb-6 flex gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4 dark:border-amber-900/50 dark:bg-amber-950/30">
+          <Wrench className="h-5 w-5 flex-shrink-0 text-amber-600 dark:text-amber-500" />
+          <div>
+            <p className="text-sm font-semibold text-amber-900 dark:text-amber-200">
+              Em manutenção
+            </p>
+            <p className="mt-0.5 text-sm text-amber-800 dark:text-amber-300/90">
+              O rastreamento de site está sendo refeito porque misturava dados
+              entre funis. O que já está instalado continua coletando e nada
+              foi apagado — mas os números desta tela não são confiáveis até o
+              conserto terminar. O card no funil está marcado como
+              indisponível.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* ── Status ─────────────────────────────────────────────────────── */}
       {sites.length > 0 && (
